@@ -1,0 +1,49 @@
+﻿<Window x:Class="RustServerManager.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:RustServerManager"
+        xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="Rust Server Manager"
+                
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}"
+        
+        BorderThickness="1"
+        BorderBrush="White"
+        
+        d:DesignHeight="800"
+        d:DesignWidth="800">
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0">
+                <Image Source="/Images/rust-logo.png" Stretch="UniformToFill"/>
+                <Separator Style="{StaticResource HorizontalSeparator}"/>
+                <Button Style="{StaticResource FlatButton}" Content="Servers" Command="{Binding CommandView}"/>
+            </StackPanel>
+            <StackPanel Grid.Row="1">
+                <Button Style="{StaticResource FlatButton}" Content="Setup" Command="{Binding CommandSettings}"/>
+                <Button Style="{StaticResource FlatButton}" Content="Exit" Command="{Binding CommandSettings}"/>
+            </StackPanel>
+        </Grid>
+        <Separator Grid.Column="1" Style="{StaticResource VerticalSeparator}"/>
+        <ContentControl Grid.Column="2" Content="{Binding Path=CurrentContent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+    </Grid>
+</Window>
