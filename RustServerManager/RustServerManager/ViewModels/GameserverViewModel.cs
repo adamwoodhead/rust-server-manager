@@ -21,7 +21,35 @@ namespace RustServerManager.ViewModels
         {
             _gameserver = gameserver;
 
-            ViewModelLoopTask(() => { OnPropertyChanged(nameof(IsRunning)); }, 250);
+            ViewModelLoopTask(() => {
+                OnPropertyChanged(nameof(Status));
+                OnPropertyChanged(nameof(IsRunning));
+            }, 250);
+
+            StartCommand = new CommandImplementation(o => Start());
+            StopCommand = new CommandImplementation(o => Stop());
+            RestartCommand = new CommandImplementation(o => Restart());
+            KillCommand = new CommandImplementation(o => Kill());
+
+            DeleteCommand = new CommandImplementation(o => Delete());
+
+            WipeMapCommand = new CommandImplementation(o => WipeMap());
+            WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
+        }
+
+        public GameserverViewModel()
+        {
+            _gameserver = new Gameserver();
+
+            StartCommand = new CommandImplementation(o => Start());
+            StopCommand = new CommandImplementation(o => Stop());
+            RestartCommand = new CommandImplementation(o => Restart());
+            KillCommand = new CommandImplementation(o => Kill());
+
+            DeleteCommand = new CommandImplementation(o => Delete());
+
+            WipeMapCommand = new CommandImplementation(o => WipeMap());
+            WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
         }
 
         public int ID
@@ -219,19 +247,6 @@ namespace RustServerManager.ViewModels
             }
         }
 
-        public bool IsInstalled
-        {
-            get => _gameserver.IsInstalled;
-            set
-            {
-                if (_gameserver.IsInstalled != value)
-                {
-                    _gameserver.IsInstalled = value;
-                    OnPropertyChanged(nameof(IsInstalled));
-                }
-            }
-        }
-
         public bool IsRunning
         {
             get => _gameserver.IsRunning;
@@ -245,6 +260,19 @@ namespace RustServerManager.ViewModels
             }
         }
 
+        public string Status
+        {
+            get => _gameserver.Status;
+            set
+            {
+                if (_gameserver.Status != value)
+                {
+                    _gameserver.Status = value;
+                    OnPropertyChanged(nameof(Status));
+                }
+            }
+        }
+
         public ICommand StartCommand { get; set; }
 
         public ICommand StopCommand { get; set; }
@@ -253,33 +281,11 @@ namespace RustServerManager.ViewModels
 
         public ICommand RestartCommand { get; set; }
 
-        public ICommand InstallCommand { get; set; }
-
-        public ICommand ReinstallCommand { get; set; }
-
-        public ICommand UninstallCommand { get; set; }
-
         public ICommand DeleteCommand { get; set; }
 
         public ICommand WipeMapCommand { get; set; }
 
         public ICommand WipeBPCommand { get; set; }
-
-        public GameserverViewModel()
-        {
-            StartCommand = new CommandImplementation(o => Start());
-            StopCommand = new CommandImplementation(o => Stop());
-            RestartCommand = new CommandImplementation(o => Restart());
-            KillCommand = new CommandImplementation(o => Kill());
-
-            InstallCommand = new CommandImplementation(o => Install());
-            ReinstallCommand = new CommandImplementation(o => Reinstall());
-            UninstallCommand = new CommandImplementation(o => Uninstall());
-            DeleteCommand = new CommandImplementation(o => Delete());
-
-            WipeMapCommand = new CommandImplementation(o => WipeMap());
-            WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
-        }
 
         public void Start()
         {
@@ -299,21 +305,6 @@ namespace RustServerManager.ViewModels
         public void Kill()
         {
             _gameserver.Kill();
-        }
-
-        public void Install()
-        {
-            _gameserver.Install();
-        }
-
-        public void Reinstall()
-        {
-            _gameserver.Reinstall();
-        }
-
-        public void Uninstall()
-        {
-            _gameserver.Uninstall();
         }
 
         public void Delete()

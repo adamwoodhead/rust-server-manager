@@ -36,11 +36,12 @@
             <StackPanel Grid.Row="0">
                 <Image Source="/Images/rust-logo.png" Stretch="UniformToFill"/>
                 <Separator Style="{StaticResource HorizontalSeparator}"/>
-                <Button Style="{StaticResource FlatButton}" Content="Servers" Command="{Binding CommandView}"/>
+                <Button Style="{StaticResource FlatButton}" Content="Servers" Command="{Binding CommandGameservers}"/>
             </StackPanel>
             <StackPanel Grid.Row="1">
+                <Button Style="{StaticResource FlatButton}" Content="Test" Command="{Binding CommandTest}"/>
                 <Button Style="{StaticResource FlatButton}" Content="Setup" Command="{Binding CommandSettings}"/>
-                <Button Style="{StaticResource FlatButton}" Content="Exit" Command="{Binding CommandSettings}"/>
+                <Button Style="{StaticResource FlatButton}" Content="Exit" Command="{Binding CommandExit}"/>
             </StackPanel>
         </Grid>
         <Separator Grid.Column="1" Style="{StaticResource VerticalSeparator}"/>

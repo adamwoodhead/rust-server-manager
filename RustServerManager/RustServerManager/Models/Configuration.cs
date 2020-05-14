@@ -8,5 +8,6 @@ namespace RustServerManager.Models
 {
     public class Configuration
     {
+
     }
 }

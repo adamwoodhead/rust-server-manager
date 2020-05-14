@@ -18,9 +18,9 @@ namespace RustServerManager.Views
     /// <summary>
     /// Interaction logic for ViewUserControl.xaml
     /// </summary>
-    public partial class ViewUserControl : UserControl
+    public partial class GameserversUserControl : UserControl
     {
-        public ViewUserControl(ViewModels.GameserversViewModel viewViewModel)
+        public GameserversUserControl(ViewModels.GameserversViewModel viewViewModel)
         {
             this.DataContext = viewViewModel;
 

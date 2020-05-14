@@ -33,24 +33,44 @@ namespace RustServerManager.ViewModels
         [JsonProperty]
         public SetupViewModel SetupViewModel { get; set; } = new SetupViewModel();
 
-        public ICommand CommandView { get; set; }
+        public ICommand CommandGameservers { get; set; }
 
         public ICommand CommandConfiguration { get; set; }
 
         public ICommand CommandSettings { get; set; }
 
+        public ICommand CommandExit { get; set; }
+
+        public ICommand CommandTest { get; set; }
+
         public MainWindowViewModel()
         {
-            CommandView             = new CommandImplementation(o => View());
+            CommandGameservers      = new CommandImplementation(o => Gameservers());
             CommandConfiguration    = new CommandImplementation(o => Configuration());
             CommandSettings         = new CommandImplementation(o => Setup());
+            CommandExit             = new CommandImplementation(o => Exit());
+            CommandTest             = new CommandImplementation(o => Test());
 
-            View();
+            Gameservers();
         }
 
-        void View()
+        private void Exit()
         {
-            CurrentContent = new Views.ViewUserControl(GamserversViewModel);
+            App.MainWindowInstance.Close();
+        }
+
+        private void Test()
+        {
+            Models.WebRcon.RconService rcon = new Models.WebRcon.RconService();
+
+            rcon.Connect("51.68.204.234:28016", "testing7539");
+
+            rcon.GetPlayers();
+        }
+
+        void Gameservers()
+        {
+            CurrentContent = new Views.GameserversUserControl(GamserversViewModel);
         }
 
         void Configuration()

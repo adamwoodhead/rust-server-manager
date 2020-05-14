@@ -39,7 +39,7 @@ namespace RustServerManager
         {
             Console.WriteLine("Begin Shutdown...");
 
-            Console.WriteLine("Stopping Servers.");
+            Console.WriteLine("Stopping Servers.");  
             foreach (Gameserver gameserver in App.Memory.Gameservers)
             {
                 gameserver.Kill();

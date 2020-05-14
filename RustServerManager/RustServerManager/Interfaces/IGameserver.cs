@@ -23,15 +23,11 @@ namespace RustServerManager.Interfaces
         string Server_Seed { get; set; }
         int Server_Tickrate { get; set; }
         int Server_WorldSize { get; set; }
-        bool IsInstalled { get; set; }
         bool IsRunning { get; set; }
         void Start();
         void Restart();
         void Stop();
         void Kill();
-        void Install();
-        void Reinstall();
-        void Uninstall();
         void Delete();
         void WipeMap();
         void WipeMapAndBP();

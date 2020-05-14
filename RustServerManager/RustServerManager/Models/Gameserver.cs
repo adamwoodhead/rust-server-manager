@@ -58,10 +58,14 @@ namespace RustServerManager.Models
         [DataMember]
         public int Server_WorldSize { get; set; }
 
-        [DataMember]
-        public bool IsInstalled { get; set; }
-
         public bool IsRunning { get; set; } = false;
+
+        public string Status { get; set; }
+
+        //private string ServerDataDirectory
+        //{
+        //    get => App.Memory.Configuration;
+        //}
 
         private string CommandLine
         {
@@ -112,7 +116,6 @@ namespace RustServerManager.Models
                 Server_Seed = Generators.GetUniqueKey(10, "1234567890");
                 Server_Tickrate = 10;
                 Server_WorldSize = 3000;
-                IsInstalled = false;
                 IsRunning = false;
             }
         }
@@ -122,39 +125,26 @@ namespace RustServerManager.Models
             throw new NotImplementedException();
         }
 
-        public void Install()
+        public void Start()
         {
-            throw new NotImplementedException();
+            IsRunning = true;
+        }
+
+        public void Stop()
+        {
+            IsRunning = false;
+        }
+
+        public void Restart()
+        {
+            Stop();
+            Start();
         }
 
         public void Kill()
         {
             GameProcess?.Kill();
-        }
-
-        public void Reinstall()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Restart()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Start()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Stop()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Uninstall()
-        {
-            throw new NotImplementedException();
+            IsRunning = false;
         }
 
         public void WipeMap()
