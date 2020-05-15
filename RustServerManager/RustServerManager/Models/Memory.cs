@@ -62,6 +62,7 @@ namespace RustServerManager.Models
             }
             else
             {
+                App.MemoryWasGenerated = true;
                 return new Memory();
             }
         }

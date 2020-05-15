@@ -18,8 +18,8 @@
             Background="{DynamicResource MaterialDesignPaper}"
             FontFamily="{DynamicResource MaterialDesignFont}"
         
-            d:DesignHeight="800"
-            d:DesignWidth="800">
+            Height="540"
+            Width="675">
     <UserControl.Resources>
         <conv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <conv:InvertBooleanToVisibilityConverter x:Key="InvertBooleanToVisibilityConverter"/>
@@ -30,142 +30,144 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <!--<ItemsControl Grid.Row="0" ItemsSource="{Binding Path=Gameservers, UpdateSourceTrigger=PropertyChanged}">-->
-        <ItemsControl Grid.Row="0">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
+        <ScrollViewer VerticalScrollBarVisibility="Visible">
+            <ItemsControl Grid.Row="0" ItemsSource="{Binding Path=Gameservers, UpdateSourceTrigger=PropertyChanged}">
+                <!--<ItemsControl Grid.Row="0">-->
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
 
-                    <materialDesign:Card Height="320">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="160"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="auto"/>
-                                <ColumnDefinition Width="auto"/>
-                            </Grid.ColumnDefinitions>
+                        <materialDesign:Card Height="320">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="160"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="auto"/>
+                                    <ColumnDefinition Width="auto"/>
+                                </Grid.ColumnDefinitions>
 
-                            <Separator Grid.Column="1" Grid.RowSpan="6" Style="{StaticResource VerticalSeparator}" Margin="0"/>
+                                <Separator Grid.Column="1" Grid.RowSpan="6" Style="{StaticResource VerticalSeparator}" Margin="0"/>
 
-                            <Expander Grid.Column="2" Grid.RowSpan="6" ExpandDirection="Right">
-                                <Expander.Header>
-                                    <TextBlock Text="Server Statistics &amp; Control" RenderTransformOrigin=".5,.5">
-                                        <TextBlock.LayoutTransform>
-                                            <RotateTransform Angle="90" />
-                                        </TextBlock.LayoutTransform>
-                                    </TextBlock>
-                                </Expander.Header>
-                                <Grid Margin="8,24,16,24" HorizontalAlignment="Stretch">
+                                <Expander Grid.Column="2" Grid.RowSpan="6" ExpandDirection="Right">
+                                    <Expander.Header>
+                                        <TextBlock Text="Server Statistics &amp; Control" RenderTransformOrigin=".5,.5">
+                                            <TextBlock.LayoutTransform>
+                                                <RotateTransform Angle="90" />
+                                            </TextBlock.LayoutTransform>
+                                        </TextBlock>
+                                    </Expander.Header>
+                                    <Grid Margin="8,24,16,24" HorizontalAlignment="Stretch" Width="530">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Row="0" Grid.Column="0" Content="Fake Button" Style="{StaticResource RegularButton}"/>
+                                        <Button Grid.Row="0" Grid.Column="1" Content="Fake Button" Style="{StaticResource RegularButton}"/>
+                                        <Button Grid.Row="1" Grid.Column="0" Content="Fake Button" Style="{StaticResource RegularButton}"/>
+                                        <Button Grid.Row="1" Grid.Column="1" Content="Fake Button" Style="{StaticResource RegularButton}"/>
+                                    </Grid>
+                                </Expander>
+
+                                <materialDesign:ColorZone Grid.Row="0" Mode="PrimaryLight" VerticalAlignment="Stretch">
+                                    <Image Source="/Images/rust-back.png" Stretch="UniformToFill" HorizontalAlignment="Right" Width="200"/>
+                                </materialDesign:ColorZone>
+
+                                <Separator Grid.Row="1" Style="{StaticResource HorizontalSeparator}"/>
+
+                                <Grid Grid.Row="2">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <Button Grid.Row="0" Grid.Column="0" Content="Fake Button" Style="{StaticResource RegularButton}"/>
-                                    <Button Grid.Row="0" Grid.Column="1" Content="Fake Button" Style="{StaticResource RegularButton}"/>
-                                    <Button Grid.Row="1" Grid.Column="0" Content="Fake Button" Style="{StaticResource RegularButton}"/>
-                                    <Button Grid.Row="1" Grid.Column="1" Content="Fake Button" Style="{StaticResource RegularButton}"/>
+
+                                    <TextBox Grid.Row="0" Style="{StaticResource MaterialDesignTextBox}" Text="{Binding Path=Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" materialDesign:HintAssist.Hint="Name" ToolTip="Just short name for your server, this is not the hostname (not seen in server list)" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+
                                 </Grid>
-                            </Expander>
 
-                            <materialDesign:ColorZone Grid.Row="0" Mode="PrimaryLight" VerticalAlignment="Stretch">
-                                <Image Source="/Images/rust-back.png" Stretch="UniformToFill" HorizontalAlignment="Right" Width="200"/>
-                            </materialDesign:ColorZone>
-
-                            <Separator Grid.Row="1" Style="{StaticResource HorizontalSeparator}"/>
-
-                            <Grid Grid.Row="2">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="*"/>
-                                    <RowDefinition Height="*"/>
-                                </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <TextBox Grid.Row="0" Style="{StaticResource MaterialDesignTextBox}" Text="{Binding Path=Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" materialDesign:HintAssist.Hint="Name" ToolTip="Just short name for your server, this is not the hostname (not seen in server list)" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-
-                            </Grid>
-
-                            <TextBlock Grid.Row="3" Margin="0 10 0 0" HorizontalAlignment="Center" FontWeight="DemiBold">
-                                <TextBlock.Resources>
-                                    <Style TargetType="{x:Type TextBlock}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Path=IsRunning}" Value="True">
-                                                <Setter Property="Text" Value="ONLINE"/>
-                                                <Setter Property="Foreground" Value="Green"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding Path=IsRunning}" Value="False">
-                                                <Setter Property="Text" Value="OFFLINE"/>
-                                                <Setter Property="Foreground" Value="Red"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Resources>
-                            </TextBlock>
-
-                            <Separator Grid.Row="4" Style="{StaticResource HorizontalSeparator}"/>
-
-                            <Grid Grid.Row="5" VerticalAlignment="Bottom">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                    <StackPanel.Resources>
-                                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
-                                            <Setter Property="Margin" Value="0 0 8 0"/>
-                                            <Setter Property="Height" Value="32"/>
-                                            <Setter Property="Width" Value="32"/>
-                                            <Setter Property="Background" Value="{DynamicResource MaterialDesignTextFieldBoxBackground}"/>
+                                <TextBlock Grid.Row="3" Margin="0 10 0 0" HorizontalAlignment="Center" FontWeight="DemiBold">
+                                    <TextBlock.Resources>
+                                        <Style TargetType="{x:Type TextBlock}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=IsRunning}" Value="True">
+                                                    <Setter Property="Text" Value="ONLINE"/>
+                                                    <Setter Property="Foreground" Value="Green"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Path=IsRunning}" Value="False">
+                                                    <Setter Property="Text" Value="OFFLINE"/>
+                                                    <Setter Property="Foreground" Value="Red"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
                                         </Style>
-                                    </StackPanel.Resources>
-                                    <Button ToolTip="Start Server" Command="{Binding StartCommand}" Visibility="{Binding IsRunning, Converter={StaticResource InvertBooleanToVisibilityConverter}}">
-                                        <materialDesign:PackIcon Kind="Play"/>
-                                    </Button>
-                                    <Button ToolTip="Stop Server" Command="{Binding StopCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <materialDesign:PackIcon Kind="Stop"/>
-                                    </Button>
-                                    <Button ToolTip="Restart Server" Command="{Binding RestartCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <materialDesign:PackIcon Kind="Restart"/>
-                                    </Button>
-                                    <Button ToolTip="Kill Server (Unsafe/Instant Stop)" Command="{Binding KillCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <materialDesign:PackIcon Kind="Skull"/>
-                                    </Button>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <StackPanel.Resources>
-                                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
-                                            <Setter Property="Margin" Value="8 0 0 0"/>
-                                            <Setter Property="Height" Value="32"/>
-                                            <Setter Property="Width" Value="32"/>
-                                            <Setter Property="Background" Value="{DynamicResource MaterialDesignTextFieldBoxBackground}"/>
-                                        </Style>
-                                    </StackPanel.Resources>
-                                    <Button ToolTip="Configure">
-                                        <materialDesign:PackIcon Kind="InformationVariant"/>
-                                    </Button>
-                                    <Button ToolTip="Configure" Command="{x:Static materialDesign:Flipper.FlipCommand}">
-                                        <materialDesign:PackIcon Kind="Settings"/>
-                                    </Button>
-                                </StackPanel>
+                                    </TextBlock.Resources>
+                                </TextBlock>
+
+                                <Separator Grid.Row="4" Style="{StaticResource HorizontalSeparator}"/>
+
+                                <Grid Grid.Row="5" VerticalAlignment="Bottom">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                        <StackPanel.Resources>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
+                                                <Setter Property="Margin" Value="0 0 8 0"/>
+                                                <Setter Property="Height" Value="32"/>
+                                                <Setter Property="Width" Value="32"/>
+                                                <Setter Property="Background" Value="{DynamicResource MaterialDesignTextFieldBoxBackground}"/>
+                                            </Style>
+                                        </StackPanel.Resources>
+                                        <Button ToolTip="Start Server" Command="{Binding StartCommand}" Visibility="{Binding IsRunning, Converter={StaticResource InvertBooleanToVisibilityConverter}}">
+                                            <materialDesign:PackIcon Kind="Play"/>
+                                        </Button>
+                                        <Button ToolTip="Stop Server" Command="{Binding StopCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <materialDesign:PackIcon Kind="Stop"/>
+                                        </Button>
+                                        <Button ToolTip="Restart Server" Command="{Binding RestartCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <materialDesign:PackIcon Kind="Restart"/>
+                                        </Button>
+                                        <Button ToolTip="Kill Server (Unsafe/Instant Stop)" Command="{Binding KillCommand}" Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <materialDesign:PackIcon Kind="Skull"/>
+                                        </Button>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <StackPanel.Resources>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource MaterialDesignIconButton}">
+                                                <Setter Property="Margin" Value="8 0 0 0"/>
+                                                <Setter Property="Height" Value="32"/>
+                                                <Setter Property="Width" Value="32"/>
+                                                <Setter Property="Background" Value="{DynamicResource MaterialDesignTextFieldBoxBackground}"/>
+                                            </Style>
+                                        </StackPanel.Resources>
+                                        <Button ToolTip="Configure">
+                                            <materialDesign:PackIcon Kind="InformationVariant"/>
+                                        </Button>
+                                        <Button ToolTip="Configure" Command="{x:Static materialDesign:Flipper.FlipCommand}">
+                                            <materialDesign:PackIcon Kind="Settings"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
                             </Grid>
-                        </Grid>
-                    </materialDesign:Card>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <viewModels:GameserverViewModel Name="1 | My New Server"/>
-        </ItemsControl>
+                        </materialDesign:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <!--<viewModels:GameserverViewModel Name="1 | My New Server"/>-->
+            </ItemsControl>
+        </ScrollViewer>
 
         <Separator Grid.Row="1" Style="{StaticResource HorizontalSeparator}"/>
         <StackPanel Grid.Row="2">

@@ -113,8 +113,7 @@ namespace RustServerManager.ViewModels
             return Task.Run(() => Validate());
         }
 
-        private object _lock = new object();
-        private bool _hasChanged = false;
+        private readonly object _lock = new object();
 
         public void Validate()
         {

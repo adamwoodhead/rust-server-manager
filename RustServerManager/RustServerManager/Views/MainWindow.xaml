@@ -20,8 +20,10 @@
         BorderThickness="1"
         BorderBrush="White"
         
-        d:DesignHeight="800"
-        d:DesignWidth="800">
+        ResizeMode="NoResize"
+        
+        Height="600"
+        Width="875">
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="150"/>
@@ -40,7 +42,7 @@
             </StackPanel>
             <StackPanel Grid.Row="1">
                 <Button Style="{StaticResource FlatButton}" Content="Test" Command="{Binding CommandTest}"/>
-                <Button Style="{StaticResource FlatButton}" Content="Setup" Command="{Binding CommandSettings}"/>
+                <Button Style="{StaticResource FlatButton}" Content="Settings" Command="{Binding CommandSettings}"/>
                 <Button Style="{StaticResource FlatButton}" Content="Exit" Command="{Binding CommandExit}"/>
             </StackPanel>
         </Grid>

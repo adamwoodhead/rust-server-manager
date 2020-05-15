@@ -1,6 +1,7 @@
 ﻿using System;
-using System.Threading.Tasks;
+using System.IO;
 using System.Windows;
+using Microsoft.Win32;
 using RustServerManager.Models;
 using RustServerManager.Views;
 
@@ -8,15 +9,28 @@ namespace RustServerManager
 {
     public partial class App : Application
     {
+        internal static bool MemoryWasGenerated { get; set; } = false;
+
         internal static MainWindow MainWindowInstance { get; set; }
 
         internal static Memory Memory { get; set; }
-
+        
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            File.Delete(Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RSSM"), "memory.json"));
+            
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             Memory = Memory.Load();
+
+            if (MemoryWasGenerated)
+            {
+                if (!FirstTimeSetup())
+                {
+                    Environment.Exit(0);
+                    return;
+                }
+            }
 
             // Initialize MainWindow
             this.MainWindow = MainWindowInstance = new MainWindow
@@ -28,11 +42,23 @@ namespace RustServerManager
 
             this.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
-            this.Exit += delegate{ PreExit(); };
+            this.Exit += delegate { PreExit(); };
 
             this.Dispatcher.UnhandledException += OnDispatcherUnhandledException;
 
             MainWindowInstance.ShowDialog();
+        }
+
+        private bool FirstTimeSetup()
+        {
+            SetupWindow setupWindow = new SetupWindow()
+            {
+                WindowStartupLocation = WindowStartupLocation.CenterScreen
+            };
+
+            setupWindow.ShowDialog();
+
+            return setupWindow.ViewModel.Success;
         }
 
         private void PreExit()

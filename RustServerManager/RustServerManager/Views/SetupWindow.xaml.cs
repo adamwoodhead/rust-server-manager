@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RustServerManager.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,21 +11,29 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace RustServerManager.Views
 {
     /// <summary>
-    /// Interaction logic for SetupUserControl.xaml
+    /// Interaction logic for SetupWindow.xaml
     /// </summary>
-    public partial class SetupUserControl : UserControl
+    public partial class SetupWindow : Window
     {
-        public SetupUserControl(ViewModels.SetupViewModel setupViewModel)
+        public SetupWindowViewModel ViewModel { get; set; }
+
+        public SetupWindow()
         {
-            this.DataContext = setupViewModel;
+            ViewModel = new SetupWindowViewModel(this);
+
+            this.DataContext = ViewModel;
 
             InitializeComponent();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            ViewModel.HasLoaded();
         }
     }
 }

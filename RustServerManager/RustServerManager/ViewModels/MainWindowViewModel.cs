@@ -29,10 +29,7 @@ namespace RustServerManager.ViewModels
 
         [JsonProperty]
         public ConfigurationViewModel ConfigurationViewModel { get; set; } = new ConfigurationViewModel(App.Memory.Configuration);
-
-        [JsonProperty]
-        public SetupViewModel SetupViewModel { get; set; } = new SetupViewModel();
-
+        
         public ICommand CommandGameservers { get; set; }
 
         public ICommand CommandConfiguration { get; set; }
@@ -47,7 +44,7 @@ namespace RustServerManager.ViewModels
         {
             CommandGameservers      = new CommandImplementation(o => Gameservers());
             CommandConfiguration    = new CommandImplementation(o => Configuration());
-            CommandSettings         = new CommandImplementation(o => Setup());
+            //CommandSettings         = new CommandImplementation(o => Setup());
             CommandExit             = new CommandImplementation(o => Exit());
             CommandTest             = new CommandImplementation(o => Test());
 
@@ -76,11 +73,6 @@ namespace RustServerManager.ViewModels
         void Configuration()
         {
             CurrentContent = new Views.ConfigurationUserControl(ConfigurationViewModel);
-        }
-
-        void Setup()
-        {
-            CurrentContent = new Views.SetupUserControl(SetupViewModel);
         }
     }
 }
