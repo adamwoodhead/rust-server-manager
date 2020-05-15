@@ -22,9 +22,9 @@ namespace RustServerManager.Views
     {
         public SetupWindowViewModel ViewModel { get; set; }
 
-        public SetupWindow()
+        public SetupWindow(bool firstTime)
         {
-            ViewModel = new SetupWindowViewModel(this);
+            ViewModel = new SetupWindowViewModel(this, firstTime);
 
             this.DataContext = ViewModel;
 

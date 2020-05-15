@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace RustServerManager.ViewModels
 {
@@ -15,6 +16,8 @@ namespace RustServerManager.ViewModels
 
         public ICommand CreateCommand { get; set; }
 
+        public ICommand UpdateCommand { get; set; }
+
         public GameserversViewModel(List<Gameserver> gameservers)
         {
             foreach (Gameserver gameserver in gameservers)
@@ -23,6 +26,7 @@ namespace RustServerManager.ViewModels
             }
 
             CreateCommand = new CommandImplementation(o => CreateGameserver());
+            UpdateCommand = new CommandImplementation(o => UpdateRust());
         }
 
         private void CreateGameserver()
@@ -33,6 +37,18 @@ namespace RustServerManager.ViewModels
             Gameservers.Add(new GameserverViewModel(gameserver));
 
             App.Memory.Save();
+        }
+
+        private async void UpdateRust()
+        {
+            Views.SetupWindow setupWindow = new Views.SetupWindow(false)
+            {
+                WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen
+            };
+
+            TaskCompletionSource<bool?> completion = new TaskCompletionSource<bool?>();
+            await setupWindow.Dispatcher.BeginInvoke(new Action(() => completion.SetResult(setupWindow.ShowDialog())));
+            //bool? result = await completion.Task;
         }
     }
 }

@@ -23,16 +23,17 @@
         
         SizeToContent="WidthAndHeight"
         
-        Loaded="Window_Loaded">
+        Loaded="Window_Loaded" WindowStyle="None">
     <Grid>
-
         <md:Card>
-            <StackPanel>
-                <TextBlock Style="{StaticResource MaterialDesignHeadline2TextBlock}" Text="Rust Server Manager"/>
-                <TextBlock Margin="0 16 0 0" Style="{StaticResource MaterialDesignBody2TextBlock}" Text="{Binding Path=Status, UpdateSourceTrigger=PropertyChanged, FallbackValue='Doing Something...'}"/>
-                <ProgressBar Margin="0 8 0 0" Value="{Binding Path=ProgressValue, UpdateSourceTrigger=PropertyChanged}" Maximum="100"/>
-            </StackPanel>
+            <Grid>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource MaterialDesignHeadline2TextBlock}" Text="Rust Server Manager"/>
+                    <TextBlock Margin="0 16 0 0" Style="{StaticResource MaterialDesignBody2TextBlock}" Text="{Binding Path=Status, UpdateSourceTrigger=PropertyChanged, FallbackValue='Doing Something...'}"/>
+                    <ProgressBar Margin="0 8 0 0" Value="{Binding Path=ProgressValue, UpdateSourceTrigger=PropertyChanged}" Maximum="100"/>
+                    <ProgressBar Margin="0 8 0 0" Value="50" IsIndeterminate="True"/>
+                </StackPanel>
+            </Grid>
         </md:Card>
-
     </Grid>
 </Window>

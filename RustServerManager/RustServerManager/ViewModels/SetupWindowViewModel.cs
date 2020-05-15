@@ -19,6 +19,7 @@ namespace RustServerManager.ViewModels
 
         private string _status = "Doing Something...";
         private int _progressValue = 0;
+        private bool _firstTime = false;
 
         public string Status
         {
@@ -52,8 +53,9 @@ namespace RustServerManager.ViewModels
 
         private Views.SetupWindow _setupWindow;
 
-        public SetupWindowViewModel(Views.SetupWindow setupWindow)
+        public SetupWindowViewModel(Views.SetupWindow setupWindow, bool firstTime)
         {
+            _firstTime = firstTime;
             _setupWindow = setupWindow;
             Loaded = new CommandImplementation(o => HasLoaded());
         }
@@ -61,71 +63,101 @@ namespace RustServerManager.ViewModels
         private void CancelSetup()
         {
             MessageBox.Show("Setup has been cancelled.");
+            Close();
+        }
+
+        private void Close()
+        {
             _setupWindow.Close();
         }
 
         public async void HasLoaded()
         {
-            await Task.Delay(500);
+            await Task.Delay(20);
 
-            // Directories...
-            Status = "Creating Directories";
-            string _appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string _saveFolder = Path.Combine(_appDataFolder, "RSSM");
-            Directory.CreateDirectory(_saveFolder);
-
-            // Select Folder For RustServers & SteamCMD...
-            Status = "Selecting Folder...";
-
-            string baseDir = QueryFolder();
-
-            if (string.IsNullOrEmpty(baseDir))
+            if (_firstTime)
             {
-                CancelSetup();
-                return;
-            }
+                // Directories...
+                Status = "Creating Directories";
+                string _appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string _saveFolder = Path.Combine(_appDataFolder, "RSSM");
+                Directory.CreateDirectory(_saveFolder);
 
-            App.Memory.Configuration.RustServerDirectory = baseDir;
-            string steamCMDDir = Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.RustServerDirectory, "SteamCMD")).FullName;
-            string rustServerDir = Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.RustServerDirectory, "RustDedicated")).FullName;
-            ProgressValue = 20;
+                // Select Folder For RustServers & SteamCMD...
+                Status = "Selecting Folder...";
 
-            // Download SteamCMD...
-            Status = "Downloading Steam CMD";
-            string steamCMDZip = Path.Combine(steamCMDDir, "steamcmd.zip");
-            string steamCMDEXE = Path.Combine(steamCMDDir, "steamcmd.exe");
+                string baseDir = QueryFolder();
 
-            using (var client = new WebClient())
-            {
-                client.DownloadFile(SteamCMDURL, steamCMDZip);
+                if (string.IsNullOrEmpty(baseDir))
+                {
+                    CancelSetup();
+                    return;
+                }
+
+                App.Memory.Configuration.RustServerDirectory = baseDir;
+                string steamCMDDir = Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.RustServerDirectory, "SteamCMD")).FullName;
+                string rustServerDir = Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.RustServerDirectory, "RustDedicated")).FullName;
+                
+
+                Directory.CreateDirectory(steamCMDDir);
+                Directory.CreateDirectory(rustServerDir);
             }
             
-            // Unzip SteamCMD
-            Status = "Unzipping Steam CMD";
-            ZipFile.ExtractToDirectory(steamCMDZip, steamCMDDir);
-            File.Delete(steamCMDZip);
-            ProgressValue = 40;
 
-            // Install SteamCMD (firstrun)
-            Status = "Installing SteamCMD";
+            ProgressValue = 20;
+            string steamCMDZip = Path.Combine(App.Memory.Configuration.SteamCMDFolder, "steamcmd.zip");
+            string steamCMDEXE = App.Memory.Configuration.SteamCMDExecutable;
 
-            Progress<string> progresser = new Progress<string>();
+            if (!File.Exists(steamCMDEXE))
+            {
+                // Download SteamCMD...
+                Status = "Downloading Steam CMD";
 
-            progresser.ProgressChanged += Progresser_ProgressChanged;
+                using (var client = new WebClient())
+                {
+                    client.DownloadFile(SteamCMDURL, steamCMDZip);
+                }
 
-            await Task.Run(() => { Models.SteamCMD.FirstLaunch(progresser); });
+                // Unzip SteamCMD
+                Status = "Unzipping Steam CMD";
+                ZipFile.ExtractToDirectory(steamCMDZip, App.Memory.Configuration.SteamCMDFolder);
+                File.Delete(steamCMDZip);
+                ProgressValue = 40;
+
+                // Install SteamCMD (firstrun)
+                Status = "Installing SteamCMD";
+
+                await Models.SteamCMD.FirstLaunch();
+            }
+            else
+            {
+                ProgressValue = 40;
+                // Install SteamCMD (firstrun)
+                Status = "Updating & Validating SteamCMD";
+
+                await Models.SteamCMD.FirstLaunch();
+            }
 
             ProgressValue = 60;
 
             // Download Rust...
-            Status = "Downloading Rust";
-            ProgressValue = 80;
-            //commit problems
-        }
+            if (_firstTime)
+            {
+                Status = "Downloading Rust Dedicated Server";
+                ProgressValue = 80;
+            }
+            else
+            {
+                Status = "Updating & Validating Rust Dedicated Server";
+                ProgressValue = 80;
+            }
+            
+            await Models.SteamCMD.DownloadRust();
+            ProgressValue = 100;
 
-        private void Progresser_ProgressChanged(object sender, string e)
-        {
-            Status = e;
+            Success = true;
+
+            Close();
         }
 
         private string QueryFolder()
@@ -135,6 +167,7 @@ namespace RustServerManager.ViewModels
             using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
             {
                 dialog.Description = "Please select, or create a directory where you would like Rust Server Manager to store the rust server(s) files.";
+                dialog.RootFolder = Environment.SpecialFolder.MyComputer;
                 System.Windows.Forms.DialogResult result = dialog.ShowDialog();
                 if (result == System.Windows.Forms.DialogResult.OK)
                 {

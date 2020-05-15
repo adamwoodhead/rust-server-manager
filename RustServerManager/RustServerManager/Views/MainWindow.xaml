@@ -20,10 +20,8 @@
         BorderThickness="1"
         BorderBrush="White"
         
-        ResizeMode="NoResize"
-        
-        Height="600"
-        Width="875">
+        MinHeight="600"
+        MinWidth="900">
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="150"/>

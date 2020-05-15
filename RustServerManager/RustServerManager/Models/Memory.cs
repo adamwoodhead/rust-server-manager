@@ -49,6 +49,7 @@ namespace RustServerManager.Models
 
             if (File.Exists(Path.Combine(_saveFolder, _memoryFile)))
             {
+                Console.WriteLine("Memory File Does Exist...");
                 try
                 {
                     string json = File.ReadAllText(Path.Combine(_saveFolder, _memoryFile));
@@ -62,6 +63,7 @@ namespace RustServerManager.Models
             }
             else
             {
+                Console.WriteLine("Memory File Does Not Exist...");
                 App.MemoryWasGenerated = true;
                 return new Memory();
             }

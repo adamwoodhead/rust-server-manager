@@ -34,6 +34,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
@@ -60,6 +63,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
+    <Compile Include="Converters\InvertBooleanConverter.cs" />
     <Compile Include="Converters\InvertBooleanToVisibilityConverter.cs" />
     <Compile Include="Interfaces\IGameserver.cs" />
     <Compile Include="Models\Memory.cs" />
@@ -137,6 +141,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -147,10 +152,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MaterialDesignColors">
-      <Version>1.2.4</Version>
+      <Version>1.2.5</Version>
     </PackageReference>
     <PackageReference Include="MaterialDesignThemes">
-      <Version>3.1.1</Version>
+      <Version>3.1.2</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>12.0.3</Version>

@@ -16,6 +16,8 @@ namespace RustServerManager.Models
 
         public string ActualServerDirectory { get => Path.Combine(RustServerDirectory, "RustDedicated"); }
 
+        public string ServerIdentityDirectory { get => Path.Combine(ActualServerDirectory, "server"); }
+
         public string SteamCMDFolder { get => Path.Combine(RustServerDirectory, "SteamCMD"); }
 
         public string SteamCMDExecutable { get => Path.Combine(SteamCMDFolder, "steamcmd.exe"); }

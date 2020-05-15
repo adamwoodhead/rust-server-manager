@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using Microsoft.Win32;
@@ -17,28 +18,19 @@ namespace RustServerManager
         
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            File.Delete(Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RSSM"), "memory.json"));
+            //File.Delete(Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RSSM"), "memory.json"));
             
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             Memory = Memory.Load();
 
-            if (MemoryWasGenerated)
-            {
-                if (!FirstTimeSetup())
-                {
-                    Environment.Exit(0);
-                    return;
-                }
-            }
+            ValidatePrerequisites();
 
             // Initialize MainWindow
             this.MainWindow = MainWindowInstance = new MainWindow
             {
                 WindowStartupLocation = WindowStartupLocation.CenterScreen
             };
-
-            this.MainWindow.DataContext = new ViewModels.MainWindowViewModel();
 
             this.ShutdownMode = ShutdownMode.OnMainWindowClose;
 
@@ -49,16 +41,33 @@ namespace RustServerManager
             MainWindowInstance.ShowDialog();
         }
 
-        private bool FirstTimeSetup()
+        [Conditional("RELEASE")]
+        private void ValidatePrerequisites()
         {
-            SetupWindow setupWindow = new SetupWindow()
+            if (MemoryWasGenerated)
             {
-                WindowStartupLocation = WindowStartupLocation.CenterScreen
-            };
+                SetupWindow setupWindow = new SetupWindow(true)
+                {
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
 
-            setupWindow.ShowDialog();
+                setupWindow.ShowDialog();
 
-            return setupWindow.ViewModel.Success;
+                if (!setupWindow.ViewModel.Success)
+                {
+                    Environment.Exit(0);
+                    return;
+                }
+            }
+            else
+            {
+                SetupWindow setupWindow = new SetupWindow(false)
+                {
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen
+                };
+
+                setupWindow.ShowDialog();
+            }
         }
 
         private void PreExit()

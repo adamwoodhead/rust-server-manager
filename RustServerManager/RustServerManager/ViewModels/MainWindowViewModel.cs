@@ -58,11 +58,15 @@ namespace RustServerManager.ViewModels
 
         private void Test()
         {
-            Models.WebRcon.RconService rcon = new Models.WebRcon.RconService();
+            Task.Run(async() => {
+                App.Memory.Gameservers[0].OpenPorts();
 
-            rcon.Connect("51.68.204.234:28016", "testing7539");
+                await Task.Delay(5000);
 
-            rcon.GetPlayers();
+                App.Memory.Gameservers[0].ClosePorts();
+            });
+
+
         }
 
         void Gameservers()

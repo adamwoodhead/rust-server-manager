@@ -3,6 +3,7 @@ using RustServerManager.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -117,12 +118,116 @@ namespace RustServerManager.Models
                 Server_Tickrate = 10;
                 Server_WorldSize = 3000;
                 IsRunning = false;
+
+                Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.ServerIdentityDirectory, Server_Identity));
+
+                OpenPorts();
             }
+        }
+
+        internal async void OpenPorts()
+        {
+            await Task.Run(() => {
+
+                Process process = new Process()
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardInput = true,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                    },
+                    EnableRaisingEvents = true
+                };
+
+                process.OutputDataReceived += OpenPortsProcess_OutputDataReceived;
+                process.ErrorDataReceived += OpenPortsProcess_ErrorDataReceived;
+
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                using (StreamWriter streamWriter = process.StandardInput)
+                {
+                    streamWriter.AutoFlush = true;
+
+                    streamWriter.WriteLine("@echo off");
+
+                    streamWriter.WriteLine($"netsh advfirewall firewall add rule name=\"Rust Game TCP ({Server_Identity})\" dir=in action=allow protocol=TCP localport={Server_Port}");
+                    streamWriter.WriteLine($"netsh advfirewall firewall add rule name=\"Rust Game UDP ({Server_Identity})\" dir=in action=allow protocol=UDP localport={Server_Port}");
+                    streamWriter.WriteLine($"netsh advfirewall firewall add rule name=\"Rust Rcon TCP ({Server_Identity})\" dir=in action=allow protocol=TCP localport={RCON_Port}");
+                    streamWriter.WriteLine($"netsh advfirewall firewall add rule name=\"Rust Rcon UDP ({Server_Identity})\" dir=in action=allow protocol=UDP localport={RCON_Port}");
+                }
+
+                process.WaitForExit();
+            });
+        }
+
+        internal async void ClosePorts()
+        {
+            await Task.Run(() => {
+
+                Process process = new Process()
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd",
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardInput = true,
+                        RedirectStandardError = true,
+                        RedirectStandardOutput = true,
+                    },
+                    EnableRaisingEvents = true
+                };
+
+                process.OutputDataReceived += OpenPortsProcess_OutputDataReceived;
+                process.ErrorDataReceived += OpenPortsProcess_ErrorDataReceived;
+
+                process.Start();
+
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+
+                using (StreamWriter streamWriter = process.StandardInput)
+                {
+                    streamWriter.AutoFlush = true;
+
+                    streamWriter.WriteLine("@echo off");
+                    
+                    streamWriter.WriteLine($"netsh advfirewall firewall delete rule name=\"Rust Game TCP ({Server_Identity})\" protocol=TCP localport={Server_Port}");
+                    streamWriter.WriteLine($"netsh advfirewall firewall delete rule name=\"Rust Game UDP ({Server_Identity})\" protocol=UDP localport={Server_Port}");
+                    streamWriter.WriteLine($"netsh advfirewall firewall delete rule name=\"Rust Rcon TCP ({Server_Identity})\" protocol=TCP localport={RCON_Port}");
+                    streamWriter.WriteLine($"netsh advfirewall firewall delete rule name=\"Rust Rcon UDP ({Server_Identity})\" protocol=UDP localport={RCON_Port}");
+                }
+
+                process.WaitForExit();
+            });
+        }
+
+        private void OpenPortsProcess_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            Console.WriteLine($"Error: {e.Data}");
+        }
+
+        private void OpenPortsProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            Console.WriteLine($"Response: {e.Data}");
         }
 
         public void Delete()
         {
-            throw new NotImplementedException();
+            Kill();
+            ClosePorts();
+            Directory.Delete(Path.Combine(App.Memory.Configuration.ServerIdentityDirectory, Server_Identity), true);
+            App.Memory.Gameservers.Remove(this);
+            App.MainWindowInstance.ViewModel.GamserversViewModel.Gameservers = new System.Collections.ObjectModel.ObservableCollection<ViewModels.GameserverViewModel>(App.Memory.Gameservers.Select(x => new ViewModels.GameserverViewModel(x)));
         }
 
         public void Start()

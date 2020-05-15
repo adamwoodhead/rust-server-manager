@@ -26,5 +26,15 @@ namespace RustServerManager.Views
 
             InitializeComponent();
         }
+
+        private void CommandToSay_KeyDown(object sender, KeyEventArgs e)
+        {
+
+        }
+
+        private void CommandToRcon_KeyDown(object sender, KeyEventArgs e)
+        {
+
+        }
     }
 }

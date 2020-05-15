@@ -78,6 +78,47 @@ namespace RustServerManager.ViewModels
             }
         }
 
+        // Advanced Config
+
+        public string Server_Identity
+        {
+            get => _gameserver.Server_Identity;
+            set
+            {
+                if (_gameserver.Server_Identity != value)
+                {
+                    _gameserver.Server_Identity = value;
+                    OnPropertyChanged(nameof(Server_Identity));
+                }
+            }
+        }
+
+        public string Server_IP
+        {
+            get => _gameserver.Server_IP;
+            set
+            {
+                if (_gameserver.Server_IP != value)
+                {
+                    _gameserver.Server_IP = value;
+                    OnPropertyChanged(nameof(Server_IP));
+                }
+            }
+        }
+
+        public int Server_Port
+        {
+            get => _gameserver.Server_Port;
+            set
+            {
+                if (_gameserver.Server_Port != value)
+                {
+                    _gameserver.Server_Port = value;
+                    OnPropertyChanged(nameof(Server_Port));
+                }
+            }
+        }
+
         public string RCON_IP
         {
             get => _gameserver.RCON_IP;
@@ -130,6 +171,21 @@ namespace RustServerManager.ViewModels
             }
         }
 
+        public int Server_Tickrate
+        {
+            get => _gameserver.Server_Tickrate;
+            set
+            {
+                if (_gameserver.Server_Tickrate != value)
+                {
+                    _gameserver.Server_Tickrate = value;
+                    OnPropertyChanged(nameof(Server_Tickrate));
+                }
+            }
+        }
+
+        // Simple Config
+
         public string Server_Hostname
         {
             get => _gameserver.Server_Hostname;
@@ -142,33 +198,7 @@ namespace RustServerManager.ViewModels
                 }
             }
         }
-
-        public string Server_Identity
-        {
-            get => _gameserver.Server_Identity;
-            set
-            {
-                if (_gameserver.Server_Identity != value)
-                {
-                    _gameserver.Server_Identity = value;
-                    OnPropertyChanged(nameof(Server_Identity));
-                }
-            }
-        }
-
-        public string Server_IP
-        {
-            get => _gameserver.Server_IP;
-            set
-            {
-                if (_gameserver.Server_IP != value)
-                {
-                    _gameserver.Server_IP = value;
-                    OnPropertyChanged(nameof(Server_IP));
-                }
-            }
-        }
-
+        
         public int Server_MaxPlayers
         {
             get => _gameserver.Server_MaxPlayers;
@@ -178,58 +208,6 @@ namespace RustServerManager.ViewModels
                 {
                     _gameserver.Server_MaxPlayers = value;
                     OnPropertyChanged(nameof(Server_MaxPlayers));
-                }
-            }
-        }
-
-        public int Server_Port
-        {
-            get => _gameserver.Server_Port;
-            set
-            {
-                if (_gameserver.Server_Port != value)
-                {
-                    _gameserver.Server_Port = value;
-                    OnPropertyChanged(nameof(Server_Port));
-                }
-            }
-        }
-
-        public int Server_SaveInterval
-        {
-            get => _gameserver.Server_SaveInterval;
-            set
-            {
-                if (_gameserver.Server_SaveInterval != value)
-                {
-                    _gameserver.Server_SaveInterval = value;
-                    OnPropertyChanged(nameof(Server_SaveInterval));
-                }
-            }
-        }
-
-        public string Server_Seed
-        {
-            get => _gameserver.Server_Seed;
-            set
-            {
-                if (_gameserver.Server_Seed != value)
-                {
-                    _gameserver.Server_Seed = value;
-                    OnPropertyChanged(nameof(Server_Seed));
-                }
-            }
-        }
-
-        public int Server_Tickrate
-        {
-            get => _gameserver.Server_Tickrate;
-            set
-            {
-                if (_gameserver.Server_Tickrate != value)
-                {
-                    _gameserver.Server_Tickrate = value;
-                    OnPropertyChanged(nameof(Server_Tickrate));
                 }
             }
         }
@@ -247,6 +225,34 @@ namespace RustServerManager.ViewModels
             }
         }
 
+        public string Server_Seed
+        {
+            get => _gameserver.Server_Seed;
+            set
+            {
+                if (_gameserver.Server_Seed != value)
+                {
+                    _gameserver.Server_Seed = value;
+                    OnPropertyChanged(nameof(Server_Seed));
+                }
+            }
+        }
+
+        public int Server_SaveInterval
+        {
+            get => _gameserver.Server_SaveInterval;
+            set
+            {
+                if (_gameserver.Server_SaveInterval != value)
+                {
+                    _gameserver.Server_SaveInterval = value;
+                    OnPropertyChanged(nameof(Server_SaveInterval));
+                }
+            }
+        }
+
+        // Non Interactive
+        
         public bool IsRunning
         {
             get => _gameserver.IsRunning;
