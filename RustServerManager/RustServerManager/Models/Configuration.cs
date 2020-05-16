@@ -12,14 +12,6 @@ namespace RustServerManager.Models
     public class Configuration
     {
         [DataMember]
-        public string RustServerDirectory { get; set; }
-
-        public string ActualServerDirectory { get => Path.Combine(RustServerDirectory, "RustDedicated"); }
-
-        public string ServerIdentityDirectory { get => Path.Combine(ActualServerDirectory, "server"); }
-
-        public string SteamCMDFolder { get => Path.Combine(RustServerDirectory, "SteamCMD"); }
-
-        public string SteamCMDExecutable { get => Path.Combine(SteamCMDFolder, "steamcmd.exe"); }
+        public string WorkingDirectory { get; set; }
     }
 }

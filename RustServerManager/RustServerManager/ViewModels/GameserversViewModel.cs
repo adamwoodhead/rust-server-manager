@@ -12,7 +12,20 @@ namespace RustServerManager.ViewModels
 {
     public class GameserversViewModel : ObservableViewModel
     {
-        public ObservableCollection<GameserverViewModel> Gameservers { get; set; } = new ObservableCollection<GameserverViewModel>();
+        private ObservableCollection<GameserverViewModel> _gameservers = new ObservableCollection<GameserverViewModel>();
+
+        public ObservableCollection<GameserverViewModel> Gameservers
+        {
+            get => _gameservers;
+            set
+            {
+                if (_gameservers != value)
+                {
+                    _gameservers = value;
+                    OnPropertyChanged(nameof(Gameservers));
+                }
+            }
+        }
 
         public ICommand CreateCommand { get; set; }
 
@@ -26,7 +39,7 @@ namespace RustServerManager.ViewModels
             }
 
             CreateCommand = new CommandImplementation(o => CreateGameserver());
-            UpdateCommand = new CommandImplementation(o => UpdateRust());
+            UpdateCommand = new CommandImplementation(o => UpdateAllGameservers());
         }
 
         private void CreateGameserver()
@@ -39,16 +52,9 @@ namespace RustServerManager.ViewModels
             App.Memory.Save();
         }
 
-        private async void UpdateRust()
+        private void UpdateAllGameservers()
         {
-            Views.SetupWindow setupWindow = new Views.SetupWindow(false)
-            {
-                WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen
-            };
-
-            TaskCompletionSource<bool?> completion = new TaskCompletionSource<bool?>();
-            await setupWindow.Dispatcher.BeginInvoke(new Action(() => completion.SetResult(setupWindow.ShowDialog())));
-            //bool? result = await completion.Task;
+            throw new NotImplementedException();
         }
     }
 }

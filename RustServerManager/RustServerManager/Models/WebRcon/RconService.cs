@@ -95,7 +95,7 @@ namespace RustServerManager.Models.WebRcon
             this.Callbacks = null;
         }
 
-        internal void Command(string msg, int? identifier)
+        private void Command(string msg, int? identifier)
         {
             if (this.Socket == null || !this.IsConnected)
             {

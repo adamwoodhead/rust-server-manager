@@ -29,7 +29,7 @@ namespace RustServerManager.ViewModels
 
         [JsonProperty]
         public ConfigurationViewModel ConfigurationViewModel { get; set; } = new ConfigurationViewModel(App.Memory.Configuration);
-        
+
         public ICommand CommandGameservers { get; set; }
 
         public ICommand CommandConfiguration { get; set; }
@@ -42,11 +42,11 @@ namespace RustServerManager.ViewModels
 
         public MainWindowViewModel()
         {
-            CommandGameservers      = new CommandImplementation(o => Gameservers());
-            CommandConfiguration    = new CommandImplementation(o => Configuration());
+            CommandGameservers = new CommandImplementation(o => Gameservers());
+            CommandConfiguration = new CommandImplementation(o => Configuration());
             //CommandSettings         = new CommandImplementation(o => Setup());
-            CommandExit             = new CommandImplementation(o => Exit());
-            CommandTest             = new CommandImplementation(o => Test());
+            CommandExit = new CommandImplementation(o => Exit());
+            CommandTest = new CommandImplementation(o => Test());
 
             Gameservers();
         }
@@ -58,13 +58,14 @@ namespace RustServerManager.ViewModels
 
         private void Test()
         {
-            Task.Run(async() => {
-                App.Memory.Gameservers[0].OpenPorts();
+            //Task.Run(async () =>
+            //{
+            //    App.Memory.Gameservers[0].OpenPorts();
 
-                await Task.Delay(5000);
+            //    await Task.Delay(5000);
 
-                App.Memory.Gameservers[0].ClosePorts();
-            });
+            //    App.Memory.Gameservers[0].ClosePorts();
+            //});
 
 
         }

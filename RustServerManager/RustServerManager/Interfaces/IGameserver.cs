@@ -23,7 +23,8 @@ namespace RustServerManager.Interfaces
         string Server_Seed { get; set; }
         int Server_Tickrate { get; set; }
         int Server_WorldSize { get; set; }
-        bool IsRunning { get; set; }
+        string WorkingDirectory { get; set; }
+        bool IsRunning { get; }
         void Start();
         void Restart();
         void Stop();

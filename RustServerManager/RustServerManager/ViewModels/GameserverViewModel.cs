@@ -16,12 +16,16 @@ namespace RustServerManager.ViewModels
     public class GameserverViewModel : ObservableViewModel, IGameserver
     {
         private Gameserver _gameserver;
+        private string _commandToSay;
+        private string _commandToRcon;
+        private bool _updating = false;
 
         public GameserverViewModel(Gameserver gameserver)
         {
             _gameserver = gameserver;
 
-            ViewModelLoopTask(() => {
+            ViewModelLoopTask(() =>
+            {
                 OnPropertyChanged(nameof(Status));
                 OnPropertyChanged(nameof(IsRunning));
             }, 250);
@@ -32,6 +36,10 @@ namespace RustServerManager.ViewModels
             KillCommand = new CommandImplementation(o => Kill());
 
             DeleteCommand = new CommandImplementation(o => Delete());
+
+            InstallCommand = new CommandImplementation(o => Install());
+            UninstallCommand = new CommandImplementation(o => Uninstall());
+            ReinstallCommand = new CommandImplementation(o => Reinstall());
 
             WipeMapCommand = new CommandImplementation(o => WipeMap());
             WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
@@ -48,8 +56,25 @@ namespace RustServerManager.ViewModels
 
             DeleteCommand = new CommandImplementation(o => Delete());
 
+            InstallCommand = new CommandImplementation(o => Install());
+            UninstallCommand = new CommandImplementation(o => Uninstall());
+            ReinstallCommand = new CommandImplementation(o => Reinstall());
+
             WipeMapCommand = new CommandImplementation(o => WipeMap());
             WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
+        }
+
+        public bool Updating
+        {
+            get => _updating;
+            set
+            {
+                if (_updating != value)
+                {
+                    _updating = value;
+                    OnPropertyChanged(nameof(Updating));
+                }
+            }
         }
 
         public int ID
@@ -198,7 +223,7 @@ namespace RustServerManager.ViewModels
                 }
             }
         }
-        
+
         public int Server_MaxPlayers
         {
             get => _gameserver.Server_MaxPlayers;
@@ -252,18 +277,36 @@ namespace RustServerManager.ViewModels
         }
 
         // Non Interactive
-        
+
+        public string WorkingDirectory
+        {
+            get => _gameserver.WorkingDirectory;
+            set
+            {
+                if (_gameserver.WorkingDirectory != value)
+                {
+                    _gameserver.WorkingDirectory = value;
+                    OnPropertyChanged(nameof(WorkingDirectory));
+                }
+            }
+        }
+
+        public bool IsInstalled
+        {
+            get => _gameserver.IsInstalled;
+            set
+            {
+                if (_gameserver.IsInstalled != value)
+                {
+                    _gameserver.IsInstalled = value;
+                    OnPropertyChanged(nameof(IsInstalled));
+                }
+            }
+        }
+
         public bool IsRunning
         {
             get => _gameserver.IsRunning;
-            set
-            {
-                if (_gameserver.IsRunning != value)
-                {
-                    _gameserver.IsRunning = value;
-                    OnPropertyChanged(nameof(IsRunning));
-                }
-            }
         }
 
         public string Status
@@ -279,6 +322,32 @@ namespace RustServerManager.ViewModels
             }
         }
 
+        public string CommandToRcon
+        {
+            get => _commandToRcon;
+            set
+            {
+                if (_commandToRcon != value)
+                {
+                    _commandToRcon = value;
+                    OnPropertyChanged(nameof(CommandToRcon));
+                }
+            }
+        }
+
+        public string CommandToSay
+        {
+            get => _commandToSay;
+            set
+            {
+                if (_commandToSay != value)
+                {
+                    _commandToSay = value;
+                    OnPropertyChanged(nameof(CommandToSay));
+                }
+            }
+        }
+
         public ICommand StartCommand { get; set; }
 
         public ICommand StopCommand { get; set; }
@@ -289,43 +358,122 @@ namespace RustServerManager.ViewModels
 
         public ICommand DeleteCommand { get; set; }
 
+        public ICommand InstallCommand { get; set; }
+
+        public ICommand UninstallCommand { get; set; }
+
+        public ICommand ReinstallCommand { get; set; }
+
         public ICommand WipeMapCommand { get; set; }
 
         public ICommand WipeBPCommand { get; set; }
 
-        public void Start()
+        private void StatusUpdate(string status, bool active)
         {
-            _gameserver.Start();
+            Status = status;
+            Updating = active;
         }
 
-        public void Restart()
+        public async void Start()
         {
-            _gameserver.Restart();
+            await Task.Run(() => {
+                StatusUpdate("Starting", true);
+
+                _gameserver.Start();
+
+                StatusUpdate("", false);
+            });
         }
 
-        public void Stop()
+        public async void Restart()
         {
-            _gameserver.Stop();
+            await Task.Run(() => {
+                StatusUpdate("Restarting", true);
+
+                _gameserver.Restart();
+
+                StatusUpdate("", false);
+            });
         }
 
-        public void Kill()
+        public async void Stop()
         {
-            _gameserver.Kill();
+            await Task.Run(() => {
+                StatusUpdate("Stopping", true);
+
+                _gameserver.Stop();
+
+                StatusUpdate("", false);
+            });
         }
 
-        public void Delete()
+        public async void Kill()
         {
-            _gameserver.Delete();
+            StatusUpdate("Killing", true);
+
+            await Task.Run(() => {
+                _gameserver.Kill();
+            });
+
+            StatusUpdate("", false);
         }
 
-        public void WipeMap()
+        public async void Delete()
         {
-            _gameserver.WipeMap();
+            StatusUpdate("Deleting", true);
+
+            await Task.Run(() => {
+                _gameserver.Delete();
+            });
+
+            StatusUpdate("", false);
         }
 
-        public void WipeMapAndBP()
+        public async void Install()
         {
-            _gameserver.WipeMapAndBP();
+            StatusUpdate("Installing", true);
+
+            await _gameserver.Install();
+            IsInstalled = true;
+            App.Memory.Save();
+
+            StatusUpdate("", false);
+        }
+
+        public async void Uninstall()
+        {
+            StatusUpdate("Uninstalling", true);
+
+            await _gameserver.Uninstall();
+            IsInstalled = false;
+            App.Memory.Save();
+
+            StatusUpdate("", false);
+        }
+
+        public async void Reinstall()
+        {
+            StatusUpdate("Reinstalling", true);
+
+            await Task.Run(() => {
+                _gameserver.Reinstall();
+            });
+
+            StatusUpdate("", false);
+        }
+
+        public async void WipeMap()
+        {
+            await Task.Run(() => {
+                _gameserver.WipeMap();
+            });
+        }
+
+        public async void WipeMapAndBP()
+        {
+            await Task.Run(() => {
+                _gameserver.WipeMapAndBP();
+            });
         }
     }
 }

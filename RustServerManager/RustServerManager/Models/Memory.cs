@@ -19,6 +19,34 @@ namespace RustServerManager.Models
         [DataMember]
         public List<Gameserver> Gameservers { get; set; } = new List<Gameserver>();
 
+        private static string QueryFolder()
+        {
+            string baseDir = string.Empty;
+
+            using (System.Windows.Forms.FolderBrowserDialog dialog = new System.Windows.Forms.FolderBrowserDialog())
+            {
+                dialog.Description = "Please select, or create, a working directory where you would like Rust Server Manager to store the rust server(s) files.";
+                dialog.RootFolder = Environment.SpecialFolder.MyComputer;
+                System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+                if (result == System.Windows.Forms.DialogResult.OK)
+                {
+                    if (string.IsNullOrEmpty(dialog.SelectedPath) || !Directory.Exists(dialog.SelectedPath))
+                    {
+                        return QueryFolder();
+                    }
+                    else
+                    {
+                        baseDir = dialog.SelectedPath;
+                        return baseDir;
+                    }
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
         #region Serialization
 
         private static readonly string _appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -26,6 +54,11 @@ namespace RustServerManager.Models
         private static readonly string _saveFolder = Path.Combine(_appDataFolder, "RSSM");
 
         private static readonly string _memoryFile = "memory.json";
+
+        public Memory(string basedir)
+        {
+            this.Configuration.WorkingDirectory = basedir;
+        }
 
         public void Save()
         {
@@ -43,7 +76,7 @@ namespace RustServerManager.Models
             }
         }
 
-        public static Memory Load()
+        public static void Load()
         {
             Directory.CreateDirectory(_saveFolder);
 
@@ -53,7 +86,7 @@ namespace RustServerManager.Models
                 try
                 {
                     string json = File.ReadAllText(Path.Combine(_saveFolder, _memoryFile));
-                    return JsonConvert.DeserializeObject<Memory>(json);
+                    App.Memory = JsonConvert.DeserializeObject<Memory>(json);
                 }
                 catch (Exception)
                 {
@@ -65,7 +98,8 @@ namespace RustServerManager.Models
             {
                 Console.WriteLine("Memory File Does Not Exist...");
                 App.MemoryWasGenerated = true;
-                return new Memory();
+                string dir = QueryFolder();
+                App.Memory = new Memory(dir);
             }
         }
 

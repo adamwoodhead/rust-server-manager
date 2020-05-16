@@ -1,25 +1,24 @@
 ﻿<UserControl x:Class="RustServerManager.Views.GameserversUserControl"
-            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-            xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-            xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-            xmlns:local="clr-namespace:RustServerManager.Views"
-            xmlns:viewModels="clr-namespace:RustServerManager.ViewModels"
-            xmlns:conv="clr-namespace:RustServerManager.Converters"
-            mc:Ignorable="d"
+                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+                xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+                xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+                xmlns:local="clr-namespace:RustServerManager.Views"
+                xmlns:viewModels="clr-namespace:RustServerManager.ViewModels"
+                xmlns:conv="clr-namespace:RustServerManager.Converters"
+                mc:Ignorable="d"
                 
-            TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-            TextElement.FontWeight="Regular"
-            TextElement.FontSize="13"
+                TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+                TextElement.FontWeight="Regular"
+                TextElement.FontSize="13"
         
-            TextOptions.TextFormattingMode="Ideal"
-            TextOptions.TextRenderingMode="Auto"
-            Background="{DynamicResource MaterialDesignPaper}"
-            FontFamily="{DynamicResource MaterialDesignFont}"
-        
-            d:DesignHeight="540"
-            d:DesignWidth="675">
+                TextOptions.TextFormattingMode="Ideal"
+                TextOptions.TextRenderingMode="Auto"
+                Background="{DynamicResource MaterialDesignPaper}"
+                FontFamily="{DynamicResource MaterialDesignFont}"
+             
+                d:DesignWidth="700">
     <UserControl.Resources>
         <conv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <conv:InvertBooleanToVisibilityConverter x:Key="InvertBooleanToVisibilityConverter"/>
@@ -32,11 +31,12 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <ScrollViewer VerticalScrollBarVisibility="Visible">
-            <!--<ItemsControl Grid.Row="0" ItemsSource="{Binding Path=Gameservers, UpdateSourceTrigger=PropertyChanged}">-->
-            <ItemsControl Grid.Row="0">
+            <ItemsControl Grid.Row="0" ItemsSource="{Binding Path=Gameservers, UpdateSourceTrigger=PropertyChanged}">
+            <!--<ItemsControl Grid.Row="0">-->
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <materialDesign:Card>
+                        <Grid>
+                            <materialDesign:Card>
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="80"/>
@@ -77,7 +77,12 @@
                                     </TextBlock>
                                 </StackPanel>
 
-                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Visibility="{Binding Path=IsInstalled, Converter={StaticResource InvertBooleanToVisibilityConverter}}">
+                                    <Button Content="Install Server" Style="{StaticResource RegularButton}" Command="{Binding InstallCommand}" Margin="0 0 8 0"/>
+                                    <Button Content="Delete Server" Style="{StaticResource AccentButton}" Command="{Binding DeleteCommand}" Margin="0 0 8 0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Visibility="{Binding Path=IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <TextBlock Text="Players: 0/100" VerticalAlignment="Bottom"/>
                                     <StackPanel Margin="16 0 0 0" Orientation="Horizontal">
                                         <StackPanel.Resources>
@@ -124,95 +129,142 @@
 
                                 <Separator Grid.Row="1" Grid.ColumnSpan="5" Style="{StaticResource HorizontalSeparator}"/>
 
-                                <Grid Grid.Row="2" Grid.ColumnSpan="6">
+                                <Grid Grid.Row="2" Grid.ColumnSpan="6" Visibility="{Binding Path=IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <Expander ExpandDirection="Down">
                                         <Expander.Header>
                                             <TextBlock Text="Server Statistics &amp; Control" RenderTransformOrigin=".5,.5">
                                             </TextBlock>
                                         </Expander.Header>
                                         <Expander.Content>
-                                            <ScrollViewer Height="300">
-                                                <Grid>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="*"/>
-                                                        <RowDefinition Height="*"/>
-                                                    </Grid.RowDefinitions>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid.Resources>
-                                                        <Style TargetType="{x:Type GroupBox}" BasedOn="{StaticResource MaterialDesignGroupBox}">
-                                                            <Setter Property="Margin" Value="8"/>
-                                                        </Style>
-                                                    </Grid.Resources>
-                                                    
-                                                    <GroupBox Header="Quick Config" HorizontalAlignment="Stretch" Grid.Row="0">
-                                                        <StackPanel>
-                                                            <Grid>
-                                                                <StackPanel HorizontalAlignment="Stretch">
-                                                                    <TextBox MinWidth="250" Margin="0 0 0 8" materialDesign:HintAssist.Hint="Name (short)" Text="{Binding Path=Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="*"/>
+                                                    <RowDefinition Height="*"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.Resources>
+                                                    <Style TargetType="{x:Type GroupBox}" BasedOn="{StaticResource MaterialDesignGroupBox}">
+                                                        <Setter Property="Margin" Value="8"/>
+                                                    </Style>
+                                                </Grid.Resources>
 
-                                                                    <TextBox MinWidth="250" Margin="0 0 0 8" materialDesign:HintAssist.Hint="Hostname" Text="{Binding Path=Server_Hostname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <GroupBox Header="Quick Commands" Margin="8" Grid.Row="0" Grid.ColumnSpan="2">
+                                                    <WrapPanel>
+                                                        <WrapPanel.Resources>
+                                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RegularButton}"/>
+                                                        </WrapPanel.Resources>
+                                                        <Button Content="Start" Command="{Binding StartCommand}" HorizontalAlignment="Stretch"
+                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
 
-                                                                    <TextBox MinWidth="250" Margin="0 0 0 8" materialDesign:HintAssist.Hint="Max Players" Text="{Binding Path=Server_MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        <Button Content="Stop" Command="{Binding StopCommand}"
+                                                                        IsEnabled="{Binding Path=IsRunning}"/>
 
-                                                                    <TextBox MinWidth="250" Margin="0 0 0 8" materialDesign:HintAssist.Hint="World Size" Text="{Binding Path=Server_WorldSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        <Button Content="Restart" Command="{Binding RestartCommand}"
+                                                                        IsEnabled="{Binding Path=IsRunning}"/>
 
-                                                                    <TextBox MinWidth="250" Margin="0 0 0 8" materialDesign:HintAssist.Hint="Seed" Text="{Binding Path=Server_Seed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        <Button Content="Kill" Command="{Binding StartCommand}" ToolTip="Attempts to instantly stop the server (unsafe, and you may experience a short rollback depending on your save interval)"
+                                                                        IsEnabled="{Binding Path=IsRunning}"/>
 
-                                                                    <TextBox MinWidth="250" Margin="0 0 0 8" materialDesign:HintAssist.Hint="Save Interval (s)" Text="{Binding Path=Server_SaveInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
-                                                                </StackPanel>
-                                                            </Grid>
+                                                        <Button Content="Wipe Map" Command="{Binding WipeMapCommand}" ToolTip="Wipes the Map on the server. Server must be STOPPED."
+                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+
+                                                        <Button Content="Wipe Map &amp; BP" Command="{Binding WipeBPCommand}" ToolTip="Wipes the Map &amp; Blueprints on the server. Server must be STOPPED."
+                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+
+                                                        <Button Content="Reinstall" Command="{Binding ReinstallCommand}" ToolTip="Fully delete all server files, re-download, and install."
+                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+
+                                                        <Button Content="Uninstall" Command="{Binding UninstallCommand}" ToolTip="Fully delete all server files."
+                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+
+                                                    </WrapPanel>
+                                                </GroupBox>
+
+                                                <GroupBox Header="Quick Config" HorizontalAlignment="Stretch" Grid.Row="1" IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}">
+                                                    <Grid>
+                                                        <StackPanel HorizontalAlignment="Stretch">
+                                                            <TextBox MinWidth="250" Margin="0 0 0 0" materialDesign:HintAssist.Hint="Name (short)" Text="{Binding Path=Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                                            <TextBox MinWidth="250" Margin="0 12 0 0" materialDesign:HintAssist.Hint="Hostname" Text="{Binding Path=Server_Hostname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                                            <TextBox MinWidth="250" Margin="0 12 0 0" materialDesign:HintAssist.Hint="Max Players" Text="{Binding Path=Server_MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                                            <TextBox MinWidth="250" Margin="0 12 0 0" materialDesign:HintAssist.Hint="World Size" Text="{Binding Path=Server_WorldSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                                            <TextBox MinWidth="250" Margin="0 12 0 0" materialDesign:HintAssist.Hint="Seed" Text="{Binding Path=Server_Seed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                                            <TextBox MinWidth="250" Margin="0 12 0 0" materialDesign:HintAssist.Hint="Save Interval (s)" Text="{Binding Path=Server_SaveInterval, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                                         </StackPanel>
-                                                    </GroupBox>
-                                                    
-                                                    <GroupBox Header="Quick RCON" Margin="8" Grid.Row="0" Grid.Column="1">
-                                                        <StackPanel>
-                                                            <TextBox Text="{Binding Path=CommandToRcon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsTab="False" AcceptsReturn="False" KeyDown="CommandToRcon_KeyDown" materialDesign:HintAssist.Hint="Command e.g. 'kick adam'" materialDesign:HintAssist.HelperText="Press Enter To Send The Command" Margin="0 0 0 24"/>
-                                                            <TextBox Text="{Binding Path=CommandToSay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsTab="False" AcceptsReturn="False" KeyDown="CommandToSay_KeyDown" materialDesign:HintAssist.Hint="Command e.g. 'hello adam'" materialDesign:HintAssist.HelperText="Press Enter To Send The Message"/>
-                                                        </StackPanel>
-                                                    </GroupBox>
+                                                    </Grid>
+                                                </GroupBox>
 
-                                                    <GroupBox Header="Quick Commands" Margin="8" Grid.Row="1" Grid.ColumnSpan="2">
-                                                        <WrapPanel>
-                                                            <WrapPanel.Resources>
-                                                                <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RegularButton}"/>
-                                                            </WrapPanel.Resources>
-                                                            <Button Content="Start" Command="{Binding StartCommand}" HorizontalAlignment="Stretch"
+                                                <GroupBox Header="Quick RCON" Margin="8" Grid.Row="1" Grid.Column="1" IsEnabled="{Binding Path=IsRunning}">
+                                                    <StackPanel>
+                                                        <Grid Margin="0 0 0 0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Margin="0" Grid.Column="0" Text="{Binding Path=CommandToRcon, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsTab="False" AcceptsReturn="False" KeyDown="CommandToRcon_KeyDown" materialDesign:HintAssist.Hint="Command (e.g. 'kick adam')" ToolTip="Press Enter To Send The Command"/>
+                                                            <Button Margin="8 0 0 0" Height="40" Grid.Column="1">
+                                                                <materialDesign:PackIcon Kind="Send"/>
+                                                            </Button>
+                                                        </Grid>
+                                                        <Grid Margin="0 12 0 0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Margin="0" Grid.Column="0" Text="{Binding Path=CommandToSay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsTab="False" AcceptsReturn="False" KeyDown="CommandToSay_KeyDown" materialDesign:HintAssist.Hint="Say (e.g. 'hello adam')" ToolTip="Press Enter To Send The Message"/>
+                                                            <Button Margin="8 0 0 0" Height="40" Grid.Column="1">
+                                                                <materialDesign:PackIcon Kind="Send"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </StackPanel>
+                                                </GroupBox>
+                                                
+                                                <GroupBox Header="Advanced" Margin="8" Grid.Row="2" Grid.ColumnSpan="2">
+                                                    <WrapPanel>
+                                                        <WrapPanel.Resources>
+                                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RegularButton}">
+                                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                                <Setter Property="Margin" Value="5"/>
+                                                                <Setter Property="Height" Value="32"/>
+                                                                <Setter Property="MinWidth" Value="190"/>
+                                                            </Style>
+                                                        </WrapPanel.Resources>
+                                                        <Button Content="Full RCON" Command="{Binding StartCommand}" HorizontalAlignment="Stretch"
                                                                         IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
 
-                                                            <Button Content="Stop" Command="{Binding StopCommand}"
-                                                                        IsEnabled="{Binding Path=IsRunning}"/>
-
-                                                            <Button Content="Restart" Command="{Binding RestartCommand}"
-                                                                        IsEnabled="{Binding Path=IsRunning}"/>
-
-                                                            <Button Content="Kill" Command="{Binding StartCommand}" ToolTip="Attempts to instantly stop the server (unsafe, and you may experience a short rollback depending on your save interval)"
-                                                                        IsEnabled="{Binding Path=IsRunning}"/>
-
-                                                            <Button Content="Wipe Map" Command="{Binding WipeMapCommand}" ToolTip="Wipes the Map on the server. Server must be STOPPED."
+                                                        <Button Content="Full Command Line" Command="{Binding StartCommand}" HorizontalAlignment="Stretch"
                                                                         IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
 
-                                                            <Button Content="Wipe Map &amp; BP" Command="{Binding WipeBPCommand}" ToolTip="Wipes the Map &amp; Blueprints on the server. Server must be STOPPED."
+                                                        <Button Content="Full Config" Command="{Binding StartCommand}" HorizontalAlignment="Stretch"
                                                                         IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
-
-                                                            <Button Content="Reinstall" Command="{Binding WipeBPCommand}" ToolTip="Wipes the Map &amp; Blueprints on the server. Server must be STOPPED."
-                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
-
-                                                        </WrapPanel>
-                                                    </GroupBox>
-                                                </Grid>
-                                            </ScrollViewer>
+                                                    </WrapPanel>
+                                                </GroupBox>
+                                                
+                                            </Grid>
                                         </Expander.Content>
                                     </Expander>
                                 </Grid>
 
                             </Grid>
-                        </materialDesign:Card>
+                            </materialDesign:Card>
+                            <materialDesign:Card Grid.RowSpan="10" Grid.ColumnSpan="10" Visibility="{Binding Path=Updating, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Margin="16" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                                    <TextBlock Style="{StaticResource MaterialDesignHeadline4TextBlock}" HorizontalAlignment="Left" Text="{Binding Path=Status, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <ProgressBar Margin="3 8 0 0" Value="50" IsIndeterminate="True"/>
+                                </StackPanel>
+                            </materialDesign:Card>
+                        </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-                <viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600"/>
+                <!--<viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600" IsInstalled="False" Updating="True"/>-->
             </ItemsControl>
         </ScrollViewer>
 
@@ -220,7 +272,7 @@
         <StackPanel Grid.Row="2">
             <StackPanel Orientation="Horizontal">
                 <Button Content="Create Rust Server" Command="{Binding CreateCommand}" ToolTip="Instantly Create A New Server" Margin="0 0 8 0"/>
-                <Button Content="Update Rust Server Files" Command="{Binding UpdateCommand}" ToolTip="Update if an update is available, and then validate files regardless." Margin="0 0 8 0"/>
+                <Button Content="Update All Servers" Command="{Binding UpdateCommand}" ToolTip="Update all servers if an update is available, and then validate." Margin="0 0 8 0"/>
             </StackPanel>
         </StackPanel>
     </Grid>

@@ -82,15 +82,11 @@
     <Compile Include="ViewModels\ConfigurationViewModel.cs" />
     <Compile Include="ViewModels\GameserverViewModel.cs" />
     <Compile Include="ViewModels\GameserversViewModel.cs" />
-    <Compile Include="ViewModels\SetupWindowViewModel.cs" />
     <Compile Include="Views\ConfigurationUserControl.xaml.cs">
       <DependentUpon>ConfigurationUserControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\GameserversUserControl.xaml.cs">
       <DependentUpon>GameserversUserControl.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\SetupWindow.xaml.cs">
-      <DependentUpon>SetupWindow.xaml</DependentUpon>
     </Compile>
     <Page Include="MaterialDesignTheme.Overrides.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -115,10 +111,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Views\GameserversUserControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Views\SetupWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
