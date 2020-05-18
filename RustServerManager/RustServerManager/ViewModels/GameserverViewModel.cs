@@ -44,7 +44,7 @@ namespace RustServerManager.ViewModels
             WipeMapCommand = new CommandImplementation(o => WipeMap());
             WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
         }
-
+         
         public GameserverViewModel()
         {
             _gameserver = new Gameserver();
@@ -304,6 +304,19 @@ namespace RustServerManager.ViewModels
             }
         }
 
+        public bool UmodInstalled
+        {
+            get => _gameserver.UmodInstalled;
+            set
+            {
+                if (_gameserver.UmodInstalled != value)
+                {
+                    _gameserver.UmodInstalled = value;
+                    OnPropertyChanged(nameof(UmodInstalled));
+                }
+            }
+        }
+
         public bool IsRunning
         {
             get => _gameserver.IsRunning;
@@ -357,6 +370,8 @@ namespace RustServerManager.ViewModels
         public ICommand RestartCommand { get; set; }
 
         public ICommand DeleteCommand { get; set; }
+
+        public ICommand InstallUmodCommand { get; set; }
 
         public ICommand InstallCommand { get; set; }
 
@@ -429,9 +444,31 @@ namespace RustServerManager.ViewModels
             StatusUpdate("", false);
         }
 
+        public async void InstallUmod()
+        {
+            StatusUpdate("Installing Umod", true);
+
+            await _gameserver.InstallUmod();
+            UmodInstalled = true;
+            App.Memory.Save();
+
+            StatusUpdate("", false);
+        }
+
         public async void Install()
         {
             StatusUpdate("Installing", true);
+
+            await _gameserver.Install();
+            IsInstalled = true;
+            App.Memory.Save();
+
+            StatusUpdate("", false);
+        }
+
+        public async void Update()
+        {
+            StatusUpdate("Updating", true);
 
             await _gameserver.Install();
             IsInstalled = true;

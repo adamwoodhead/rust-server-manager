@@ -23,12 +23,36 @@ namespace RustServerManager.ViewModels
                 OnPropertyChanged(nameof(CurrentContent));
             }
         }
-
-        [JsonProperty]
+        
         public GameserversViewModel GamserversViewModel { get; set; } = new GameserversViewModel(App.Memory.Gameservers);
 
-        [JsonProperty]
         public ConfigurationViewModel ConfigurationViewModel { get; set; } = new ConfigurationViewModel(App.Memory.Configuration);
+
+        public int SavedHeight
+        {
+            get => App.Memory.Configuration.SavedHeight;
+            set
+            {
+                if (App.Memory.Configuration.SavedHeight != value)
+                {
+                    App.Memory.Configuration.SavedHeight = value;
+                    OnPropertyChanged(nameof(SavedHeight));
+                }
+            }
+        }
+
+        public int SavedWidth
+        {
+            get => App.Memory.Configuration.SavedWidth;
+            set
+            {
+                if (App.Memory.Configuration.SavedWidth != value)
+                {
+                    App.Memory.Configuration.SavedWidth = value;
+                    OnPropertyChanged(nameof(SavedWidth));
+                }
+            }
+        }
 
         public ICommand CommandGameservers { get; set; }
 
@@ -58,16 +82,14 @@ namespace RustServerManager.ViewModels
 
         private void Test()
         {
-            //Task.Run(async () =>
-            //{
-            //    App.Memory.Gameservers[0].OpenPorts();
+            Task.Run(async () =>
+            {
+                Progress<double> p1 = new Progress<double>();
 
-            //    await Task.Delay(5000);
+                p1.ProgressChanged += (s, e) => { Console.WriteLine("SteamCMD Progress: " + string.Format("{0:00.00%}", e / 100)); };
 
-            //    App.Memory.Gameservers[0].ClosePorts();
-            //});
-
-
+                await Models.SteamCMD.TestDownloadRust(App.Memory.Gameservers[0], p1);
+            });
         }
 
         void Gameservers()

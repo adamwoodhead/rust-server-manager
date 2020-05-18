@@ -1,12 +1,11 @@
 ﻿using RustServerManager.Interfaces;
 using RustServerManager.Utility;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RustServerManager.Models
@@ -14,6 +13,12 @@ namespace RustServerManager.Models
     [DataContract]
     public class Gameserver : IGameserver
     {
+        [DllImport("user32.dll")]
+        private static extern Boolean ShowWindow(IntPtr hWnd, Int32 nCmdShow);
+
+        [DllImport("user32.dll")]
+        static extern int SetWindowText(IntPtr hWnd, string text);
+
         [DataMember]
         public int ID { get; set; }
 
@@ -65,7 +70,12 @@ namespace RustServerManager.Models
         [DataMember]
         public bool IsInstalled { get; set; } = false;
 
+        [DataMember]
+        public bool UmodInstalled { get; set; } = false;
+
         public bool IsRunning { get => (GameProcess != null) ? (bool)!GameProcess?.HasExited : false; }
+
+        public bool ShouldRun { get; set; }
 
         public string Status { get; set; }
 
@@ -94,7 +104,7 @@ namespace RustServerManager.Models
                 $"-logfile \"{DateTime.Now.ToString("dd-MM hh-mm")}{Server_Identity}.log\"";
         }
 
-        private Process GameProcess { get; set; }
+        internal Process GameProcess { get; set; }
 
         public Gameserver(bool creating = false)
         {
@@ -131,6 +141,13 @@ namespace RustServerManager.Models
 
                 App.Memory.Save();
             }
+        }
+
+        internal async Task InstallUmod()
+        {
+            await Task.Run(() => {
+
+            });
         }
 
         internal async Task Install()
@@ -248,6 +265,8 @@ namespace RustServerManager.Models
         {
             if (IsInstalled)
             {
+                ShouldRun = true;
+
                 GameProcess = new Process()
                 {
                     StartInfo = new ProcessStartInfo()
@@ -255,16 +274,30 @@ namespace RustServerManager.Models
                         WorkingDirectory = WorkingDirectory,
                         FileName = Path.Combine(WorkingDirectory, "RustDedicated.exe"),
                         Arguments = CommandLine,
-                        UseShellExecute = false
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
                     }
                 };
 
                 GameProcess.Start();
+
+                GameProcess.Exited += delegate
+                {
+                    if (!ShouldRun)
+                    {
+                        GameProcess = null;
+                    }
+                };
+
+                KeepAlive(GameProcess);
             }
         }
 
         public void Stop()
         {
+            ShouldRun = false;
+
             try
             {
                 WebRcon.RconService rcon = new WebRcon.RconService();
@@ -272,6 +305,18 @@ namespace RustServerManager.Models
                 if (rcon.IsConnected)
                 {
                     rcon.Request("quit");
+                }
+
+                GameProcess?.WaitForExit(5000);
+
+                if (GameProcess.HasExited)
+                {
+                    GameProcess = null;
+                    return;
+                }
+                else
+                {
+                    Kill();
                 }
             }
             catch (Exception)
@@ -288,7 +333,10 @@ namespace RustServerManager.Models
 
         public void Kill()
         {
+            ShouldRun = false;
+
             GameProcess?.Kill();
+            GameProcess?.WaitForExit();
         }
 
         public void WipeMap()
@@ -299,6 +347,38 @@ namespace RustServerManager.Models
         public void WipeMapAndBP()
         {
             throw new NotImplementedException();
+        }
+
+        public void KeepAlive(Process process)
+        {
+            Task.Run(async() => {
+                while (process != null)
+                {
+                    try
+                    {
+                        if (process.HasExited)
+                        {
+                            Kill();
+                            Start();
+                            process = null;
+                            break;
+                        }
+
+                        await Task.Delay(5000);
+                    }
+                    catch (Exception) { }
+                }
+            });
+        }
+
+        public void ShowWindow()
+        {
+            ShowWindow(GameProcess.MainWindowHandle, 1);
+        }
+
+        public void HideWindow()
+        {
+            ShowWindow(GameProcess.MainWindowHandle, 0);
         }
     }
 }

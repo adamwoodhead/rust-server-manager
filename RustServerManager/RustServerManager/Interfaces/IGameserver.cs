@@ -25,6 +25,7 @@ namespace RustServerManager.Interfaces
         int Server_WorldSize { get; set; }
         string WorkingDirectory { get; set; }
         bool IsRunning { get; }
+        bool UmodInstalled { get; set; }
         void Start();
         void Restart();
         void Stop();

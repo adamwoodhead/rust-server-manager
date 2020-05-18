@@ -18,7 +18,8 @@
                 Background="{DynamicResource MaterialDesignPaper}"
                 FontFamily="{DynamicResource MaterialDesignFont}"
              
-                d:DesignWidth="700">
+                d:DesignWidth="600"
+                d:DesignHeight="2000">
     <UserControl.Resources>
         <conv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <conv:InvertBooleanToVisibilityConverter x:Key="InvertBooleanToVisibilityConverter"/>
@@ -121,16 +122,13 @@
                                         <Button ToolTip="Configure">
                                             <materialDesign:PackIcon Kind="InformationVariant"/>
                                         </Button>
-                                        <Button ToolTip="Configure" Command="{x:Static materialDesign:Flipper.FlipCommand}">
-                                            <materialDesign:PackIcon Kind="Settings"/>
-                                        </Button>
                                     </StackPanel>
                                 </Grid>
 
                                 <Separator Grid.Row="1" Grid.ColumnSpan="5" Style="{StaticResource HorizontalSeparator}"/>
 
                                 <Grid Grid.Row="2" Grid.ColumnSpan="6" Visibility="{Binding Path=IsInstalled, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <Expander ExpandDirection="Down">
+                                    <Expander ExpandDirection="Down" IsExpanded="True">
                                         <Expander.Header>
                                             <TextBlock Text="Server Statistics &amp; Control" RenderTransformOrigin=".5,.5">
                                             </TextBlock>
@@ -158,28 +156,31 @@
                                                             <Style TargetType="{x:Type Button}" BasedOn="{StaticResource RegularButton}"/>
                                                         </WrapPanel.Resources>
                                                         <Button Content="Start" Command="{Binding StartCommand}" HorizontalAlignment="Stretch"
-                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanToVisibilityConverter}}"/>
 
                                                         <Button Content="Stop" Command="{Binding StopCommand}"
-                                                                        IsEnabled="{Binding Path=IsRunning}"/>
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                                                         <Button Content="Restart" Command="{Binding RestartCommand}"
-                                                                        IsEnabled="{Binding Path=IsRunning}"/>
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                                                         <Button Content="Kill" Command="{Binding StartCommand}" ToolTip="Attempts to instantly stop the server (unsafe, and you may experience a short rollback depending on your save interval)"
-                                                                        IsEnabled="{Binding Path=IsRunning}"/>
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
                                                         <Button Content="Wipe Map" Command="{Binding WipeMapCommand}" ToolTip="Wipes the Map on the server. Server must be STOPPED."
-                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanToVisibilityConverter}}"/>
 
                                                         <Button Content="Wipe Map &amp; BP" Command="{Binding WipeBPCommand}" ToolTip="Wipes the Map &amp; Blueprints on the server. Server must be STOPPED."
-                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanToVisibilityConverter}}"/>
 
-                                                        <Button Content="Reinstall" Command="{Binding ReinstallCommand}" ToolTip="Fully delete all server files, re-download, and install."
-                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+                                                            <Button Content="Reinstall" Command="{Binding ReinstallCommand}" ToolTip="Fully delete all server files, re-download, and install."
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanToVisibilityConverter}}"/>
 
-                                                        <Button Content="Uninstall" Command="{Binding UninstallCommand}" ToolTip="Fully delete all server files."
-                                                                        IsEnabled="{Binding Path=IsRunning, Converter={StaticResource InvertBooleanConverter}}"/>
+                                                            <Button Content="Uninstall" Command="{Binding UninstallCommand}" ToolTip="Fully delete all server files."
+                                                                        Visibility="{Binding Path=IsRunning, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanToVisibilityConverter}}"/>
+
+                                                            <Button Content="Install Umod" Command="{Binding InstallUmod}" ToolTip="Installs Umod (Oxide) to the server."
+                                                                        Visibility="{Binding Path=UmodInstalled, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanToVisibilityConverter}}"/>
 
                                                     </WrapPanel>
                                                 </GroupBox>
@@ -264,7 +265,7 @@
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-                <!--<viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600" IsInstalled="False" Updating="True"/>-->
+                <!--<viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600" IsInstalled="True" Updating="False"/>-->
             </ItemsControl>
         </ScrollViewer>
 

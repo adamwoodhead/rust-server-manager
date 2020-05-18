@@ -13,8 +13,14 @@ namespace RustServerManager.Models
     [DataContract]
     public class Memory
     {
+        private static readonly string _appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+
+        private static readonly string _saveFolder = Path.Combine(_appDataFolder, "RSSM");
+
+        private static readonly string _memoryFile = "memory.json";
+
         [DataMember]
-        public Configuration Configuration { get; set; } = new Configuration();
+        public Configuration Configuration { get; set; } = new Configuration(400, 600);
 
         [DataMember]
         public List<Gameserver> Gameservers { get; set; } = new List<Gameserver>();
@@ -48,12 +54,6 @@ namespace RustServerManager.Models
         }
 
         #region Serialization
-
-        private static readonly string _appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-
-        private static readonly string _saveFolder = Path.Combine(_appDataFolder, "RSSM");
-
-        private static readonly string _memoryFile = "memory.json";
 
         public Memory(string basedir)
         {

@@ -21,8 +21,8 @@
         BorderThickness="1"
         BorderBrush="White"
         
-        MinHeight="500"
-        MinWidth="800">
+        Height="{Binding SavedHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        Width="{Binding SavedWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
     <Window.Resources>
         <cv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Window.Resources>

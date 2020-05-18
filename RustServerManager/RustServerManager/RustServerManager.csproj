@@ -72,6 +72,8 @@
     <Compile Include="Models\Gameserver.cs" />
     <Compile Include="Models\ProcessHandler.cs" />
     <Compile Include="Models\SteamCMD.cs" />
+    <Compile Include="Models\Umod\Umod.cs" />
+    <Compile Include="Models\Umod\UmodInfoResponse.cs" />
     <Compile Include="Models\WebRcon\Callback.cs" />
     <Compile Include="Models\WebRcon\Packet.cs" />
     <Compile Include="Models\WebRcon\RconService.cs" />
@@ -165,6 +167,8 @@
   <ItemGroup>
     <Resource Include="Images\rust-logo.png" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Models\Discord\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
