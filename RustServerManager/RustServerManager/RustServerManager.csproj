@@ -74,7 +74,7 @@
     <Compile Include="Models\Steam\ProgressChangedEventArgs.cs" />
     <Compile Include="Models\Steam\StateChangedEventArgs.cs" />
     <Compile Include="Models\Steam\SteamCMD.cs" />
-	<Compile Include="Models\Umod\Umod.cs" />
+    <Compile Include="Models\Umod\Umod.cs" />
     <Compile Include="Models\Umod\UmodInfoResponse.cs" />
     <Compile Include="Models\WebRcon\Callback.cs" />
     <Compile Include="Models\WebRcon\Packet.cs" />
@@ -144,7 +144,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MaterialDesignColors">

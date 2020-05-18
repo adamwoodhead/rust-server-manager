@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -82,14 +83,24 @@ namespace RustServerManager.ViewModels
 
         private void Test()
         {
-            Task.Run(async () =>
-            {
-                Progress<double> p1 = new Progress<double>();
+            Process process = new Process() {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "SteamCMDWrapper",
+                    Arguments = @"D:\RSM\Test",
+                    UseShellExecute = false,
+                    //CreateNoWindow = true,
+                    //WindowStyle = ProcessWindowStyle.Hidden,
+                    RedirectStandardOutput = true,
+                },
+                EnableRaisingEvents = true
+            };
 
-                p1.ProgressChanged += (s, e) => { Console.WriteLine("SteamCMD Progress: " + string.Format("{0:00.00%}", e / 100)); };
+            process.OutputDataReceived += (s, e) => { Console.WriteLine(e.Data); };
 
-                await Models.SteamCMD.TestDownloadRust(App.Memory.Gameservers[0], p1);
-            });
+            process.Start();
+
+            process.BeginOutputReadLine();
         }
 
         void Gameservers()

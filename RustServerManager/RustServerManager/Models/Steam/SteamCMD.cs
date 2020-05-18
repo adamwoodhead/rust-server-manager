@@ -82,7 +82,7 @@ namespace RustServerManager.Models.Steam
 
         internal event EventHandler ProgressChanged;
 
-        internal static string WorkingDirectory { get => Path.Combine(App.Memory.Configuration.WorkingDirectory, "SteamCMD"); }
+        internal static string WorkingDirectory { get => Path.Combine(App.Memory.Configuration.WorkingDirectory, "steamcmd"); }
 
         private static string SteamCMD_EXE { get; set; }
         
@@ -90,8 +90,6 @@ namespace RustServerManager.Models.Steam
 
         private SteamCMD(string steamcmd_arguments)
         {
-            Console.WriteLine("Starting with: " + $"powershell.exe /c \"{SteamCMD_EXE} {steamcmd_arguments}\"");
-
             Connection = PtyProvider.Spawn($"powershell.exe /c \"{SteamCMD_EXE} {steamcmd_arguments}\"", 300, 1);
 
             Connection.PtyData += Connection_PtyData;
@@ -119,8 +117,6 @@ namespace RustServerManager.Models.Steam
 
         private void Connection_PtyData(object sender, string data)
         {
-            Console.WriteLine("Original Response: " + data);
-
             string message = Regex.Replace(data, @"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "");
 
             message = message.Trim();
@@ -138,7 +134,7 @@ namespace RustServerManager.Models.Steam
                 else if (message.Contains("Update state (0x11) preallocating")) { State = SteamCMDState.APP_PREALLOCATING; }
                 else if (message.Contains("Update state (0x61) downloading")) { State = SteamCMDState.APP_DOWNLOADING; }
                 else if (message.Contains("Update state (0x5) validating") && State == SteamCMDState.APP_DOWNLOADING) { State = SteamCMDState.APP_POST_DOWNLOAD_VALIDATING; }
-                else if (message.Contains("Success! App '258550' fully installed")) { State = SteamCMDState.APP_INSTALLED; Progress = 100; }
+                else if (message.Contains("Success! App '258550' fully installed")) { Progress = 100; State = SteamCMDState.APP_INSTALLED; }
 
                 Match match = Regex.Match(message, @"(\d{1,2}\.\d{1,2})");
                 Match match2 = Regex.Match(message, @"(\[.{0,2}\d{1,3}\%\])");

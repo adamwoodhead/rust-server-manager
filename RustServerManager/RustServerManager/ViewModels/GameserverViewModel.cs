@@ -416,7 +416,7 @@ namespace RustServerManager.ViewModels
         {
             Status = status;
             Updating = active;
-            UpdatingProgress = UpdatingProgress;
+            UpdatingProgress = updateProgress;
             UpdatingProgressValue = progressValue;
         }
 
@@ -499,8 +499,6 @@ namespace RustServerManager.ViewModels
 
             progress.ProgressChanged += (s, e) =>
             {
-                Console.WriteLine("Progressed...");
-
                 switch (e.Item1)
                 {
                     case SteamCMD.SteamCMDState.UNDEFINED:
@@ -538,6 +536,10 @@ namespace RustServerManager.ViewModels
                         break;
                     case SteamCMD.SteamCMDState.APP_INSTALLED:
                         StatusUpdate("Installation Complete", true);
+                        Task.Run(async() => {
+                            await Task.Delay(3000);
+                            StatusUpdate("", false);
+                        });
                         break;
                     default:
                         break;

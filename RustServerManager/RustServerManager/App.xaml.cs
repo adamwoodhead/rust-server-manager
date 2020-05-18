@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Win32;
 using RustServerManager.Models;
@@ -16,13 +17,11 @@ namespace RustServerManager
 
         internal static Memory Memory { get; set; }
 
-        internal static string ServersDirectory { get => Path.Combine(App.Memory.Configuration.WorkingDirectory, "Rust Servers"); }
+        internal static string ServersDirectory { get => Path.Combine(App.Memory.Configuration.WorkingDirectory, "rustservers"); }
         
         [STAThread]
         private void Application_Startup(object sender, StartupEventArgs e)
         {
-            //File.Delete(Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "RSSM"), "memory.json"));
-            
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             Memory.Load();
@@ -53,7 +52,7 @@ namespace RustServerManager
         private void CreateDirectories()
         {
             Directory.CreateDirectory(App.Memory.Configuration.WorkingDirectory);
-            Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.WorkingDirectory, "SteamCMD"));
+            Directory.CreateDirectory(Path.Combine(App.Memory.Configuration.WorkingDirectory, "steamcmd"));
             Directory.CreateDirectory(ServersDirectory);
         }
 

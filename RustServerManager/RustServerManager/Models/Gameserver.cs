@@ -154,16 +154,19 @@ namespace RustServerManager.Models
         internal async Task Install(IProgress<(SteamCMD.SteamCMDState, double)> progress = null)
         {
             await Task.Run(async() => {
+                Console.WriteLine($"+login anonymous +force_install_dir \"{WorkingDirectory}\" +app_update 258550 validate +quit");
                 SteamCMD steamCMD = SteamCMD.Run($"+login anonymous +force_install_dir \"{WorkingDirectory}\" +app_update 258550 validate +quit");
 
-                steamCMD.StateChanged += (s, e) => { Console.WriteLine((e as Steam.StateChangedEventArgs).State.ToString()); };
-                steamCMD.ProgressChanged += (s, e) => { Console.WriteLine((e as Steam.ProgressChangedEventArgs).Progress.ToString()); };
+                steamCMD.StateChanged += (s, e) => { progress.Report((steamCMD.State, steamCMD.Progress)); };
+                steamCMD.ProgressChanged += (s, e) => { progress.Report((steamCMD.State, steamCMD.Progress)); };
                 steamCMD.Finished += (s, e) => { Console.WriteLine("steamcmd finished!?"); };
-
+                
                 while (!steamCMD.HasFinished)
                 {
                     await Task.Delay(20);
                 }
+
+                IsInstalled = true;
             });
         }
 
@@ -176,6 +179,8 @@ namespace RustServerManager.Models
                 {
                     Directory.Delete(WorkingDirectory, true);
                 }
+
+                IsInstalled = false;
             });
         }
 
