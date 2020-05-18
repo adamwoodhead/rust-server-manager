@@ -1,5 +1,6 @@
 ﻿using RustServerManager.Interfaces;
 using RustServerManager.Models;
+using RustServerManager.Models.Steam;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,8 @@ namespace RustServerManager.ViewModels
         private string _commandToSay;
         private string _commandToRcon;
         private bool _updating = false;
+        private double _updatingProgressValue;
+        private bool _updatingProgress;
 
         public GameserverViewModel(Gameserver gameserver)
         {
@@ -62,6 +65,32 @@ namespace RustServerManager.ViewModels
 
             WipeMapCommand = new CommandImplementation(o => WipeMap());
             WipeBPCommand = new CommandImplementation(o => WipeMapAndBP());
+        }
+
+        public double UpdatingProgressValue
+        {
+            get => _updatingProgressValue;
+            set
+            {
+                if (_updatingProgressValue != value)
+                {
+                    _updatingProgressValue = value;
+                    OnPropertyChanged(nameof(UpdatingProgressValue));
+                }
+            }
+        }
+
+        public bool UpdatingProgress
+        {
+            get => _updatingProgress;
+            set
+            {
+                if (_updatingProgress != value)
+                {
+                    _updatingProgress = value;
+                    OnPropertyChanged(nameof(UpdatingProgress));
+                }
+            }
         }
 
         public bool Updating
@@ -368,15 +397,18 @@ namespace RustServerManager.ViewModels
 
         public ICommand WipeBPCommand { get; set; }
 
-        private void StatusUpdate(string status, bool active)
+        private void StatusUpdate(string status, bool active, bool updateProgress = false, double progressValue = 0)
         {
             Status = status;
             Updating = active;
+            UpdatingProgress = UpdatingProgress;
+            UpdatingProgressValue = progressValue;
         }
 
         public async void Start()
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 StatusUpdate("Starting", true);
 
                 _gameserver.Start();
@@ -387,7 +419,8 @@ namespace RustServerManager.ViewModels
 
         public async void Restart()
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 StatusUpdate("Restarting", true);
 
                 _gameserver.Restart();
@@ -398,7 +431,8 @@ namespace RustServerManager.ViewModels
 
         public async void Stop()
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 StatusUpdate("Stopping", true);
 
                 _gameserver.Stop();
@@ -411,7 +445,8 @@ namespace RustServerManager.ViewModels
         {
             StatusUpdate("Killing", true);
 
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 _gameserver.Kill();
             });
 
@@ -422,7 +457,8 @@ namespace RustServerManager.ViewModels
         {
             StatusUpdate("Deleting", true);
 
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 _gameserver.Delete();
             });
 
@@ -433,7 +469,56 @@ namespace RustServerManager.ViewModels
         {
             StatusUpdate("Installing", true);
 
-            await _gameserver.Install();
+            Progress<(SteamCMD.SteamCMDState, double)> progress = new Progress<(SteamCMD.SteamCMDState, double)>();
+
+            progress.ProgressChanged += (s, e) =>
+            {
+                Console.WriteLine("Progressed...");
+
+                switch (e.Item1)
+                {
+                    case SteamCMD.SteamCMDState.UNDEFINED:
+                        StatusUpdate("Installing", true);
+                        break;
+                    case SteamCMD.SteamCMDState.STEAMCMD_CHECKING_UPDATES:
+                        StatusUpdate("Checking SteamCMD Updates", true);
+                        break;
+                    case SteamCMD.SteamCMDState.STEAMCMD_DOWNLOADING_UPDATES:
+                        StatusUpdate("Downloading SteamCMD Updates", true, true, e.Item2);
+                        break;
+                    case SteamCMD.SteamCMDState.STEAMCMD_EXTRACTING_PACKAGES:
+                        StatusUpdate("Extracting SteamCMD Updates", true);
+                        break;
+                    case SteamCMD.SteamCMDState.STEAMCMD_INSTALLING_UPDATE:
+                        StatusUpdate("Installing SteamCMD Updates", true);
+                        break;
+                    case SteamCMD.SteamCMDState.STEAMCMD_VERIFYING:
+                        StatusUpdate("Verifying SteamCMD Files", true);
+                        break;
+                    case SteamCMD.SteamCMDState.STEAMCMD_LOADED:
+                        StatusUpdate("SteamCMD Successfully Loaded", true);
+                        break;
+                    case SteamCMD.SteamCMDState.APP_VALIDATING:
+                        StatusUpdate("Validating Server Files", true, true, e.Item2);
+                        break;
+                    case SteamCMD.SteamCMDState.APP_PREALLOCATING:
+                        StatusUpdate("Pre-Allocating Storage", true, true, e.Item2);
+                        break;
+                    case SteamCMD.SteamCMDState.APP_DOWNLOADING:
+                        StatusUpdate("Downloading Service Files", true, true, e.Item2);
+                        break;
+                    case SteamCMD.SteamCMDState.APP_POST_DOWNLOAD_VALIDATING:
+                        StatusUpdate("Validating Service Files", true, true, e.Item2);
+                        break;
+                    case SteamCMD.SteamCMDState.APP_INSTALLED:
+                        StatusUpdate("Installation Complete", true);
+                        break;
+                    default:
+                        break;
+                }
+            };
+
+            await _gameserver.Install(progress);
             IsInstalled = true;
             App.Memory.Save();
 
@@ -455,7 +540,8 @@ namespace RustServerManager.ViewModels
         {
             StatusUpdate("Reinstalling", true);
 
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 _gameserver.Reinstall();
             });
 
@@ -464,14 +550,16 @@ namespace RustServerManager.ViewModels
 
         public async void WipeMap()
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 _gameserver.WipeMap();
             });
         }
 
         public async void WipeMapAndBP()
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 _gameserver.WipeMapAndBP();
             });
         }

@@ -1,4 +1,5 @@
 ﻿using RustServerManager.Interfaces;
+using RustServerManager.Models.Steam;
 using RustServerManager.Utility;
 using System;
 using System.Collections.Generic;
@@ -133,9 +134,20 @@ namespace RustServerManager.Models
             }
         }
 
-        internal async Task Install()
+        internal async Task Install(IProgress<(SteamCMD.SteamCMDState, double)> progress = null)
         {
-            await SteamCMD.DownloadRust(WorkingDirectory);
+            await Task.Run(async() => {
+                SteamCMD steamCMD = SteamCMD.Run($"+login anonymous +force_install_dir \"{WorkingDirectory}\" +app_update 258550 validate +quit");
+
+                steamCMD.StateChanged += (s, e) => { Console.WriteLine((e as Steam.StateChangedEventArgs).State.ToString()); };
+                steamCMD.ProgressChanged += (s, e) => { Console.WriteLine((e as Steam.ProgressChangedEventArgs).Progress.ToString()); };
+                steamCMD.Finished += (s, e) => { Console.WriteLine("steamcmd finished!?"); };
+
+                while (!steamCMD.HasFinished)
+                {
+                    await Task.Delay(20);
+                }
+            });
         }
 
         internal async Task Uninstall()
