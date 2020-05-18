@@ -69,7 +69,7 @@ namespace RustServerManager.Models
         public string WorkingDirectory { get; set; }
 
         [DataMember]
-        public bool IsInstalled { get; set; } = false;
+        public bool IsInstalled { get; set; }
 
         [DataMember]
         public bool UmodInstalled { get; set; } = false;
@@ -167,6 +167,7 @@ namespace RustServerManager.Models
                 }
 
                 IsInstalled = true;
+                App.Memory.Save();
             });
         }
 
@@ -181,6 +182,7 @@ namespace RustServerManager.Models
                 }
 
                 IsInstalled = false;
+                App.Memory.Save();
             });
         }
 

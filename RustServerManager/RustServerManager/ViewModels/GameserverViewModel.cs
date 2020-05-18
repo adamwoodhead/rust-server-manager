@@ -31,6 +31,7 @@ namespace RustServerManager.ViewModels
             {
                 OnPropertyChanged(nameof(Status));
                 OnPropertyChanged(nameof(IsRunning));
+                OnPropertyChanged(nameof(IsInstalled));
             }, 250);
 
             StartCommand = new CommandImplementation(o => Start());
@@ -547,8 +548,6 @@ namespace RustServerManager.ViewModels
             };
 
             await _gameserver.Install(progress);
-            IsInstalled = true;
-            App.Memory.Save();
 
             StatusUpdate("", false);
         }
@@ -558,8 +557,6 @@ namespace RustServerManager.ViewModels
             StatusUpdate("Updating", true);
 
             await _gameserver.Install();
-            IsInstalled = true;
-            App.Memory.Save();
 
             StatusUpdate("", false);
         }
@@ -569,8 +566,6 @@ namespace RustServerManager.ViewModels
             StatusUpdate("Uninstalling", true);
 
             await _gameserver.Uninstall();
-            IsInstalled = false;
-            App.Memory.Save();
 
             StatusUpdate("", false);
         }
