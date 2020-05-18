@@ -259,13 +259,13 @@
                             <materialDesign:Card Grid.RowSpan="10" Grid.ColumnSpan="10" Visibility="{Binding Path=Updating, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Margin="16" VerticalAlignment="Center" HorizontalAlignment="Stretch">
                                     <TextBlock Style="{StaticResource MaterialDesignHeadline4TextBlock}" HorizontalAlignment="Left" Text="{Binding Path=Status, UpdateSourceTrigger=PropertyChanged}"/>
-                                    <ProgressBar Margin="3 8 0 0" Value="50" IsIndeterminate="True"/>
+                                    <ProgressBar Margin="3 8 0 0" Value="{Binding Path=UpdatingProgressValue}" IsIndeterminate="{Binding Path=UpdatingProgress, UpdateSourceTrigger=PropertyChanged, FallbackValue=True, Converter={StaticResource InvertBooleanConverter}}"/>
                                 </StackPanel>
                             </materialDesign:Card>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-                <!--<viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600" IsInstalled="True" Updating="False"/>-->
+                <!--<viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600"/>-->
             </ItemsControl>
         </ScrollViewer>
 
