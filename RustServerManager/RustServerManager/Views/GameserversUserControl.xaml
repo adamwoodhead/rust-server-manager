@@ -32,8 +32,8 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <ScrollViewer VerticalScrollBarVisibility="Visible">
-            <ItemsControl Grid.Row="0" ItemsSource="{Binding Path=Gameservers, UpdateSourceTrigger=PropertyChanged}">
-            <!--<ItemsControl Grid.Row="0">-->
+            <!--<ItemsControl Grid.Row="0" ItemsSource="{Binding Path=Gameservers, UpdateSourceTrigger=PropertyChanged}">-->
+            <ItemsControl Grid.Row="0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Grid>
@@ -265,7 +265,7 @@
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-                <!--<viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600"/>-->
+                <viewModels:GameserverViewModel Name="Solo / Duo" Server_Hostname="Adz's Rust Servers [VANILLA] [SOLO/DUO] [WIPE 15/05]" Server_MaxPlayers="200" Server_WorldSize="3500" Server_Seed="8712839471" Server_SaveInterval="600" IsInstalled="True"/>
             </ItemsControl>
         </ScrollViewer>
 

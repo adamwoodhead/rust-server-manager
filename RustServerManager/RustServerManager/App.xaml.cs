@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Win32;
 using RustServerManager.Models;
+using RustServerManager.Utility;
+using RustServerManager.ViewModels;
 using RustServerManager.Views;
 
 namespace RustServerManager
@@ -17,6 +19,10 @@ namespace RustServerManager
 
         internal static Memory Memory { get; set; }
 
+        internal static Authentication Authentication { get; set; }
+
+        internal static string Version = "1.0";
+
         internal static string ServersDirectory { get => Path.Combine(App.Memory.Configuration.WorkingDirectory, "rustservers"); }
         
         [STAThread]
@@ -24,8 +30,17 @@ namespace RustServerManager
         {
             this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-            Memory.Load();
+            Utility.API.Initialize();
 
+            LoginWindow.ShowAndCheckAuthentication();
+
+            if (Authentication == null)
+            {
+                Environment.Exit(0);
+            }
+
+            Memory.Load();
+            
             if (string.IsNullOrEmpty(Memory.Configuration.WorkingDirectory))
             {
                 MessageBox.Show("Rust Server Manager requires a working directory, try again when you're ready to select one.");
@@ -59,6 +74,12 @@ namespace RustServerManager
         private void PreExit()
         {
             Console.WriteLine("Begin Shutdown...");
+
+            Console.WriteLine("Attempting to close ViewModel Tasks..");
+            foreach (GameserverViewModel gameserverViewModel in MainWindowInstance.ViewModel.GamserversViewModel.Gameservers)
+            {
+                gameserverViewModel?.CancelTasks();
+            }
 
             Console.WriteLine("Stopping Servers.");  
             foreach (Gameserver gameserver in App.Memory.Gameservers)

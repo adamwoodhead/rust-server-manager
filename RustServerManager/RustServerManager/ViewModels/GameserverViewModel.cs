@@ -32,6 +32,8 @@ namespace RustServerManager.ViewModels
                 OnPropertyChanged(nameof(Status));
                 OnPropertyChanged(nameof(IsRunning));
                 OnPropertyChanged(nameof(IsInstalled));
+
+                Console.WriteLine("test");
             }, 250);
 
             StartCommand = new CommandImplementation(o => Start());

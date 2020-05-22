@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using RustServerManager.Models;
+using RustServerManager.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -67,7 +68,8 @@ namespace RustServerManager.Models
             try
             {
                 string json = JsonConvert.SerializeObject(this, Formatting.Indented);
-                File.WriteAllText(Path.Combine(_saveFolder, _memoryFile), json);
+                string encryptedData = Encryption.Encrypt(json, "asd");
+                File.WriteAllText(Path.Combine(_saveFolder, _memoryFile), encryptedData);
             }
             catch (Exception)
             {
@@ -85,7 +87,8 @@ namespace RustServerManager.Models
                 Console.WriteLine("Memory File Does Exist...");
                 try
                 {
-                    string json = File.ReadAllText(Path.Combine(_saveFolder, _memoryFile));
+                    string encryptedData = File.ReadAllText(Path.Combine(_saveFolder, _memoryFile));
+                    string json = Encryption.Decrypt(encryptedData, "asd");
                     App.Memory = JsonConvert.DeserializeObject<Memory>(json);
                 }
                 catch (Exception)

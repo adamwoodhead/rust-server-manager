@@ -38,7 +38,7 @@ namespace RustServerManager.ViewModels
                         action.Invoke();
                         await Task.Delay(msDelay);
                     }
-                });
+                }, cancellationToken);
             }
             else
             {
@@ -48,7 +48,7 @@ namespace RustServerManager.ViewModels
                         cancellationToken.ThrowIfCancellationRequested();
                         action.Invoke();
                     }
-                });
+                }, cancellationToken);
             }
         }
 
