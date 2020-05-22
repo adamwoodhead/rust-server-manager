@@ -57,12 +57,7 @@ namespace RustServerManager.ViewModels
 
             if (!response.IsError)
             {
-                App.Authentication = new Utility.Authentication()
-                {
-                    Username = Username,
-                    Password = LoginWindow.PasswordBox.Password.SHA256()
-                };
-                LoginWindow.Close();
+                MessageBox.Show(response.Message, "Success!", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
@@ -85,6 +80,7 @@ namespace RustServerManager.ViewModels
             {
                 App.Authentication = new Utility.Authentication()
                 {
+                    ID = Convert.ToInt32(response.Message),
                     Username = Username,
                     Password = LoginWindow.PasswordBox.Password.SHA256()
                 };

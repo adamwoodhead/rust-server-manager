@@ -39,6 +39,8 @@ namespace RustServerManager
                 Environment.Exit(0);
             }
 
+            Console.WriteLine("User ID: " + Authentication.ID);
+
             Memory.Load();
             
             if (string.IsNullOrEmpty(Memory.Configuration.WorkingDirectory))

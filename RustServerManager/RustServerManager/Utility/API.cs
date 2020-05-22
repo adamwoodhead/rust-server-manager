@@ -98,6 +98,9 @@ namespace RustServerManager.Utility
     [JsonObject]
     internal class Authentication
     {
+        [JsonProperty("id")]
+        internal int ID { get; set; }
+
         [JsonProperty("username")]
         internal string Username { get; set; }
 
