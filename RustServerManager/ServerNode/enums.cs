@@ -1,0 +1,29 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace ServerNode
+{
+    /// <summary>
+    /// States of procedure that a SteamCMD object may reside.
+    /// </summary>
+    internal enum SteamCMDState
+    {
+        UNDEFINED,
+
+        // steamcmd installation section
+        STEAMCMD_CHECKING_UPDATES,      // [  0%] Checking for available update...
+        STEAMCMD_DOWNLOADING_UPDATES,   // [  0%] Downloading update (2,523 of 39,758 KB)...
+        STEAMCMD_EXTRACTING_PACKAGES,   // [----] Extracting package...
+        STEAMCMD_INSTALLING_UPDATE,     // [----] Installing update...
+        STEAMCMD_VERIFYING,             // [----] Verifying installation...
+        STEAMCMD_LOADED,                // Loading Steam API...OK.
+
+        // app installation section
+        APP_VALIDATING,                 // Update state (0x5) validating, progress: 0.03 (1401888 / 5364833225)
+        APP_PREALLOCATING,              // Update state (0x11) preallocating, progress: 31.23 (1675318076 / 5364833225)
+        APP_DOWNLOADING,                // Update state (0x61) downloading, progress: 0.06 (3145728 / 5364833225)
+        APP_POST_DOWNLOAD_VALIDATING,   // Update state (0x5) validating, progress: 0.03 (1401888 / 5364833225)
+        APP_INSTALLED                   // Success! App '258550' fully installed.
+    }
+}

@@ -25,7 +25,7 @@ namespace RustServerManager.Utility
 
             HttpClient.DefaultRequestHeaders.Accept.Clear();
 
-            HttpClient.DefaultRequestHeaders.Accept.Add( new MediaTypeWithQualityHeaderValue("application/json"));
+            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
         internal static async Task<APIResponse> AuthenticateUserAsync(string username, string password)
