@@ -11,9 +11,13 @@
 	<ApplicationIcon />
 	<Configurations>Debug;Release;Linux</Configurations>
 	</PropertyGroup>
-
+	
 	<ItemGroup>
-	<PackageReference Include="Pty.Net" Version="0.1.6-pre" />
+	  <ProjectReference Include="..\..\..\vs-pty.net\src\Pty.Net\Pty.Net.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Interfaces\" />
 	</ItemGroup>
 
 </Project>
