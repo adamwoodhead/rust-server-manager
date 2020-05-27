@@ -41,13 +41,12 @@ namespace ServerNode.Models.Games
 
         bool Restart()
         {
-            Stop();
-            Start();
+             return Stop() && Start();
         }
 
         bool Start()
         {
-
+            throw new NotImplementedException();
         }
 
         bool Stop()

@@ -1,6 +1,7 @@
 ﻿using ServerNode.Models.Steam;
 using System;
 using System.IO;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -40,20 +41,26 @@ namespace ServerNode
 
             //SteamDB ID for Rust: 258550
 
+            //SteamCMD steamCMD = new SteamCMD();
+
+            //steamCMD.StateChanged += (s, e) => { Console.WriteLine($"SteamCMD State Change: {(e as StateChangedEventArgs).State}"); };
+            //steamCMD.ProgressChanged += (s, e) => { Console.WriteLine($"SteamCMD Progress Change: {(e as ProgressChangedEventArgs).Progress}"); };
+            //steamCMD.Finished += delegate { Console.WriteLine("SteamCMD Finished!"); };
+
+            //if (Utility.OperatingSystemHelper.IsWindows())
+            //{
+            //    steamCMD.InstallAnonymousApp(@"C:\rsm\1", 258550, true);
+            //}
+            //else if (Utility.OperatingSystemHelper.IsLinux())
+            //{
+            //    steamCMD.InstallAnonymousApp(@"/home/adam/1", 258550, true);
+            //}
+
             SteamCMD steamCMD = new SteamCMD();
 
-            steamCMD.StateChanged += (s, e) => { Console.WriteLine($"SteamCMD State Change: {(e as StateChangedEventArgs).State}"); };
-            steamCMD.ProgressChanged += (s, e) => { Console.WriteLine($"SteamCMD Progress Change: {(e as ProgressChangedEventArgs).Progress}"); };
-            steamCMD.Finished += delegate { Console.WriteLine("SteamCMD Finished!"); };
+            Task.WaitAll(steamCMD.Test());
 
-            if (Utility.OperatingSystemHelper.IsWindows())
-            {
-                steamCMD.InstallAnonymousApp(@"C:\rsm\1", 258550, true);
-            }
-            else if (Utility.OperatingSystemHelper.IsLinux())
-            {
-                steamCMD.InstallAnonymousApp(@"/home/adam/1", 258550, true);
-            }
+            steamCMD.Finished += delegate { Console.WriteLine("-----------------------------finished with terminal"); };
 
             Console.Read();
         }

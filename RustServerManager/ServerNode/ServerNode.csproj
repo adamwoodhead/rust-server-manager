@@ -13,11 +13,11 @@
 	</PropertyGroup>
 	
 	<ItemGroup>
-	  <ProjectReference Include="..\..\..\vs-pty.net\src\Pty.Net\Pty.Net.csproj" />
+	  <Folder Include="Interfaces\" />
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <Folder Include="Interfaces\" />
+	  <ProjectReference Include="..\..\..\vs-pty.net\src\Pty.Net\Pty.Net.csproj" />
 	</ItemGroup>
 
 </Project>

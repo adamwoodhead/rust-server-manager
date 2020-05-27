@@ -19,6 +19,8 @@ namespace ServerNode.Models.Steam
     /// </summary>
     internal class SteamCMD
     {
+        private CancellationToken CancellationToken = new CancellationTokenSource().Token;
+        private UTF8Encoding Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         private SteamCMDState _state = SteamCMDState.UNDEFINED;
         private double _progress = 0;
         private bool _hasFinished = false;
@@ -37,6 +39,10 @@ namespace ServerNode.Models.Steam
         /// Event Handler raised when the Progress of SteamCMD has changed (if applicable to current state and procedure).
         /// </summary>
         internal event EventHandler ProgressChanged;
+
+        private IPtyConnection Terminal { get; set; }
+
+        private TaskCompletionSource<object?> ReadyForInputTsk;
 
         /// <summary>
         /// Get the download path for steamcmd
@@ -220,7 +226,7 @@ namespace ServerNode.Models.Steam
             string arguments = $"+login anonymous +force_install_dir {installDirectory} +app_update {appID} {validateString}+quit";
 
             // begin the installation procedure
-            InstallApp(arguments);
+            InstallApp(arguments, installDirectory);
         }
 
         internal void InstallApp(string username, string password, string installDirectory, int appID, bool validate)
@@ -231,7 +237,7 @@ namespace ServerNode.Models.Steam
             string arguments = $"+login {username} {password} +force_install_dir {installDirectory} +app_update {appID} {validateString}+quit";
 
             // begin the installation procedure
-            InstallApp(arguments);
+            InstallApp(arguments, installDirectory);
         }
 
         /// <summary>
@@ -240,7 +246,7 @@ namespace ServerNode.Models.Steam
         /// <param name="installDirectory"></param>
         /// <param name="appID"></param>
         /// <param name="validate"></param>
-        private void InstallApp(string arguments)
+        private async void InstallApp(string arguments, string workingDir)
         {
             // check if we have the steamcmd executable available
             if (!ExecutableExists())
@@ -258,23 +264,185 @@ namespace ServerNode.Models.Steam
                 }
             }
 
-            string rootApp = null;
+            if (!Directory.Exists(workingDir))
+            {
+                Console.WriteLine("Creating gameserver directory");
+            }
+            else
+            {
+                Console.WriteLine("Gameserver directory already exists");
+            }
+
+            Console.WriteLine(arguments);
+
+            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
+
+            PtyOptions ptyOptions = new PtyOptions() {
+                Name = "SteamCMD",
+                App = app,
+                Cols = 300,
+                Rows = 1,
+                Cwd = Environment.CurrentDirectory
+            };
+
+            IPtyConnection terminal = await PtyProvider.SpawnAsync(ptyOptions, CancellationToken);
+
+            TaskCompletionSource<uint> processExitedTcs = new TaskCompletionSource<uint>();
+            terminal.ProcessExited += (sender, e) => { processExitedTcs.TrySetResult((uint)terminal.ExitCode); HasFinished = true; };
+
+            string GetTerminalExitCode() => processExitedTcs.Task.IsCompleted ? $". Terminal process has exited with exit code {processExitedTcs.Task.GetAwaiter().GetResult()}." : string.Empty;
+
+            int i = 0;
+            using (StreamReader reader = new StreamReader(terminal.ReaderStream))
+            {
+                string result = await reader.ReadLineAsync();
+                Console.WriteLine($"{++i}: {result}");
+            }
+        }
+
+        internal async Task Test()
+        {
+            try
+            {
+                await ConnectToTerminal();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Could not start the terminal", ex);
+            }
 
             if (Utility.OperatingSystemHelper.IsWindows())
             {
-                rootApp = "powershell.exe";
+                await SendCommand(@"C:\Users\awood\AppData\Roaming\GameServerManagerUtilities\steamcmd.exe");
             }
-            else if (Utility.OperatingSystemHelper.IsLinux())
+            else
             {
-                rootApp = "sh";
+                await SendCommand(@"./.steam/steamcmd/steamcmd.sh");
             }
 
-            Console.WriteLine("Spawning SteamCMD Pseudo Terminal with arguments:");
-            Console.WriteLine(arguments);
-            IPtyConnection terminal = PtyProvider.Spawn($"{rootApp} /c \"{ExecutablePath} {arguments}\"", 300, 1);
+            await ReadyForInputTsk.Task;
 
-            terminal.PtyData += SteamCMD_OutputDataReceived;
-            terminal.PtyDisconnected += delegate { OnFinished(); };
+            await SendCommand(@"login anonymous");
+
+            await ReadyForInputTsk.Task;
+
+            await SendCommand(@"quit");
+
+            await Task.Delay(1000);
+
+            await SendCommand(@"exit");
+
+            System.Timers.Timer aTimer = new System.Timers.Timer(1000);
+            // Hook up the Elapsed event for the timer. 
+            int seconds = 10;
+            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close.. {seconds--}"); };
+            aTimer.AutoReset = true;
+            aTimer.Enabled = true;
+
+            if (Terminal.WaitForExit(seconds * 1000))
+            {
+                aTimer.Enabled = false;
+            }
+            else
+            {
+                aTimer.Enabled = false;
+                Terminal?.Kill();
+            }
+        }
+
+        private async Task ConnectToTerminal()
+        {
+            const uint CtrlCExitCode = 0xC000013A;
+
+            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
+            var options = new PtyOptions
+            {
+                Name = "Custom terminal",
+                Cols = 300,
+                Rows = 1,
+                Cwd = Environment.CurrentDirectory,
+                App = app,
+                Environment = new Dictionary<string, string>()
+                {
+                    { "FOO", "bar" },
+                    { "Bazz", string.Empty },
+                },
+            };
+
+            Terminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
+
+            var processExitedTcs = new TaskCompletionSource<uint>();
+            Terminal.ProcessExited += (sender, e) =>
+            {
+                processExitedTcs.TrySetResult((uint)Terminal.ExitCode);
+                HasFinished = true;
+
+                Terminal.Resize(40, 10);
+
+                Terminal.Dispose();
+
+                using (this.CancellationToken.Register(() => processExitedTcs.TrySetCanceled(this.CancellationToken)))
+                {
+                    uint exitCode = (uint)Terminal.ExitCode;
+                }
+            };
+
+            string GetTerminalExitCode() =>
+                processExitedTcs.Task.IsCompleted ? $". Terminal process has exited with exit code {processExitedTcs.Task.GetAwaiter().GetResult()}." : string.Empty;
+
+            TaskCompletionSource<object> firstOutput = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            string output = string.Empty;
+            Task<bool> checkTerminalOutputAsync = Task.Run(async() =>
+            {
+                var buffer = new byte[4096];
+                var ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
+
+                while (!this.CancellationToken.IsCancellationRequested && !processExitedTcs.Task.IsCompleted)
+                {
+                    int count = await Terminal.ReaderStream.ReadAsync(buffer, 0, buffer.Length, this.CancellationToken);
+                    if (count == 0)
+                    {
+                        Console.WriteLine("output has finished");
+                        break;
+                    }
+
+                    firstOutput.TrySetResult(null);
+
+                    output += Encoding.GetString(buffer, 0, count);
+                    output = ansiRegex.Replace(output, string.Empty);
+                    if (output.Contains("\n") || output.Contains("\r"))
+                    {
+                        output = output.Replace("\r", string.Empty).Replace("\n", string.Empty);
+                        if (output == "Steam>")
+                        {
+                            ReadyForInputTsk.SetResult(null);
+                        }
+                        Console.WriteLine($"PTY ({Terminal.Pid}): {output}");
+                        output = string.Empty;
+                    }
+                }
+
+                firstOutput.TrySetCanceled();
+                return false;
+            });
+
+            try
+            {
+                await firstOutput.Task;
+            }
+            catch (OperationCanceledException exception)
+            {
+                throw new InvalidOperationException($"Could not get any output from terminal{GetTerminalExitCode()}", exception);
+            }
+        }
+
+        private async Task SendCommand(string command)
+        {
+            ReadyForInputTsk = new TaskCompletionSource<object?>();
+            byte[] commandBuffer = Encoding.GetBytes(command);
+            await Terminal.WriterStream.WriteAsync(commandBuffer, 0, commandBuffer.Length, this.CancellationToken);
+            await Terminal.WriterStream.WriteAsync(new byte[] { 0x0D }, 0, 1, this.CancellationToken);
+            await Terminal.WriterStream.FlushAsync();
         }
 
         /// <summary>
@@ -282,7 +450,7 @@ namespace ServerNode.Models.Steam
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void SteamCMD_OutputDataReceived(object sender, string data)
+        private void SteamCMD_OutputDataReceived(string data)
         {
             // ANSI code regex
             Regex ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
@@ -293,6 +461,9 @@ namespace ServerNode.Models.Steam
 
             // remove whitespaces
             data = data.Trim();
+
+            Console.WriteLine($"PTY: {data}");
+            return;
 
             // if the string is now null or empty after trimming, we don't want to handle it
             if (!string.IsNullOrEmpty(data))
