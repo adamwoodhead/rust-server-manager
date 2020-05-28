@@ -43,6 +43,7 @@ namespace ServerNode.Models.Steam
         private IPtyConnection Terminal { get; set; }
 
         private TaskCompletionSource<object?> ReadyForInputTsk;
+        private bool appInstallationSuccess = false;
 
         /// <summary>
         /// Get the download path for steamcmd
@@ -65,26 +66,27 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// The executable path for SteamCMD, variable defined by current operating system
         /// </summary>
-        private static string ExecutablePath
+        private static string WinExecutablePath
         {
             get
             {
-                if (Utility.OperatingSystemHelper.IsWindows()) // We're on Windows
-                {
-                    // get the appdata folder
-                    string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    // create a folder for the application
-                    string steamCmdFolder = Directory.CreateDirectory(Path.Combine(appData, "GameServerManagerUtilities")).FullName;
-                    // executable file for steamcmd
-                    string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
-                    // TODO Steam CMD Executable Path (Windows)
-                    return steamCmdExe;
-                }
-                else // We're on Linux
-                {
-                    // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
-                    return "/usr/games/steamcmd";
-                }
+                // get the appdata folder
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                // create a folder for the application
+                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(appData, "GameServerManagerUtilities")).FullName;
+                // executable file for steamcmd
+                string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
+                // TODO Steam CMD Executable Path (Windows)
+                return steamCmdExe;
+            }
+        }
+
+        private static string LinExecutablePath
+        {
+            get
+            {
+                // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
+                return @"./.steam/steamcmd/steamcmd.sh";
             }
         }
 
@@ -95,7 +97,7 @@ namespace ServerNode.Models.Steam
         internal static bool ExecutableExists()
         {
             // Check if the variable file exists, depending in windows/linux
-            if (File.Exists(ExecutablePath))
+            if (File.Exists(WinExecutablePath))
             {
                 // File Found
                 return true;
@@ -106,6 +108,12 @@ namespace ServerNode.Models.Steam
                 return false;
             }
         }
+
+        /// <summary>
+        /// Boolean representation of whether steamcmd successfully installed the app
+        /// </summary>
+        internal bool AppInstallationSuccess
+        { get => appInstallationSuccess; private set => appInstallationSuccess = value; }
 
         /// <summary>
         /// Current SteamCMD Procedure State
@@ -277,7 +285,8 @@ namespace ServerNode.Models.Steam
 
             string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
 
-            PtyOptions ptyOptions = new PtyOptions() {
+            PtyOptions ptyOptions = new PtyOptions()
+            {
                 Name = "SteamCMD",
                 App = app,
                 Cols = 300,
@@ -302,6 +311,22 @@ namespace ServerNode.Models.Steam
 
         internal async Task Test()
         {
+            // check if we have the steamcmd executable available
+            if (!ExecutableExists())
+            {
+                // check the current operating system is windows
+                if (Utility.OperatingSystemHelper.IsWindows())
+                {
+                    // download and extract steacmd into the appdata utilities folder
+                    DownloadSteamCMD();
+                }
+                else
+                {
+                    // die, we shouldn't be here!
+                    throw new ApplicationException("SteamCMD Not Installed.");
+                }
+            }
+
             try
             {
                 await ConnectToTerminal();
@@ -313,60 +338,134 @@ namespace ServerNode.Models.Steam
 
             if (Utility.OperatingSystemHelper.IsWindows())
             {
-                await SendCommand(@"C:\Users\awood\AppData\Roaming\GameServerManagerUtilities\steamcmd.exe");
+                await SendCommand(WinExecutablePath);
             }
             else
             {
-                await SendCommand(@"./.steam/steamcmd/steamcmd.sh");
+                await SendCommand(LinExecutablePath);
             }
 
             await ReadyForInputTsk.Task;
 
-            await SendCommand(@"login anonymous");
+            //await LoginUserPassword("", "");
+
+            await LoginAnonymously();
+
+            await ForceInstallDirectory($"force_install_dir \"{@"C:\test something\"}\"");
+
+            await AppUpdate((int)SteamApps.COUNTER_STRIKE_SOURCE_SERVER, true);
+
+            await Shutdown();
+        }
+
+        internal async Task AppUpdate(int id, bool validate)
+        {
+            if (validate)
+            {
+                await SendCommand(@$"app_update {id} validate");
+            }
+            else
+            {
+                await SendCommand(@$"app_update {id}");
+            }
+
+            await ReadyForInputTsk.Task;
+        }
+
+        internal async Task ForceInstallDirectory(string path)
+        {
+            await SendCommand(@$"{path}");
+
+            await ReadyForInputTsk.Task;
+        }
+
+        internal async Task<bool> LoginUserPassword(string username, string password, string steamGuard = null)
+        {
+            State = SteamCMDState.LOGGING_IN;
+
+            await SendCommand(@$"login {username} {password}");
 
             await ReadyForInputTsk.Task;
 
+            if (State == SteamCMDState.LOGIN_REQUIRES_STEAMGUARD)
+            {
+                if (steamGuard != null)
+                {
+                    await SendCommand(@$"{steamGuard.ToUpper()}");
+
+                    await ReadyForInputTsk.Task;
+                }
+                else
+                {
+                    // TODO Ask the user for steamguard, and remove the below line
+                    await SendCommand(@$" ");
+                }
+            }
+
+            return (State == SteamCMDState.LOGGED_IN);
+        }
+
+        /// <summary>
+        /// Send commands to steamcmd to login anonymously (login anonymous)
+        /// </summary>
+        /// <returns></returns>
+        internal async Task LoginAnonymously()
+        {
+            await SendCommand(@"login anonymous");
+
+            await ReadyForInputTsk.Task;
+        }
+
+        /// <summary>
+        /// Sends a command to steamcmd requesting a peaceful quit.
+        /// Kills the process and pseudoterminal after x seconds if it does not exit peacefully.
+        /// </summary>
+        /// <returns></returns>
+        private async Task Shutdown(int timeout = 10)
+        {
+            // steamcmd command to peacefully quit
             await SendCommand(@"quit");
 
+            // Wait one second for steamcmd to shutdown peacefully
             await Task.Delay(1000);
 
+            // Exit the terminal peacefully
             await SendCommand(@"exit");
 
             System.Timers.Timer aTimer = new System.Timers.Timer(1000);
             // Hook up the Elapsed event for the timer. 
-            int seconds = 10;
-            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close.. {seconds--}"); };
+            int seconds = timeout + 1;
+            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close.. {--seconds}"); };
             aTimer.AutoReset = true;
             aTimer.Enabled = true;
 
+            // If the terminal hasn't exited, we should wait a short amount of time and then kill it if it's still alive
             if (Terminal.WaitForExit(seconds * 1000))
             {
+                // cancel the timer
                 aTimer.Enabled = false;
             }
             else
             {
+                // cancel the timer
                 aTimer.Enabled = false;
+                // Kill the terminal process containing steamcmd
                 Terminal?.Kill();
             }
         }
 
         private async Task ConnectToTerminal()
         {
-            const uint CtrlCExitCode = 0xC000013A;
-
             string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
             var options = new PtyOptions
             {
-                Name = "Custom terminal",
+                Name = "SteamCMD Terminal",
+                // TODO this should be quite long, and cover anything that steamcmd can spit out in a single line + the current directory length
                 Cols = 300,
+                // we want it line by line, no more than that
                 Rows = 1,
                 Cwd = Environment.CurrentDirectory,
-                App = app,
-                Environment = new Dictionary<string, string>()
-                {
-                    { "FOO", "bar" },
-                    { "Bazz", string.Empty },
-                },
+                App = app
             };
 
             Terminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
@@ -392,7 +491,7 @@ namespace ServerNode.Models.Steam
 
             TaskCompletionSource<object> firstOutput = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
             string output = string.Empty;
-            Task<bool> checkTerminalOutputAsync = Task.Run(async() =>
+            Task<bool> checkTerminalOutputAsync = Task.Run(async () =>
             {
                 var buffer = new byte[4096];
                 var ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
@@ -413,11 +512,29 @@ namespace ServerNode.Models.Steam
                     if (output.Contains("\n") || output.Contains("\r"))
                     {
                         output = output.Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+                        // Parse the output before setting input ready, we need to set states if applicable
+                        SteamCMD_ParseOutput(output);
+
+                        // Inform that steamcmd is awaiting input
                         if (output == "Steam>")
                         {
+                            State = SteamCMDState.AWAITING_INPUT;
                             ReadyForInputTsk.SetResult(null);
                         }
-                        Console.WriteLine($"PTY ({Terminal.Pid}): {output}");
+                        else if (output == "password:")
+                        {
+                            State = SteamCMDState.LOGIN_REQUIRES_PASSWORD;
+                            ReadyForInputTsk.SetResult(null);
+                        }
+                        else if (output == "Enter the current code from your Steam Guard Mobile Authenticator appTwo-factor code:"
+                        || output == "Please check your email for the message from Steam, and enter the Steam Guard code from that message.You can also enter this code at any time using 'set_steam_guard_code' at the console.Steam Guard code:")
+                        {
+                            State = SteamCMDState.LOGIN_REQUIRES_STEAMGUARD;
+                            ReadyForInputTsk.SetResult(null);
+                        }
+
+                        // Reset the output
                         output = string.Empty;
                     }
                 }
@@ -450,7 +567,7 @@ namespace ServerNode.Models.Steam
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void SteamCMD_OutputDataReceived(string data)
+        private void SteamCMD_ParseOutput(string data)
         {
             // ANSI code regex
             Regex ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
@@ -462,81 +579,104 @@ namespace ServerNode.Models.Steam
             // remove whitespaces
             data = data.Trim();
 
-            Console.WriteLine($"PTY: {data}");
-            return;
+            //Console.WriteLine($"PTY ({Terminal.Pid}): {data}");
 
             // if the string is now null or empty after trimming, we don't want to handle it
             if (!string.IsNullOrEmpty(data))
             {
+                bool shouldCheckProgress = false;
                 // ----- steamcmd self updating section
                 // steamcmd is checking for available updates
                 if (data.Contains("] Checking for available update")) { State = SteamCMDState.STEAMCMD_CHECKING_UPDATES; Progress = 0; }
 
                 // steamcmd is downloading updates
-                else if (data.Contains("] Downloading update")) { State = SteamCMDState.STEAMCMD_DOWNLOADING_UPDATES; }
+                else if (data.Contains("] Downloading update")) { State = SteamCMDState.STEAMCMD_DOWNLOADING_UPDATES; shouldCheckProgress = true; }
+
+                // steamcmd is downloading updates
+                else if (data.Contains("] Downloading update")) { State = SteamCMDState.STEAMCMD_DOWNLOADING_UPDATES; shouldCheckProgress = true; }
 
                 // steamcmd is extracting the new package
                 else if (data.Contains("] Extracting package")) { State = SteamCMDState.STEAMCMD_EXTRACTING_PACKAGES; Progress = 0; }
 
                 // steamcmd is installing
                 else if (data.Contains("] Installing update")) { State = SteamCMDState.STEAMCMD_INSTALLING_UPDATE; Progress = 0; }
-                
+
                 // steamcmd is verifying its installation
                 else if (data.Contains("] Verifying installation")) { State = SteamCMDState.STEAMCMD_VERIFYING; Progress = 0; }
 
                 // steamcmd is now ready and loading
                 else if (data.Contains("Loading Steam API...")) { State = SteamCMDState.STEAMCMD_LOADED; Progress = 0; }
 
+                // ----- steamcmd login section
+                // login failed with invalid password
+                else if (data.Contains("FAILED login with result code Invalid Password")) { State = SteamCMDState.LOGIN_FAILED_BAD_PASS; Progress = 0; }
+
+                // login failed due to too many invalid attempts
+                else if (data.Contains("FAILED login with result code Rate Limit Exceeded")) { State = SteamCMDState.LOGIN_FAILED_RATE_LIMIT; Progress = 0; }
+
+                // login failed, unknown reason thus far
+                else if (data.Contains("FAILED login")) { State = SteamCMDState.LOGIN_FAILED_GENERIC; Progress = 0; }
+
+                // login success
+                else if (data.Contains("Logged in OK")) { State = SteamCMDState.LOGGED_IN; Progress = 0; }
+
                 // ----- steamcmd app installation section
                 // steamcmd is validating the app
-                else if (data.Contains("Update state (0x5) validating")) { State = SteamCMDState.APP_VALIDATING; }
+                else if (data.Contains("Update state (0x5) validating")) { State = SteamCMDState.APP_VALIDATING; shouldCheckProgress = true; }
 
                 // steamcmd validation failed completely so it's now preallocating the storage space for full installation
-                else if (data.Contains("Update state (0x11) preallocating")) { State = SteamCMDState.APP_PREALLOCATING; }
+                else if (data.Contains("Update state (0x11) preallocating")) { State = SteamCMDState.APP_PREALLOCATING; shouldCheckProgress = true; }
 
                 // steamcmd is now downloading the app
-                else if (data.Contains("Update state (0x61) downloading")) { State = SteamCMDState.APP_DOWNLOADING; }
+                else if (data.Contains("Update state (0x61) downloading")) { State = SteamCMDState.APP_DOWNLOADING; shouldCheckProgress = true; }
 
                 // steamcmd is now validating the app
-                else if (data.Contains("Update state (0x5) validating") && State == SteamCMDState.APP_DOWNLOADING) { State = SteamCMDState.APP_POST_DOWNLOAD_VALIDATING; }
+                else if (data.Contains("Update state (0x5) validating") && State == SteamCMDState.APP_DOWNLOADING) { State = SteamCMDState.APP_POST_DOWNLOAD_VALIDATING; shouldCheckProgress = true; }
+
+                // steamcmd is now validating the app
+                else if (data.Contains("Update state (0x5) verifying")) { State = SteamCMDState.APP_VERIFYING; shouldCheckProgress = true; }
 
                 // steamcmd successfully install the app
-                else if (data.Contains("Success! App") && data.Contains("fully installed")) { Progress = 100; State = SteamCMDState.APP_INSTALLED; }
+                else if (data.Contains("Success! App") && data.Contains("fully installed")) { Progress = 100; State = SteamCMDState.APP_INSTALLED; AppInstallationSuccess = true; }
 
-                // app installation regex for progress
-                Match match = Regex.Match(data, @"(\d{1,2}\.\d{1,2})");
-                // steamcmd installation regex for progress
-                Match match2 = Regex.Match(data, @"(\[.{0,2}\d{1,3}\%\])");
-                
-                // we got a match for app installation
-                if (match.Success)
+                // data has been flagged to contain progress data
+                if (shouldCheckProgress)
                 {
-                    // convert the matched string value to a double, and set the progress
-                    Progress = Convert.ToDouble(match.Value);
-                }
-                // we got a match for steamcmd installation
-                else if (match2.Success)
-                {
-                    // pull the digits only from the matched string
-                    Match digitMatch = Regex.Match(match2.Value, @"(\d{1,3})");
-                    // if we successfully pulled digits..
-                    if (digitMatch.Success)
+                    // app installation regex for progress
+                    Match match = Regex.Match(data, @"(\d{1,2}\.\d{1,2})");
+                    // steamcmd installation regex for progress
+                    Match match2 = Regex.Match(data, @"(\[.{0,2}\d{1,3}\%\])");
+
+                    // we got a match for app installation
+                    if (match.Success)
                     {
                         // convert the matched string value to a double, and set the progress
-                        Progress = Convert.ToDouble(digitMatch.Value);
+                        Progress = Convert.ToDouble(match.Value);
                     }
-                }
-                // we got no match at all for progress
-                else if (!match.Success && !match2.Success)
-                {
-                    // set the progress to zero, it's irrelevant in the current state
-                    if (State != SteamCMDState.STEAMCMD_DOWNLOADING_UPDATES &&
-                        State != SteamCMDState.APP_VALIDATING &&
-                        State != SteamCMDState.APP_PREALLOCATING &&
-                        State != SteamCMDState.APP_DOWNLOADING &&
-                        State != SteamCMDState.APP_POST_DOWNLOAD_VALIDATING)
+                    // we got a match for steamcmd installation
+                    else if (match2.Success)
                     {
-                        Progress = 0;
+                        // pull the digits only from the matched string
+                        Match digitMatch = Regex.Match(match2.Value, @"(\d{1,3})");
+                        // if we successfully pulled digits..
+                        if (digitMatch.Success)
+                        {
+                            // convert the matched string value to a double, and set the progress
+                            Progress = Convert.ToDouble(digitMatch.Value);
+                        }
+                    }
+                    // we got no match at all for progress
+                    else if (!match.Success && !match2.Success)
+                    {
+                        // set the progress to zero, it's irrelevant in the current state
+                        if (State != SteamCMDState.STEAMCMD_DOWNLOADING_UPDATES &&
+                            State != SteamCMDState.APP_VALIDATING &&
+                            State != SteamCMDState.APP_PREALLOCATING &&
+                            State != SteamCMDState.APP_DOWNLOADING &&
+                            State != SteamCMDState.APP_POST_DOWNLOAD_VALIDATING)
+                        {
+                            Progress = 0;
+                        }
                     }
                 }
             }

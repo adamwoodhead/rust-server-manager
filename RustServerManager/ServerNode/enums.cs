@@ -10,6 +10,16 @@ namespace ServerNode
     internal enum SteamCMDState
     {
         UNDEFINED,
+        AWAITING_INPUT,
+
+        // steamcmd login
+        LOGGING_IN,
+        LOGGED_IN,
+        LOGIN_REQUIRES_PASSWORD,
+        LOGIN_REQUIRES_STEAMGUARD,
+        LOGIN_FAILED_BAD_PASS,
+        LOGIN_FAILED_RATE_LIMIT,
+        LOGIN_FAILED_GENERIC,
 
         // steamcmd installation section
         STEAMCMD_CHECKING_UPDATES,      // [  0%] Checking for available update...
@@ -24,6 +34,12 @@ namespace ServerNode
         APP_PREALLOCATING,              // Update state (0x11) preallocating, progress: 31.23 (1675318076 / 5364833225)
         APP_DOWNLOADING,                // Update state (0x61) downloading, progress: 0.06 (3145728 / 5364833225)
         APP_POST_DOWNLOAD_VALIDATING,   // Update state (0x5) validating, progress: 0.03 (1401888 / 5364833225)
-        APP_INSTALLED                   // Success! App '258550' fully installed.
+        APP_VERIFYING,                  // Update state (0x5) verifying install, progress: 94.11 (2178497941 / 2314842927)
+        APP_INSTALLED,                  // Success! App '258550' fully installed.
+    }
+
+    internal enum SteamApps : int
+    {
+        COUNTER_STRIKE_SOURCE_SERVER = 232330,
     }
 }

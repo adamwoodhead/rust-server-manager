@@ -36,7 +36,6 @@ namespace ServerNode
                 throw new Exception("This operating system is not currently supported...");
             }
 
-
             //Lets test some functionality...
 
             //SteamDB ID for Rust: 258550
@@ -58,9 +57,12 @@ namespace ServerNode
 
             SteamCMD steamCMD = new SteamCMD();
 
+            steamCMD.StateChanged += delegate { Console.WriteLine(steamCMD.State); };
+            steamCMD.ProgressChanged += delegate { Console.WriteLine(steamCMD.Progress); };
+
             Task.WaitAll(steamCMD.Test());
 
-            steamCMD.Finished += delegate { Console.WriteLine("-----------------------------finished with terminal"); };
+            steamCMD.Finished += delegate { Console.WriteLine($"SteamCMD Finished {(steamCMD.AppInstallationSuccess ? "Successfully" : "With Errors")}"); };
 
             Console.Read();
         }
