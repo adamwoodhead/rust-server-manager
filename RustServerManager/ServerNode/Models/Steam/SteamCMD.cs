@@ -17,13 +17,23 @@ namespace ServerNode.Models.Steam
     /// <summary>
     /// Disposable SteamCMD Object, preferrably called within a using statement.
     /// </summary>
-    internal class SteamCMD
+    internal class SteamCMD : IDisposable
     {
-        private CancellationToken CancellationToken = new CancellationTokenSource().Token;
+        private CancellationTokenSource CancellationTokenSource;
+        private CancellationToken CancellationToken;
         private UTF8Encoding Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         private SteamCMDState _state = SteamCMDState.UNDEFINED;
         private double _progress = 0;
         private bool _hasFinished = false;
+        private int _timeoutOnAwaitingInput;
+        private TaskCompletionSource<object?> ReadyForInputTsk;
+        private Task ReadyForInputTimeoutTsk;
+        private CancellationTokenSource ReadyForInputTimeoutTskCts;
+        private bool disposedValue;
+        private long _downloadStartedOnByteCount = -1;
+        private long _totalDownloadBytes = 0;
+        private long _totalDownloadedBytes = 0;
+        private DateTime? downloadStartedDateTime;
 
         /// <summary>
         /// Event Handler raised when SteamCMD finishes it's procedure.
@@ -40,10 +50,10 @@ namespace ServerNode.Models.Steam
         /// </summary>
         internal event EventHandler ProgressChanged;
 
+        /// <summary>
+        /// OS Native PseudoTerminal Object
+        /// </summary>
         private IPtyConnection Terminal { get; set; }
-
-        private TaskCompletionSource<object?> ReadyForInputTsk;
-        private bool appInstallationSuccess = false;
 
         /// <summary>
         /// Get the download path for steamcmd
@@ -64,16 +74,14 @@ namespace ServerNode.Models.Steam
         }
 
         /// <summary>
-        /// The executable path for SteamCMD, variable defined by current operating system
+        /// The executable path for SteamCMD in Windows
         /// </summary>
         private static string WinExecutablePath
         {
             get
             {
-                // get the appdata folder
-                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 // create a folder for the application
-                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(appData, "GameServerManagerUtilities")).FullName;
+                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
                 // executable file for steamcmd
                 string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
                 // TODO Steam CMD Executable Path (Windows)
@@ -81,12 +89,15 @@ namespace ServerNode.Models.Steam
             }
         }
 
+        /// <summary>
+        /// The executable path for SteamCMD in Linux
+        /// </summary>
         private static string LinExecutablePath
         {
             get
             {
                 // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
-                return @"./.steam/steamcmd/steamcmd.sh";
+                return @$"/usr/lib/games/steam/steamcmd.sh";
             }
         }
 
@@ -94,10 +105,15 @@ namespace ServerNode.Models.Steam
         /// Check if the SteamCMD Executable exists
         /// </summary>
         /// <returns></returns>
-        internal static bool ExecutableExists()
+        private static bool ExecutableExists()
         {
             // Check if the variable file exists, depending in windows/linux
-            if (File.Exists(WinExecutablePath))
+            if (Utility.OperatingSystemHelper.IsWindows() && File.Exists(WinExecutablePath))
+            {
+                // File Found
+                return true;
+            }
+            else if (Utility.OperatingSystemHelper.IsLinux() && File.Exists(LinExecutablePath))
             {
                 // File Found
                 return true;
@@ -112,8 +128,27 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// Boolean representation of whether steamcmd successfully installed the app
         /// </summary>
-        internal bool AppInstallationSuccess
-        { get => appInstallationSuccess; private set => appInstallationSuccess = value; }
+        internal bool AppInstallationSuccess { get; private set; } = false;
+
+        /// <summary>
+        /// The DateTime capture for when steamcmd began an 'app_update'
+        /// </summary>
+        private DateTime? DownloadStartedDateTime
+        {
+            get => downloadStartedDateTime;
+            set
+            {
+                if (downloadStartedDateTime == null)
+                {
+                    downloadStartedDateTime = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Boolean representation of whether steamcmd successfully logged in
+        /// </summary>
+        private bool LoggedIn { get; set; } = false;
 
         /// <summary>
         /// Current SteamCMD Procedure State
@@ -123,13 +158,18 @@ namespace ServerNode.Models.Steam
             get => _state;
             private set
             {
-                if (_state != value)
+                if (_state != value || value == SteamCMDState.AWAITING_INPUT)
                 {
                     _state = value;
                     OnStateChanged(_state);
                 }
             }
         }
+
+        /// <summary>
+        /// If SteamCMD fails an installation, this should contain the reason.
+        /// </summary>
+        internal string InstallError { get; private set; }
 
         /// <summary>
         /// Current SteamCMD Procedure Progress, applicable depending on current state
@@ -146,6 +186,16 @@ namespace ServerNode.Models.Steam
                 }
             }
         }
+
+        /// <summary>
+        /// Provides an estimated download speed based on bytes downloaded compated to total requested.
+        /// </summary>
+        internal double AverageDownloadSpeed { get; private set; } = 0;
+
+        /// <summary>
+        /// Provides an estimated Time Left based on bytes requested, current download, and speed.
+        /// </summary>
+        internal TimeSpan EstimatedDownloadTimeLeft { get; private set; } = TimeSpan.FromSeconds(0);
 
         /// <summary>
         /// Whether the SteamCMD Procedure Finished
@@ -192,17 +242,59 @@ namespace ServerNode.Models.Steam
         }
 
         /// <summary>
+        /// Create a SteamCMD Object with a default input timeout of 30 seconds
+        /// </summary>
+        /// <param name="timeoutOnAwaitingInput">seconds to wait for input whilst in awaiting input state</param>
+        private SteamCMD(int timeoutOnAwaitingInputMilliseconds)
+        {
+            CancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = CancellationTokenSource.Token;
+
+            _timeoutOnAwaitingInput = timeoutOnAwaitingInputMilliseconds;
+        }
+
+        /// <summary>
+        /// Instantiate a new terminal containing SteamCMD natively, and return upon input available
+        /// </summary>
+        /// <param name="timeoutOnAwaitingInputMilliseconds"></param>
+        /// <returns></returns>
+        internal static async Task<SteamCMD> Instantiate(int timeoutOnAwaitingInputMilliseconds = 30000)
+        {
+            SteamCMD steamCMD = new SteamCMD(timeoutOnAwaitingInputMilliseconds);
+
+            try
+            {
+                await steamCMD.ConnectToTerminal();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Could not start the terminal", ex);
+            }
+
+            if (Utility.OperatingSystemHelper.IsWindows())
+            {
+                await steamCMD.SendCommand(WinExecutablePath);
+            }
+            else
+            {
+                await steamCMD.SendCommand(LinExecutablePath);
+            }
+
+            await steamCMD.ReadyForInputTsk.Task;
+
+            return steamCMD;
+        }
+
+        /// <summary>
         /// Download and extract the steamcmd executable for windows
         /// </summary>
-        private void DownloadSteamCMD()
+        private static void DownloadSteamCMD()
         {
             // this should only be used on windows, as it's a prerequisite for linux users to install manually before running the application
             if (Utility.OperatingSystemHelper.IsWindows())
             {
-                // get the appdata folder
-                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 // get the application folder
-                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(appData, "GameServerManagerUtilities")).FullName;
+                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
                 // set the desired filepath for steamcmd.zip
                 string steamCmdZip = Path.Combine(steamCmdFolder, "steamcmd.zip");
 
@@ -218,6 +310,8 @@ namespace ServerNode.Models.Steam
 
                 // clean up and remove the zip
                 File.Delete(steamCmdZip);
+
+                Thread.Sleep(1000);
             }
             else
             {
@@ -226,138 +320,36 @@ namespace ServerNode.Models.Steam
             }
         }
 
-        internal void InstallAnonymousApp(string installDirectory, int appID, bool validate)
+        /// <summary>
+        /// Check if steamcmd exists.
+        /// If it doesn't exist and we're currently on the windows os, download and unzip, then cleanup
+        /// </summary>
+        internal static void EnsureAvailable()
         {
-            // argument string for app validation
-            string validateString = (validate ? "validate " : "");
-            // create steamcmd arguments
-            string arguments = $"+login anonymous +force_install_dir {installDirectory} +app_update {appID} {validateString}+quit";
-
-            // begin the installation procedure
-            InstallApp(arguments, installDirectory);
-        }
-
-        internal void InstallApp(string username, string password, string installDirectory, int appID, bool validate)
-        {
-            // argument string for app validation
-            string validateString = (validate ? "validate " : "");
-            // create steamcmd arguments
-            string arguments = $"+login {username} {password} +force_install_dir {installDirectory} +app_update {appID} {validateString}+quit";
-
-            // begin the installation procedure
-            InstallApp(arguments, installDirectory);
+            // check if we have the steamcmd executable available
+            if (!ExecutableExists())
+            {
+                // check the current operating system is windows
+                if (Utility.OperatingSystemHelper.IsWindows())
+                {
+                    // download and extract steacmd into the appdata utilities folder
+                    DownloadSteamCMD();
+                }
+                else
+                {
+                    // die, we shouldn't be here!
+                    throw new ApplicationException("SteamCMD Not Installed.");
+                }
+            }
         }
 
         /// <summary>
-        /// Install a steamdb app, and monitor the stages and progress (awaitable)
+        /// Sends the "app_update" command followed by the steamdb app id.
+        /// Followed with "validate" if applicable
         /// </summary>
-        /// <param name="installDirectory"></param>
-        /// <param name="appID"></param>
+        /// <param name="id"></param>
         /// <param name="validate"></param>
-        private async void InstallApp(string arguments, string workingDir)
-        {
-            // check if we have the steamcmd executable available
-            if (!ExecutableExists())
-            {
-                // check the current operating system is windows
-                if (Utility.OperatingSystemHelper.IsWindows())
-                {
-                    // download and extract steacmd into the appdata utilities folder
-                    DownloadSteamCMD();
-                }
-                else
-                {
-                    // die, we shouldn't be here!
-                    throw new ApplicationException("SteamCMD Not Installed.");
-                }
-            }
-
-            if (!Directory.Exists(workingDir))
-            {
-                Console.WriteLine("Creating gameserver directory");
-            }
-            else
-            {
-                Console.WriteLine("Gameserver directory already exists");
-            }
-
-            Console.WriteLine(arguments);
-
-            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
-
-            PtyOptions ptyOptions = new PtyOptions()
-            {
-                Name = "SteamCMD",
-                App = app,
-                Cols = 300,
-                Rows = 1,
-                Cwd = Environment.CurrentDirectory
-            };
-
-            IPtyConnection terminal = await PtyProvider.SpawnAsync(ptyOptions, CancellationToken);
-
-            TaskCompletionSource<uint> processExitedTcs = new TaskCompletionSource<uint>();
-            terminal.ProcessExited += (sender, e) => { processExitedTcs.TrySetResult((uint)terminal.ExitCode); HasFinished = true; };
-
-            string GetTerminalExitCode() => processExitedTcs.Task.IsCompleted ? $". Terminal process has exited with exit code {processExitedTcs.Task.GetAwaiter().GetResult()}." : string.Empty;
-
-            int i = 0;
-            using (StreamReader reader = new StreamReader(terminal.ReaderStream))
-            {
-                string result = await reader.ReadLineAsync();
-                Console.WriteLine($"{++i}: {result}");
-            }
-        }
-
-        internal async Task Test()
-        {
-            // check if we have the steamcmd executable available
-            if (!ExecutableExists())
-            {
-                // check the current operating system is windows
-                if (Utility.OperatingSystemHelper.IsWindows())
-                {
-                    // download and extract steacmd into the appdata utilities folder
-                    DownloadSteamCMD();
-                }
-                else
-                {
-                    // die, we shouldn't be here!
-                    throw new ApplicationException("SteamCMD Not Installed.");
-                }
-            }
-
-            try
-            {
-                await ConnectToTerminal();
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Could not start the terminal", ex);
-            }
-
-            if (Utility.OperatingSystemHelper.IsWindows())
-            {
-                await SendCommand(WinExecutablePath);
-            }
-            else
-            {
-                await SendCommand(LinExecutablePath);
-            }
-
-            await ReadyForInputTsk.Task;
-
-            //await LoginUserPassword("", "");
-
-            await LoginAnonymously();
-
-            await ForceInstallDirectory($"force_install_dir \"{@"C:\test something\"}\"");
-
-            await AppUpdate((int)SteamApps.COUNTER_STRIKE_SOURCE_SERVER, true);
-
-            await Shutdown();
-        }
-
+        /// <returns></returns>
         internal async Task AppUpdate(int id, bool validate)
         {
             if (validate)
@@ -372,6 +364,11 @@ namespace ServerNode.Models.Steam
             await ReadyForInputTsk.Task;
         }
 
+        /// <summary>
+        /// Sends the "force_install_dir" command, followed by the path parameter to the steamcmd
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         internal async Task ForceInstallDirectory(string path)
         {
             await SendCommand(@$"{path}");
@@ -379,6 +376,14 @@ namespace ServerNode.Models.Steam
             await ReadyForInputTsk.Task;
         }
 
+        /// <summary>
+        /// Sends commands to steamcmd to login with username and password.
+        /// Hangs if a steamguard auth code is required.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        /// <param name="steamGuard"></param>
+        /// <returns></returns>
         internal async Task<bool> LoginUserPassword(string username, string password, string steamGuard = null)
         {
             State = SteamCMDState.LOGGING_IN;
@@ -398,22 +403,26 @@ namespace ServerNode.Models.Steam
                 else
                 {
                     // TODO Ask the user for steamguard, and remove the below line
-                    await SendCommand(@$" ");
+                    await SendCommand(Console.ReadLine());
                 }
             }
 
-            return (State == SteamCMDState.LOGGED_IN);
+            return (LoggedIn);
         }
 
         /// <summary>
         /// Send commands to steamcmd to login anonymously (login anonymous)
         /// </summary>
         /// <returns></returns>
-        internal async Task LoginAnonymously()
+        internal async Task<bool> LoginAnonymously()
         {
+            State = SteamCMDState.LOGGING_IN;
+
             await SendCommand(@"login anonymous");
 
             await ReadyForInputTsk.Task;
+
+            return (LoggedIn);
         }
 
         /// <summary>
@@ -421,7 +430,7 @@ namespace ServerNode.Models.Steam
         /// Kills the process and pseudoterminal after x seconds if it does not exit peacefully.
         /// </summary>
         /// <returns></returns>
-        private async Task Shutdown(int timeout = 10)
+        internal async Task Shutdown(int timeout = 10)
         {
             // steamcmd command to peacefully quit
             await SendCommand(@"quit");
@@ -429,13 +438,16 @@ namespace ServerNode.Models.Steam
             // Wait one second for steamcmd to shutdown peacefully
             await Task.Delay(1000);
 
+            CancellationTokenSource.Cancel();
+            CancelInputTimeout();
+
             // Exit the terminal peacefully
-            await SendCommand(@"exit");
+            //await SendCommand(@"exit");
 
             System.Timers.Timer aTimer = new System.Timers.Timer(1000);
             // Hook up the Elapsed event for the timer. 
             int seconds = timeout + 1;
-            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close.. {--seconds}"); };
+            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close peacefully.. {--seconds}"); };
             aTimer.AutoReset = true;
             aTimer.Enabled = true;
 
@@ -454,14 +466,50 @@ namespace ServerNode.Models.Steam
             }
         }
 
+        /// <summary>
+        /// Cancel the input timeout task if it's not null
+        /// </summary>
+        private void CancelInputTimeout()
+        {
+            ReadyForInputTimeoutTskCts?.Cancel();
+            ReadyForInputTimeoutTsk = null;
+        }
+
+        /// <summary>
+        /// Create new input timeout task
+        /// </summary>
+        private void ApplyInputTimeout()
+        {
+            if (ReadyForInputTimeoutTsk != null)
+            {
+                ReadyForInputTimeoutTskCts.Cancel();
+            }
+
+            ReadyForInputTimeoutTskCts = new CancellationTokenSource();
+            ReadyForInputTimeoutTsk = Task.Run(async () =>
+            {
+                CancellationTokenSource localToken = ReadyForInputTimeoutTskCts;
+                await Task.Delay(_timeoutOnAwaitingInput);
+                if (!localToken.IsCancellationRequested && !HasFinished && CancellationTokenSource != null && !CancellationTokenSource.IsCancellationRequested)
+                {
+                    Console.WriteLine($"Exceeded Awaiting Input Timeout: {_timeoutOnAwaitingInput}ms");
+                    CancellationTokenSource.Cancel();
+                }
+            }, ReadyForInputTimeoutTskCts.Token);
+        }
+
+        /// <summary>
+        /// Spawn a new Pseudoterminal, begin asyncronously reading its input and output, apply terminal events
+        /// </summary>
+        /// <returns></returns>
         private async Task ConnectToTerminal()
         {
             string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
-            var options = new PtyOptions
+            PtyOptions options = new PtyOptions
             {
                 Name = "SteamCMD Terminal",
                 // TODO this should be quite long, and cover anything that steamcmd can spit out in a single line + the current directory length
-                Cols = 300,
+                Cols = Environment.CurrentDirectory.Length + app.Length + 200,
                 // we want it line by line, no more than that
                 Rows = 1,
                 Cwd = Environment.CurrentDirectory,
@@ -473,12 +521,9 @@ namespace ServerNode.Models.Steam
             var processExitedTcs = new TaskCompletionSource<uint>();
             Terminal.ProcessExited += (sender, e) =>
             {
-                processExitedTcs.TrySetResult((uint)Terminal.ExitCode);
                 HasFinished = true;
 
-                Terminal.Resize(40, 10);
-
-                Terminal.Dispose();
+                processExitedTcs.TrySetResult((uint)Terminal.ExitCode);
 
                 using (this.CancellationToken.Register(() => processExitedTcs.TrySetCanceled(this.CancellationToken)))
                 {
@@ -501,7 +546,6 @@ namespace ServerNode.Models.Steam
                     int count = await Terminal.ReaderStream.ReadAsync(buffer, 0, buffer.Length, this.CancellationToken);
                     if (count == 0)
                     {
-                        Console.WriteLine("output has finished");
                         break;
                     }
 
@@ -521,17 +565,25 @@ namespace ServerNode.Models.Steam
                         {
                             State = SteamCMDState.AWAITING_INPUT;
                             ReadyForInputTsk.SetResult(null);
+                            ApplyInputTimeout();
                         }
                         else if (output == "password:")
                         {
                             State = SteamCMDState.LOGIN_REQUIRES_PASSWORD;
                             ReadyForInputTsk.SetResult(null);
+                            ApplyInputTimeout();
                         }
                         else if (output == "Enter the current code from your Steam Guard Mobile Authenticator appTwo-factor code:"
-                        || output == "Please check your email for the message from Steam, and enter the Steam Guard code from that message.You can also enter this code at any time using 'set_steam_guard_code' at the console.Steam Guard code:")
+                        || output == "Please check your email for the message from Steam, and enter the Steam Guard code from that message.You can also enter this code at any time using 'set_steam_guard_code' at the console.Steam Guard code:"
+                        || output == "Two-factor code:")
                         {
                             State = SteamCMDState.LOGIN_REQUIRES_STEAMGUARD;
                             ReadyForInputTsk.SetResult(null);
+                            ApplyInputTimeout();
+                        }
+                        else
+                        {
+                            CancelInputTimeout();
                         }
 
                         // Reset the output
@@ -553,13 +605,21 @@ namespace ServerNode.Models.Steam
             }
         }
 
+        /// <summary>
+        /// Asyncronously writes a buffered string to the terminal input stream followed by an enter (0x0D) byte, then asyncronously flush
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
         private async Task SendCommand(string command)
         {
-            ReadyForInputTsk = new TaskCompletionSource<object?>();
-            byte[] commandBuffer = Encoding.GetBytes(command);
-            await Terminal.WriterStream.WriteAsync(commandBuffer, 0, commandBuffer.Length, this.CancellationToken);
-            await Terminal.WriterStream.WriteAsync(new byte[] { 0x0D }, 0, 1, this.CancellationToken);
-            await Terminal.WriterStream.FlushAsync();
+            if (!CancellationToken.IsCancellationRequested)
+            {
+                ReadyForInputTsk = new TaskCompletionSource<object?>();
+                byte[] commandBuffer = Encoding.GetBytes(command);
+                await Terminal.WriterStream.WriteAsync(commandBuffer, 0, commandBuffer.Length, this.CancellationToken);
+                await Terminal.WriterStream.WriteAsync(new byte[] { 0x0D }, 0, 1, this.CancellationToken);
+                await Terminal.WriterStream.FlushAsync();
+            }
         }
 
         /// <summary>
@@ -618,7 +678,7 @@ namespace ServerNode.Models.Steam
                 else if (data.Contains("FAILED login")) { State = SteamCMDState.LOGIN_FAILED_GENERIC; Progress = 0; }
 
                 // login success
-                else if (data.Contains("Logged in OK")) { State = SteamCMDState.LOGGED_IN; Progress = 0; }
+                else if (data.Contains("Logged in OK")) { State = SteamCMDState.LOGGED_IN; LoggedIn = true; Progress = 0; }
 
                 // ----- steamcmd app installation section
                 // steamcmd is validating the app
@@ -628,7 +688,7 @@ namespace ServerNode.Models.Steam
                 else if (data.Contains("Update state (0x11) preallocating")) { State = SteamCMDState.APP_PREALLOCATING; shouldCheckProgress = true; }
 
                 // steamcmd is now downloading the app
-                else if (data.Contains("Update state (0x61) downloading")) { State = SteamCMDState.APP_DOWNLOADING; shouldCheckProgress = true; }
+                else if (data.Contains("Update state (0x61) downloading")) { State = SteamCMDState.APP_DOWNLOADING; shouldCheckProgress = true; DownloadStartedDateTime = DateTime.Now; }
 
                 // steamcmd is now validating the app
                 else if (data.Contains("Update state (0x5) validating") && State == SteamCMDState.APP_DOWNLOADING) { State = SteamCMDState.APP_POST_DOWNLOAD_VALIDATING; shouldCheckProgress = true; }
@@ -638,6 +698,9 @@ namespace ServerNode.Models.Steam
 
                 // steamcmd successfully install the app
                 else if (data.Contains("Success! App") && data.Contains("fully installed")) { Progress = 100; State = SteamCMDState.APP_INSTALLED; AppInstallationSuccess = true; }
+
+                // steamcmd successfully install the app
+                else if (data.Contains("Error! App") && data.Contains("state is 0x202 after update job.")) { Progress = 0; State = SteamCMDState.APP_INSTALL_ERROR; InstallError = "Not Enough Space"; AppInstallationSuccess = false; }
 
                 // data has been flagged to contain progress data
                 if (shouldCheckProgress)
@@ -673,13 +736,84 @@ namespace ServerNode.Models.Steam
                             State != SteamCMDState.APP_VALIDATING &&
                             State != SteamCMDState.APP_PREALLOCATING &&
                             State != SteamCMDState.APP_DOWNLOADING &&
-                            State != SteamCMDState.APP_POST_DOWNLOAD_VALIDATING)
+                            State != SteamCMDState.APP_POST_DOWNLOAD_VALIDATING &&
+                            State != SteamCMDState.APP_VERIFYING)
                         {
                             Progress = 0;
                         }
                     }
+
+                    // regex specifically for app downloading
+                    Regex regex = new Regex(@"(Update state \(0x61\) downloading, progress: \d{1,3}\.\d{1,2} \()(\d\w+)( \/ )(\d\w+)(.*)");
+                    Match match3 = regex.Match(data);
+
+                    // we have a full correct match with data
+                    if (match3.Groups.Count == 6)
+                    {
+                        try
+                        {
+                            // _downloadStartedOnByteCount initializes on -1 so that we set it ONCE
+                            if (_downloadStartedOnByteCount == -1)
+                            {
+                                _downloadStartedOnByteCount = Convert.ToInt64(match3.Groups[2].Captures[0].Value);
+                            }
+
+                            // update the fields for downloaded and total
+                            _totalDownloadedBytes = Convert.ToInt64(match3.Groups[2].Captures[0].Value);
+                            _totalDownloadBytes = Convert.ToInt64(match3.Groups[4].Captures[0].Value);
+
+                            // check that we're not on the first progress report
+                            if (_totalDownloadedBytes != _downloadStartedOnByteCount)
+                            {
+                                // estimate the average download speed
+                                AverageDownloadSpeed = Utility.DownloadEstimator.EstimateSpeed(_downloadStartedOnByteCount, _totalDownloadedBytes, DownloadStartedDateTime.Value);
+                                // estimate the time left for download
+                                EstimatedDownloadTimeLeft = Utility.DownloadEstimator.EstimateTimeLeft(_downloadStartedOnByteCount, _totalDownloadedBytes, _totalDownloadBytes, DownloadStartedDateTime.Value);
+                            }
+                        }
+                            
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                            throw;
+                        }
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// An instance of steamcmd should really only be used once for simplification, we all using tags by implementing IDisposable.
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    try
+                    {
+                        Terminal.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException("An error occured whilst trying to dispose of the terminal", ex);
+                    }
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        /// <summary>
+        /// IDisposable Implementation
+        /// </summary>
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

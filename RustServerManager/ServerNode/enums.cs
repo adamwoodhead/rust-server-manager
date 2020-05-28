@@ -22,6 +22,7 @@ namespace ServerNode
         LOGIN_FAILED_GENERIC,
 
         // steamcmd installation section
+        STEAMCMD_DOWNLOADING_INSTALLER, // null
         STEAMCMD_CHECKING_UPDATES,      // [  0%] Checking for available update...
         STEAMCMD_DOWNLOADING_UPDATES,   // [  0%] Downloading update (2,523 of 39,758 KB)...
         STEAMCMD_EXTRACTING_PACKAGES,   // [----] Extracting package...
@@ -36,10 +37,6 @@ namespace ServerNode
         APP_POST_DOWNLOAD_VALIDATING,   // Update state (0x5) validating, progress: 0.03 (1401888 / 5364833225)
         APP_VERIFYING,                  // Update state (0x5) verifying install, progress: 94.11 (2178497941 / 2314842927)
         APP_INSTALLED,                  // Success! App '258550' fully installed.
-    }
-
-    internal enum SteamApps : int
-    {
-        COUNTER_STRIKE_SOURCE_SERVER = 232330,
+        APP_INSTALL_ERROR               // Error! App '232330' state is 0x202 after update job.
     }
 }
