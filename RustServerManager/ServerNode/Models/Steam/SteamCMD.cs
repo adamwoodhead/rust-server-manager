@@ -55,6 +55,9 @@ namespace ServerNode.Models.Steam
             }
         }
 
+        /// <summary>
+        /// Provides the native installed path for steamcmd
+        /// </summary>
         protected static string GetSteamExecutablePath
         {
             get
@@ -279,7 +282,7 @@ namespace ServerNode.Models.Steam
         /// <returns></returns>
         internal async Task ForceInstallDirectory(string path)
         {
-            await SendCommand(@$"{path}");
+            await SendCommand(@$"force_install_dir {path}");
 
             await ReadyForInputTsk.Task;
         }

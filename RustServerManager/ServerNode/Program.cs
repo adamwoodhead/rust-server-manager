@@ -74,11 +74,11 @@ namespace ServerNode
 
                             if (Utility.OperatingSystemHelper.IsWindows())
                             {
-                                await steam.ForceInstallDirectory($"force_install_dir \"{@"C:\ServerNode\gameservers\1"}\"");
+                                await steam.ForceInstallDirectory($"\"{@"C:\ServerNode\gameservers\1"}\"");
                             }
                             else
                             {
-                                await steam.ForceInstallDirectory($"force_install_dir \"{@"/home/adam/gameservers/1"}\"");
+                                await steam.ForceInstallDirectory($"\"{@"/home/adam/gameservers/1"}\"");
                             }
 
                             await steam.AppUpdate(SteamApp.Apps[0].SteamID, true);

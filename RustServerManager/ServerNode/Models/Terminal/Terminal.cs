@@ -112,8 +112,6 @@ namespace ServerNode.Models.Terminal
         {
             ITerminal _terminal = (ITerminal)Activator.CreateInstance(typeof(T), terminalStartUpOptions.InputTimeout);
 
-            Console.WriteLine("Terminal Instantiated");
-
             try
             {
                 await _terminal.ConnectToTerminal(terminalStartUpOptions.Name);
@@ -131,8 +129,7 @@ namespace ServerNode.Models.Terminal
             }
             else
             {
-                _terminal.ReadyForInputTsk = new TaskCompletionSource<object?>();
-                //await Terminal.SendCommand(LinExecutablePath);
+                await _terminal.SendCommand(_terminal.ExecutablePath);
             }
 
             Console.WriteLine("Terminal Waiting For Input");
@@ -169,8 +166,14 @@ namespace ServerNode.Models.Terminal
                 // cancel the timer
                 aTimer.Enabled = false;
                 // Kill the terminal process containing Terminal
-                PseudoTerminal?.Kill();
+                Kill();
             }
+        }
+
+        public void Kill()
+        {
+            // Kill the terminal process containing Terminal
+            PseudoTerminal?.Kill();
         }
 
         /// <summary>
@@ -211,7 +214,7 @@ namespace ServerNode.Models.Terminal
         /// <returns></returns>
         public async Task ConnectToTerminal(string _terminalName)
         {
-            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "Terminal";
+            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
             PtyOptions options = new PtyOptions
             {
                 Name = _terminalName,
@@ -225,9 +228,13 @@ namespace ServerNode.Models.Terminal
 
             PseudoTerminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
 
+            Console.WriteLine("Terminal Instantiated");
+
             var processExitedTcs = new TaskCompletionSource<uint>();
             PseudoTerminal.ProcessExited += (sender, e) =>
             {
+                PseudoTerminal.ProcessExited += delegate { Console.WriteLine("base event, process exited"); };
+
                 HasFinished = true;
 
                 processExitedTcs.TrySetResult((uint)PseudoTerminal.ExitCode);
@@ -321,7 +328,7 @@ namespace ServerNode.Models.Terminal
         /// <param name="e"></param>
         public virtual void Terminal_ParseOutput(string data)
         {
-
+            Console.WriteLine($"base: {data}");
         }
 
         /// <summary>

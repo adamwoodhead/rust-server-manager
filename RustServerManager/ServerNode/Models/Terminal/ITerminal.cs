@@ -11,5 +11,6 @@ namespace ServerNode.Models.Terminal
         Task SendCommand(string command);
         void Terminal_ParseOutput(string data);
         void Dispose();
+        void Kill();
     }
 }
