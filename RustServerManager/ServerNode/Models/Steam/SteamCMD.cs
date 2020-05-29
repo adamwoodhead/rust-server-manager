@@ -1,4 +1,5 @@
 ﻿using Pty.Net;
+using ServerNode.Models.Terminal;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -17,28 +18,14 @@ namespace ServerNode.Models.Steam
     /// <summary>
     /// Disposable SteamCMD Object, preferrably called within a using statement.
     /// </summary>
-    internal class SteamCMD : IDisposable
+    internal class SteamCMD : Terminal.Terminal, ITerminal, IDisposable
     {
-        private CancellationTokenSource CancellationTokenSource;
-        private CancellationToken CancellationToken;
-        private UTF8Encoding Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         private SteamCMDState _state = SteamCMDState.UNDEFINED;
         private double _progress = 0;
-        private bool _hasFinished = false;
-        private int _timeoutOnAwaitingInput;
-        private TaskCompletionSource<object?> ReadyForInputTsk;
-        private Task ReadyForInputTimeoutTsk;
-        private CancellationTokenSource ReadyForInputTimeoutTskCts;
-        private bool disposedValue;
         private long _downloadStartedOnByteCount = -1;
         private long _totalDownloadBytes = 0;
         private long _totalDownloadedBytes = 0;
         private DateTime? downloadStartedDateTime;
-
-        /// <summary>
-        /// Event Handler raised when SteamCMD finishes it's procedure.
-        /// </summary>
-        internal event EventHandler Finished;
 
         /// <summary>
         /// Event Handler raised when the current State is changed.
@@ -49,11 +36,6 @@ namespace ServerNode.Models.Steam
         /// Event Handler raised when the Progress of SteamCMD has changed (if applicable to current state and procedure).
         /// </summary>
         internal event EventHandler ProgressChanged;
-
-        /// <summary>
-        /// OS Native PseudoTerminal Object
-        /// </summary>
-        private IPtyConnection Terminal { get; set; }
 
         /// <summary>
         /// Get the download path for steamcmd
@@ -73,57 +55,36 @@ namespace ServerNode.Models.Steam
             }
         }
 
+        protected static string GetSteamExecutablePath
+        {
+            get
+            {
+                if (Utility.OperatingSystemHelper.IsWindows())
+                {
+                    // create a folder for the application
+                    string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
+                    // executable file for steamcmd
+                    string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
+                    // TODO Steam CMD Executable Path (Windows)
+                    return steamCmdExe;
+                }
+                else if (Utility.OperatingSystemHelper.IsLinux())
+                {
+                    // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
+                    return @$"/usr/games/steamcmd";
+                }
+                else
+                {
+                    // unknown path
+                    return @$"";
+                }
+            }
+        }
+
         /// <summary>
         /// The executable path for SteamCMD in Windows
         /// </summary>
-        private static string WinExecutablePath
-        {
-            get
-            {
-                // create a folder for the application
-                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
-                // executable file for steamcmd
-                string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
-                // TODO Steam CMD Executable Path (Windows)
-                return steamCmdExe;
-            }
-        }
-
-        /// <summary>
-        /// The executable path for SteamCMD in Linux
-        /// </summary>
-        private static string LinExecutablePath
-        {
-            get
-            {
-                // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
-                return @$"/usr/lib/games/steam/steamcmd.sh";
-            }
-        }
-
-        /// <summary>
-        /// Check if the SteamCMD Executable exists
-        /// </summary>
-        /// <returns></returns>
-        private static bool ExecutableExists()
-        {
-            // Check if the variable file exists, depending in windows/linux
-            if (Utility.OperatingSystemHelper.IsWindows() && File.Exists(WinExecutablePath))
-            {
-                // File Found
-                return true;
-            }
-            else if (Utility.OperatingSystemHelper.IsLinux() && File.Exists(LinExecutablePath))
-            {
-                // File Found
-                return true;
-            }
-            else
-            {
-                // File not found
-                return false;
-            }
-        }
+        public override string ExecutablePath => GetSteamExecutablePath;
 
         /// <summary>
         /// Boolean representation of whether steamcmd successfully installed the app
@@ -198,22 +159,6 @@ namespace ServerNode.Models.Steam
         internal TimeSpan EstimatedDownloadTimeLeft { get; private set; } = TimeSpan.FromSeconds(0);
 
         /// <summary>
-        /// Whether the SteamCMD Procedure Finished
-        /// </summary>
-        internal bool HasFinished
-        {
-            get => _hasFinished;
-            private set
-            {
-                if (value == true)
-                {
-                    _hasFinished = value;
-                    OnFinished();
-                }
-            }
-        }
-
-        /// <summary>
         /// Event Trigger for a state change
         /// </summary>
         /// <param name="s"></param>
@@ -234,55 +179,18 @@ namespace ServerNode.Models.Steam
         }
 
         /// <summary>
-        /// Event Trigger for when the SteamCMD procedure finishes
-        /// </summary>
-        protected virtual void OnFinished()
-        {
-            Finished?.Invoke(this, null);
-        }
-
-        /// <summary>
         /// Create a SteamCMD Object with a default input timeout of 30 seconds
         /// </summary>
         /// <param name="timeoutOnAwaitingInput">seconds to wait for input whilst in awaiting input state</param>
-        private SteamCMD(int timeoutOnAwaitingInputMilliseconds)
+        public SteamCMD(int timeoutOnAwaitingInputMilliseconds) : base(timeoutOnAwaitingInputMilliseconds)
         {
-            CancellationTokenSource = new CancellationTokenSource();
-            CancellationToken = CancellationTokenSource.Token;
-
-            _timeoutOnAwaitingInput = timeoutOnAwaitingInputMilliseconds;
-        }
-
-        /// <summary>
-        /// Instantiate a new terminal containing SteamCMD natively, and return upon input available
-        /// </summary>
-        /// <param name="timeoutOnAwaitingInputMilliseconds"></param>
-        /// <returns></returns>
-        internal static async Task<SteamCMD> Instantiate(int timeoutOnAwaitingInputMilliseconds = 30000)
-        {
-            SteamCMD steamCMD = new SteamCMD(timeoutOnAwaitingInputMilliseconds);
-
-            try
-            {
-                await steamCMD.ConnectToTerminal();
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Could not start the terminal", ex);
-            }
-
-            if (Utility.OperatingSystemHelper.IsWindows())
-            {
-                await steamCMD.SendCommand(WinExecutablePath);
-            }
-            else
-            {
-                await steamCMD.SendCommand(LinExecutablePath);
-            }
-
-            await steamCMD.ReadyForInputTsk.Task;
-
-            return steamCMD;
+            DeterminesInput = new string[] {
+                "Steam>",
+                "password:",
+                "Enter the current code from your Steam Guard Mobile Authenticator appTwo-factor code:",
+                "Steam Guard code:",
+                "Two-factor code:"
+            };
         }
 
         /// <summary>
@@ -327,7 +235,7 @@ namespace ServerNode.Models.Steam
         internal static void EnsureAvailable()
         {
             // check if we have the steamcmd executable available
-            if (!ExecutableExists())
+            if (!File.Exists(GetSteamExecutablePath))
             {
                 // check the current operating system is windows
                 if (Utility.OperatingSystemHelper.IsWindows())
@@ -337,7 +245,7 @@ namespace ServerNode.Models.Steam
                 }
                 else
                 {
-                    // die, we shouldn't be here!
+                    // this should only occur on linux, when the user has not installed prerequisites
                     throw new ApplicationException("SteamCMD Not Installed.");
                 }
             }
@@ -430,7 +338,7 @@ namespace ServerNode.Models.Steam
         /// Kills the process and pseudoterminal after x seconds if it does not exit peacefully.
         /// </summary>
         /// <returns></returns>
-        internal async Task Shutdown(int timeout = 10)
+        internal new async Task Shutdown(int timeout = 10)
         {
             // steamcmd command to peacefully quit
             await SendCommand(@"quit");
@@ -444,182 +352,7 @@ namespace ServerNode.Models.Steam
             // Exit the terminal peacefully
             //await SendCommand(@"exit");
 
-            System.Timers.Timer aTimer = new System.Timers.Timer(1000);
-            // Hook up the Elapsed event for the timer. 
-            int seconds = timeout + 1;
-            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close peacefully.. {--seconds}"); };
-            aTimer.AutoReset = true;
-            aTimer.Enabled = true;
-
-            // If the terminal hasn't exited, we should wait a short amount of time and then kill it if it's still alive
-            if (Terminal.WaitForExit(seconds * 1000))
-            {
-                // cancel the timer
-                aTimer.Enabled = false;
-            }
-            else
-            {
-                // cancel the timer
-                aTimer.Enabled = false;
-                // Kill the terminal process containing steamcmd
-                Terminal?.Kill();
-            }
-        }
-
-        /// <summary>
-        /// Cancel the input timeout task if it's not null
-        /// </summary>
-        private void CancelInputTimeout()
-        {
-            ReadyForInputTimeoutTskCts?.Cancel();
-            ReadyForInputTimeoutTsk = null;
-        }
-
-        /// <summary>
-        /// Create new input timeout task
-        /// </summary>
-        private void ApplyInputTimeout()
-        {
-            if (ReadyForInputTimeoutTsk != null)
-            {
-                ReadyForInputTimeoutTskCts.Cancel();
-            }
-
-            ReadyForInputTimeoutTskCts = new CancellationTokenSource();
-            ReadyForInputTimeoutTsk = Task.Run(async () =>
-            {
-                CancellationTokenSource localToken = ReadyForInputTimeoutTskCts;
-                await Task.Delay(_timeoutOnAwaitingInput);
-                if (!localToken.IsCancellationRequested && !HasFinished && CancellationTokenSource != null && !CancellationTokenSource.IsCancellationRequested)
-                {
-                    Console.WriteLine($"Exceeded Awaiting Input Timeout: {_timeoutOnAwaitingInput}ms");
-                    CancellationTokenSource.Cancel();
-                }
-            }, ReadyForInputTimeoutTskCts.Token);
-        }
-
-        /// <summary>
-        /// Spawn a new Pseudoterminal, begin asyncronously reading its input and output, apply terminal events
-        /// </summary>
-        /// <returns></returns>
-        private async Task ConnectToTerminal()
-        {
-            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
-            PtyOptions options = new PtyOptions
-            {
-                Name = "SteamCMD Terminal",
-                // TODO this should be quite long, and cover anything that steamcmd can spit out in a single line + the current directory length
-                Cols = Environment.CurrentDirectory.Length + app.Length + 200,
-                // we want it line by line, no more than that
-                Rows = 1,
-                Cwd = Environment.CurrentDirectory,
-                App = app
-            };
-
-            Terminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
-
-            var processExitedTcs = new TaskCompletionSource<uint>();
-            Terminal.ProcessExited += (sender, e) =>
-            {
-                HasFinished = true;
-
-                processExitedTcs.TrySetResult((uint)Terminal.ExitCode);
-
-                using (this.CancellationToken.Register(() => processExitedTcs.TrySetCanceled(this.CancellationToken)))
-                {
-                    uint exitCode = (uint)Terminal.ExitCode;
-                }
-            };
-
-            string GetTerminalExitCode() =>
-                processExitedTcs.Task.IsCompleted ? $". Terminal process has exited with exit code {processExitedTcs.Task.GetAwaiter().GetResult()}." : string.Empty;
-
-            TaskCompletionSource<object> firstOutput = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-            string output = string.Empty;
-            Task<bool> checkTerminalOutputAsync = Task.Run(async () =>
-            {
-                var buffer = new byte[4096];
-                var ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
-
-                while (!this.CancellationToken.IsCancellationRequested && !processExitedTcs.Task.IsCompleted)
-                {
-                    int count = await Terminal.ReaderStream.ReadAsync(buffer, 0, buffer.Length, this.CancellationToken);
-                    if (count == 0)
-                    {
-                        break;
-                    }
-
-                    firstOutput.TrySetResult(null);
-
-                    output += Encoding.GetString(buffer, 0, count);
-                    output = ansiRegex.Replace(output, string.Empty);
-                    if (output.Contains("\n") || output.Contains("\r"))
-                    {
-                        output = output.Replace("\r", string.Empty).Replace("\n", string.Empty);
-
-                        // Parse the output before setting input ready, we need to set states if applicable
-                        SteamCMD_ParseOutput(output);
-
-                        // Inform that steamcmd is awaiting input
-                        if (output == "Steam>")
-                        {
-                            State = SteamCMDState.AWAITING_INPUT;
-                            ReadyForInputTsk.SetResult(null);
-                            ApplyInputTimeout();
-                        }
-                        else if (output == "password:")
-                        {
-                            State = SteamCMDState.LOGIN_REQUIRES_PASSWORD;
-                            ReadyForInputTsk.SetResult(null);
-                            ApplyInputTimeout();
-                        }
-                        else if (output == "Enter the current code from your Steam Guard Mobile Authenticator appTwo-factor code:"
-                        || output == "Please check your email for the message from Steam, and enter the Steam Guard code from that message.You can also enter this code at any time using 'set_steam_guard_code' at the console.Steam Guard code:"
-                        || output == "Two-factor code:")
-                        {
-                            State = SteamCMDState.LOGIN_REQUIRES_STEAMGUARD;
-                            ReadyForInputTsk.SetResult(null);
-                            ApplyInputTimeout();
-                        }
-                        else
-                        {
-                            CancelInputTimeout();
-                        }
-
-                        // Reset the output
-                        output = string.Empty;
-                    }
-                }
-
-                firstOutput.TrySetCanceled();
-                return false;
-            });
-
-            try
-            {
-                await firstOutput.Task;
-            }
-            catch (OperationCanceledException exception)
-            {
-                throw new InvalidOperationException($"Could not get any output from terminal{GetTerminalExitCode()}", exception);
-            }
-        }
-
-        /// <summary>
-        /// Asyncronously writes a buffered string to the terminal input stream followed by an enter (0x0D) byte, then asyncronously flush
-        /// </summary>
-        /// <param name="command"></param>
-        /// <returns></returns>
-        private async Task SendCommand(string command)
-        {
-            if (!CancellationToken.IsCancellationRequested)
-            {
-                ReadyForInputTsk = new TaskCompletionSource<object?>();
-                byte[] commandBuffer = Encoding.GetBytes(command);
-                await Terminal.WriterStream.WriteAsync(commandBuffer, 0, commandBuffer.Length, this.CancellationToken);
-                await Terminal.WriterStream.WriteAsync(new byte[] { 0x0D }, 0, 1, this.CancellationToken);
-                await Terminal.WriterStream.FlushAsync();
-            }
+            base.Shutdown(timeout);
         }
 
         /// <summary>
@@ -627,19 +360,12 @@ namespace ServerNode.Models.Steam
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void SteamCMD_ParseOutput(string data)
+        public override void Terminal_ParseOutput(string data)
         {
-            // ANSI code regex
-            Regex ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
-            //Regex ansiRegex = new Regex(@"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])");
-
-            // remove those annoying ANSI codes
-            data = ansiRegex.Replace(data, string.Empty);
-
             // remove whitespaces
             data = data.Trim();
 
-            //Console.WriteLine($"PTY ({Terminal.Pid}): {data}");
+            //Console.WriteLine($"PTY ({PseudoTerminal.Pid}): {data}");
 
             // if the string is now null or empty after trimming, we don't want to handle it
             if (!string.IsNullOrEmpty(data))
@@ -780,40 +506,6 @@ namespace ServerNode.Models.Steam
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// An instance of steamcmd should really only be used once for simplification, we all using tags by implementing IDisposable.
-        /// </summary>
-        /// <param name="disposing"></param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    try
-                    {
-                        Terminal.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new InvalidOperationException("An error occured whilst trying to dispose of the terminal", ex);
-                    }
-                }
-
-                disposedValue = true;
-            }
-        }
-
-        /// <summary>
-        /// IDisposable Implementation
-        /// </summary>
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }
