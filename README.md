@@ -62,5 +62,5 @@ Create Directory, and set File Permissions
 
 ```
 sudo mkdir /opt/servernode
-sudo chown -R adam:adam /opt/servernode
+sudo chown -R youruser:youruser /opt/servernode
 ```
