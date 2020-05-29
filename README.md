@@ -55,3 +55,12 @@ Install SteamCMD. In your terminal, run the following commands.
 ```
 sudo apt install steamcmd
 ```
+
+#### Installation
+
+Create Directory, and set File Permissions
+
+```
+sudo mkdir /opt/servernode
+sudo chown -R adam:adam /opt/servernode
+```
