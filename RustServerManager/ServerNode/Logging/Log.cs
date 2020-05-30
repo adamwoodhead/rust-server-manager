@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ServerNode.Logging
 {
     internal static class Log
     {
+        internal static Dictionary<LogType, bool> Options;
+
         private static BlockingCollection<LogItem> LogQueue = new BlockingCollection<LogItem>();
 
         static Log()
@@ -29,32 +32,57 @@ namespace ServerNode.Logging
 
         internal static void Verbose(object value)
         {
-            LogItem logItem = new LogItem("Verbose: " + value.ToString());
-            LogQueue.Add(logItem);
+            Task.Run(() => {
+                if (Options[LogType.VERBOSE])
+                {
+                    LogItem logItem = new LogItem("Verbose: " + value.ToString());
+                    LogQueue.Add(logItem);
+                }
+            });
         }
 
         internal static void Success(object value)
         {
-            LogItem logItem = new LogItem("Success: " + value.ToString(), ConsoleColor.Green);
-            LogQueue.Add(logItem);
+            Task.Run(() => {
+                if (Options[LogType.SUCCESS])
+                {
+                    LogItem logItem = new LogItem("Success: " + value.ToString(), ConsoleColor.Green);
+                    LogQueue.Add(logItem);
+                }
+            });
         }
 
         internal static void Informational(object value)
         {
-            LogItem logItem = new LogItem(value.ToString(), ConsoleColor.White);
-            LogQueue.Add(logItem);
+            Task.Run(() => {
+                if (Options[LogType.INFORMATIONAL])
+                {
+                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.White);
+                    LogQueue.Add(logItem);
+                }
+            });
         }
 
         internal static void Warning(object value)
         {
-            LogItem logItem = new LogItem("Warning: " + value.ToString(), ConsoleColor.DarkYellow);
-            LogQueue.Add(logItem);
+            Task.Run(() => {
+                if (Options[LogType.WARNINGS])
+                {
+                    LogItem logItem = new LogItem("Warning: " + value.ToString(), ConsoleColor.DarkYellow);
+                    LogQueue.Add(logItem);
+                }
+            });
         }
 
         internal static void Error(object value)
         {
-            LogItem logItem = new LogItem("Error: " + value.ToString(), ConsoleColor.DarkRed);
-            LogQueue.Add(logItem);
+            Task.Run(() => {
+                if (Options[LogType.ERRORS])
+                {
+                    LogItem logItem = new LogItem("Error: " + value.ToString(), ConsoleColor.DarkRed);
+                    LogQueue.Add(logItem);
+                }
+            });
         }
     }
 }

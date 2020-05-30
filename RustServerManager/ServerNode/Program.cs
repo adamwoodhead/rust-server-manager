@@ -3,6 +3,7 @@ using ServerNode.Models.Games;
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
@@ -24,6 +25,15 @@ namespace ServerNode
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
+            Log.Options = new Dictionary<LogType, bool>()
+            {
+                { LogType.VERBOSE, false },
+                { LogType.INFORMATIONAL, true },
+                { LogType.SUCCESS, true },
+                { LogType.WARNINGS, true },
+                { LogType.ERRORS, true },
+            };
+
             Log.Informational("Server Node Booting Up");
 
             Console.CancelKeyPress += (sender, eArgs) => {
@@ -65,9 +75,9 @@ namespace ServerNode
                 {
                     RustGameserver server = new RustGameserver();
 
-                    if (await server.Reinstall())
+                    if (await server.Uninstall())
                     {
-                        Log.Success("YIPPIYY!");
+                        Log.Success("YIPPEEE!");
                     }
                 }
                 catch (Exception ex)
