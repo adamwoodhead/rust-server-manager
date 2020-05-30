@@ -246,12 +246,17 @@ namespace ServerNode.Models.Steam
                 {
                     // download and extract steacmd into the appdata utilities folder
                     DownloadSteamCMD();
+                    Log.Success("SteamCMD Successfully Downloaded");
                 }
                 else
                 {
                     // this should only occur on linux, when the user has not installed prerequisites
                     throw new ApplicationException("SteamCMD Not Installed.");
                 }
+            }
+            else
+            {
+                Log.Success("SteamCMD is already installed");
             }
         }
 
