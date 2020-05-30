@@ -2,6 +2,7 @@
 using ServerNode.Models.Games;
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
+using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +28,7 @@ namespace ServerNode
         {
             Log.Options = new Dictionary<LogType, bool>()
             {
-                { LogType.VERBOSE, false },
+                { LogType.VERBOSE, true },
                 { LogType.INFORMATIONAL, true },
                 { LogType.SUCCESS, true },
                 { LogType.WARNINGS, true },
@@ -63,8 +64,8 @@ namespace ServerNode
                 throw new Exception("This operating system is not currently supported...");
             }
 
-            SteamApp.Create("Counter Strike: Source",       "css",      "srcds.exe",            232330);
-            SteamApp.Create("Rust",                         "rust",     "RustDedicated.exe",    258550);
+            PreAPIHelper.CreateApp("Counter Strike: Source",       "css",      "srcds.exe",            232330);
+            PreAPIHelper.CreateApp("Rust",                         "rust",     "RustDedicated.exe",    258550);
 
             SteamCMD.EnsureAvailable();
 
@@ -73,11 +74,13 @@ namespace ServerNode
             {
                 try
                 {
-                    RustGameserver server = new RustGameserver();
+                    Server server = PreAPIHelper.CreateServer(PreAPIHelper.Apps["rust"]);
 
-                    if (await server.Uninstall())
+                    server.CommandLine = "-batchmode";
+
+                    if (await server.Start())
                     {
-                        Log.Success("YIPPEEE!");
+                        Log.Success("Wahoooo!");
                     }
                 }
                 catch (Exception ex)

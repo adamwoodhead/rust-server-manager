@@ -57,38 +57,9 @@ namespace ServerNode.Models.Steam
         }
 
         /// <summary>
-        /// Provides the native installed path for steamcmd
-        /// </summary>
-        protected static string GetSteamExecutablePath
-        {
-            get
-            {
-                if (Utility.OperatingSystemHelper.IsWindows())
-                {
-                    // create a folder for the application
-                    string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
-                    // executable file for steamcmd
-                    string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
-                    // TODO Steam CMD Executable Path (Windows)
-                    return steamCmdExe;
-                }
-                else if (Utility.OperatingSystemHelper.IsLinux())
-                {
-                    // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
-                    return @$"/usr/games/steamcmd";
-                }
-                else
-                {
-                    // unknown path
-                    return @$"";
-                }
-            }
-        }
-
-        /// <summary>
         /// The executable path for SteamCMD in Windows
         /// </summary>
-        public override string ExecutablePath => GetSteamExecutablePath;
+        public override string ExecutablePath { get; set; }
 
         /// <summary>
         /// Boolean representation of whether steamcmd successfully installed the app
@@ -195,6 +166,8 @@ namespace ServerNode.Models.Steam
                 "Steam Guard code:",
                 "Two-factor code:"
             };
+
+            ExecutablePath = GetNativeExectutablePath();
         }
 
         /// <summary>
@@ -239,7 +212,7 @@ namespace ServerNode.Models.Steam
         internal static void EnsureAvailable()
         {
             // check if we have the steamcmd executable available
-            if (!File.Exists(GetSteamExecutablePath))
+            if (!File.Exists(GetNativeExectutablePath()))
             {
                 // check the current operating system is windows
                 if (Utility.OperatingSystemHelper.IsWindows())
@@ -540,6 +513,28 @@ namespace ServerNode.Models.Steam
                         }
                     }
                 }
+            }
+        }
+
+        internal static string GetNativeExectutablePath()
+        {
+            if (Utility.OperatingSystemHelper.IsWindows())
+            {
+                // create a folder for the application
+                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
+                // executable file for steamcmd
+                string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
+                // TODO Steam CMD Executable Path (Windows)
+                return steamCmdExe;
+            }
+            else if (Utility.OperatingSystemHelper.IsLinux())
+            {
+                // pre-determined installation location for linux steamcmd (only checked Ubuntu 16.04)
+                return @$"/usr/games/steamcmd";
+            }
+            else
+            {
+                throw new ApplicationException("Could not determine operating system for steamcmd use...");
             }
         }
     }

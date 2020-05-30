@@ -7,15 +7,28 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Models.Games
 {
-    internal abstract class Server
+    internal class Server : Terminal.Terminal, ITerminal, IDisposable
     {
+        internal Server(int id, SteamApp app)
+        {
+            ID = id;
+            App = app;
+            ExecutablePath = Path.Combine(WorkingDirectory, app.RelativeExecutablePath);
+        }
+
+        internal Server() { }
+
         internal SteamApp App { get; set; }
 
         internal int ID { get; set; }
 
         internal string WorkingDirectory { get => Path.Combine(Program.GameServersDirectory, ID.ToString()); }
 
-        internal bool IsInstalled { get; private set; }
+        internal bool IsInstalled { get; private set; } = true;
+
+        internal bool IsRunning { get => !HasFinished; }
+
+        internal string CommandLine { get; set; }
 
         internal async Task PreInstall()
         {
@@ -67,21 +80,35 @@ namespace ServerNode.Models.Games
                 {
                     IsInstalled = true;
                     Log.Success($"Server {ID} Successfully {(updating ? "Updated" : "Installed")}");
-                    return true;
                 }
                 else
                 {
                     IsInstalled = false;
                     Log.Warning($"Server {ID} Unsuccessfully {(updating ? "Updated" : "Installed")}");
-                    return false;
                 }
             }
+
+            if (Directory.Exists(Path.Combine(WorkingDirectory, "steamapps")))
+            {
+                Directory.Delete(Path.Combine(WorkingDirectory, "steamapps"), true);
+            }
+
+            return IsInstalled;
         }
 
         internal async Task<bool> Reinstall()
         {
             Log.Informational($"Server {ID} Reinstalling");
-            return await Uninstall() && await Install();
+            if (await Uninstall() && await Install())
+            {
+                Log.Success($"Server {ID} Successfully Reinstalled");
+                return true;
+            }
+            else
+            {
+                Log.Warning($"Server {ID} Unsuccessfully Reinstalled");
+                return false;
+            }
         }
 
         internal async Task<bool> Uninstall()
@@ -90,8 +117,8 @@ namespace ServerNode.Models.Games
 
             using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
             {
-                steam.Finished += delegate { Log.Verbose($"SteamCMD:  Finished"); };
-                steam.StateChanged += delegate { Log.Verbose("SteamCMD: " + steam.State); };
+                steam.Finished += delegate { Log.Verbose($"Server {ID} Uninstall: Finished"); };
+                steam.StateChanged += delegate { Log.Verbose("Server {ID} Uninstall: " + steam.State); };
 
                 if (await steam.LoginAnonymously())
                 {
@@ -122,13 +149,34 @@ namespace ServerNode.Models.Games
             if (await Task.WhenAny(waitTask, Task.Delay(2000)) == waitTask)
             {
                 Log.Success($"Server {ID} Successfully Uninstalled");
+                IsInstalled = false;
                 return true;
             }
             else
             {
                 Log.Warning($"Server {ID} Unsuccessfully Uninstalled");
+                IsInstalled = true;
                 return false;
             }
+        }
+
+        internal async Task<bool> Start()
+        {
+            if (PseudoTerminal == null)
+            {
+                Log.Informational($"Server {ID} Starting");
+
+                await InstantiateTerminal(new TerminalStartUpOptions("Gameserver Terminal"), false, CommandLine);
+
+                if (PseudoTerminal != null)
+                {
+                    Log.Success($"Server {ID} Started");
+
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

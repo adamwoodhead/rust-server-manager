@@ -10,10 +10,13 @@ namespace ServerNode.Models.Games
 {
     internal class RustGameserver : Server
     {
-        internal RustGameserver()
+        // This should only contain extension methods that are relevant to the 
+        // specific gameserver, all other handling is through the <Server> class.
+
+        // Example
+        internal void WipeMap()
         {
-            App = SteamApp.Apps.FirstOrDefault(x => x.ShortName == "css");
-            ID = 1;
+            
         }
     }
 }

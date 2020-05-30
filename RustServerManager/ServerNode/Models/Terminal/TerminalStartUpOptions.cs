@@ -8,9 +8,9 @@ namespace ServerNode.Models.Terminal
     {
         internal string Name { get; }
 
-        internal int InputTimeout { get; }
+        internal int? InputTimeout { get; }
 
-        internal TerminalStartUpOptions(string name, int inputtimeout)
+        internal TerminalStartUpOptions(string name, int? inputtimeout = null)
         {
             this.Name = name;
             this.InputTimeout = inputtimeout;

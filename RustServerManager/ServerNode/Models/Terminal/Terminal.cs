@@ -47,7 +47,7 @@ namespace ServerNode.Models.Terminal
         /// <summary>
         /// The executable path for Terminal in Windows
         /// </summary>
-        public virtual string ExecutablePath { get; }
+        public virtual string ExecutablePath { get; set; }
 
         /// <summary>
         /// Check if the Terminal Executable exists
@@ -96,12 +96,15 @@ namespace ServerNode.Models.Terminal
         /// Create a Terminal Object with a default input timeout of 30 seconds
         /// </summary>
         /// <param name="timeoutOnAwaitingInput">seconds to wait for input whilst in awaiting input state</param>
-        protected Terminal(int timeoutOnAwaitingInputMilliseconds)
+        protected Terminal(int? timeoutOnAwaitingInputMilliseconds = null)
         {
             CancellationTokenSource = new CancellationTokenSource();
             CancellationToken = CancellationTokenSource.Token;
 
-            _timeoutOnAwaitingInput = timeoutOnAwaitingInputMilliseconds;
+            if (timeoutOnAwaitingInputMilliseconds != null)
+            {
+                _timeoutOnAwaitingInput = (int)timeoutOnAwaitingInputMilliseconds;
+            }
         }
 
         /// <summary>
@@ -140,6 +143,29 @@ namespace ServerNode.Models.Terminal
             Log.Verbose("Terminal Ready");
 
             return _terminal;
+        }
+
+        /// <summary>
+        /// Instantiate a new terminal containing Terminal natively, and return upon input available
+        /// </summary>
+        /// <param name="timeoutOnAwaitingInputMilliseconds"></param>
+        /// <returns></returns>
+        protected async Task InstantiateTerminal(TerminalStartUpOptions terminalStartUpOptions, bool waitForInput, string commandline = null)
+        {
+            await ConnectToTerminal(terminalStartUpOptions.Name);
+
+            Log.Verbose("Terminal Connected");
+
+            await SendCommand($"{ExecutablePath} {commandline}");
+
+            Log.Verbose("Terminal Waiting For Input");
+
+            if (waitForInput)
+            {
+                await ReadyForInputTsk.Task;
+            }
+
+            Log.Verbose("Terminal Ready");
         }
 
         /// <summary>
@@ -224,7 +250,8 @@ namespace ServerNode.Models.Terminal
                 // we want it line by line, no more than that
                 Rows = 1,
                 Cwd = Program.WorkingDirectory,
-                App = app
+                App = app,
+                //CommandLine = commandline
             };
 
             PseudoTerminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
@@ -314,6 +341,7 @@ namespace ServerNode.Models.Terminal
         {
             if (!CancellationToken.IsCancellationRequested)
             {
+                Log.Verbose($"Sending Terminal Command -> {command}");
                 ReadyForInputTsk = new TaskCompletionSource<object?>();
                 byte[] commandBuffer = Encoding.GetBytes(command);
                 await PseudoTerminal.WriterStream.WriteAsync(commandBuffer, 0, commandBuffer.Length, this.CancellationToken);
