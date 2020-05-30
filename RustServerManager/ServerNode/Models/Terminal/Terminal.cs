@@ -1,4 +1,5 @@
 ﻿using Pty.Net;
+using ServerNode.Logging;
 using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
@@ -116,7 +117,7 @@ namespace ServerNode.Models.Terminal
             {
                 await _terminal.ConnectToTerminal(terminalStartUpOptions.Name);
 
-                Console.WriteLine("Terminal Connected");
+                Log.Verbose("Terminal Connected");
             }
             catch (Exception ex)
             {
@@ -132,11 +133,11 @@ namespace ServerNode.Models.Terminal
                 await _terminal.SendCommand(_terminal.ExecutablePath);
             }
 
-            Console.WriteLine("Terminal Waiting For Input");
+            Log.Verbose("Terminal Waiting For Input");
 
             await _terminal.ReadyForInputTsk.Task;
 
-            Console.WriteLine("Terminal Ready");
+            Log.Verbose("Terminal Ready");
 
             return _terminal;
         }
@@ -151,12 +152,12 @@ namespace ServerNode.Models.Terminal
             System.Timers.Timer aTimer = new System.Timers.Timer(1000);
             // Hook up the Elapsed event for the timer. 
             int seconds = timeout + 1;
-            aTimer.Elapsed += delegate { Console.WriteLine($"Waiting for steam to close peacefully.. {--seconds}"); };
+            aTimer.Elapsed += delegate { Log.Verbose($"Waiting for steam to close peacefully.. {--seconds}"); };
             aTimer.AutoReset = true;
             aTimer.Enabled = true;
 
             // If the terminal hasn't exited, we should wait a short amount of time and then kill it if it's still alive
-            if (PseudoTerminal.WaitForExit(seconds * 1000))
+            if (PseudoTerminal.WaitForExit(seconds * 1000) || disposedValue)
             {
                 // cancel the timer
                 aTimer.Enabled = false;
@@ -202,7 +203,7 @@ namespace ServerNode.Models.Terminal
                 await Task.Delay(_timeoutOnAwaitingInput);
                 if (!localToken.IsCancellationRequested && !HasFinished && CancellationTokenSource != null && !CancellationTokenSource.IsCancellationRequested)
                 {
-                    Console.WriteLine($"Exceeded Awaiting Input Timeout: {_timeoutOnAwaitingInput}ms");
+                    Log.Warning($"Exceeded Awaiting Input Timeout: {_timeoutOnAwaitingInput}ms");
                     CancellationTokenSource.Cancel();
                 }
             }, ReadyForInputTimeoutTskCts.Token);
@@ -228,12 +229,12 @@ namespace ServerNode.Models.Terminal
 
             PseudoTerminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
 
-            Console.WriteLine("Terminal Instantiated");
+            Log.Verbose("Terminal Instantiated");
 
             var processExitedTcs = new TaskCompletionSource<uint>();
             PseudoTerminal.ProcessExited += (sender, e) =>
             {
-                PseudoTerminal.ProcessExited += delegate { Console.WriteLine("base event, process exited"); };
+                PseudoTerminal.ProcessExited += delegate { Log.Verbose("base event, process exited"); };
 
                 HasFinished = true;
 
@@ -252,8 +253,8 @@ namespace ServerNode.Models.Terminal
             string output = string.Empty;
             Task<bool> checkTerminalOutputAsync = Task.Run(async () =>
             {
-                var buffer = new byte[4096];
-                var ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
+                byte[] buffer = new byte[4096];
+                Regex ansiRegex = new Regex(@"[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[a-zA-Z\d]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PRZcf-ntqry=><~]))");
 
                 while (!this.CancellationToken.IsCancellationRequested && !processExitedTcs.Task.IsCompleted)
                 {
@@ -328,7 +329,7 @@ namespace ServerNode.Models.Terminal
         /// <param name="e"></param>
         public virtual void Terminal_ParseOutput(string data)
         {
-            Console.WriteLine($"base: {data}");
+            Log.Verbose($"base terminal: {data}");
         }
 
         /// <summary>

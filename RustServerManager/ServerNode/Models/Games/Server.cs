@@ -1,62 +1,100 @@
-﻿using Pty.Net;
+﻿using ServerNode.Logging;
 using ServerNode.Models.Steam;
+using ServerNode.Models.Terminal;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace ServerNode.Models.Games
 {
     internal abstract class Server
     {
-        int ID { get; set; }
+        internal SteamApp App { get; set; }
 
-        string IPAddress { get; set; }
+        internal int ID { get; set; }
 
-        string Port { get; set; }
+        internal string WorkingDirectory { get => Path.Combine(Program.GameServersDirectory, ID.ToString()); }
 
-        string SafeStopCommand { get; set; }
-
-        string WorkingDirectory { get; set; }
-
-        int? SteamDBID { get; set; }
-
-        IPtyConnection PseudoTerminal { get; set; }
-
-        IPtyConnection Commandline { get; }
-
-        bool Install()
+        internal async Task PreInstall()
         {
-            throw new NotImplementedException();
+            await Task.Run(() => {
+                Log.Verbose("Creating Gameserver Directory");
+                Directory.CreateDirectory(WorkingDirectory);
+            });
         }
 
-        void Kill()
+        internal async Task<bool> Install()
         {
-            this.PseudoTerminal.Kill();
+            await PreInstall();
+
+            using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
+            {
+                steam.Finished += delegate { Log.Verbose($"SteamCMD: Finished {(steam.AppInstallationSuccess ? "Successfully" : "Unexpectedly (check for errors)")}"); };
+                steam.StateChanged += delegate { Log.Verbose($"SteamCMD: {steam.State}"); };
+                steam.ProgressChanged += delegate {
+                    if (steam.State == SteamCMDState.APP_DOWNLOADING)
+                    {
+                        if (steam.Progress != 0 && steam.EstimatedDownloadTimeLeft.TotalSeconds != 0)
+                        {
+                            Log.Informational("SteamCMD: " + $"Progress: {steam.Progress:00.00}% | Estimated Time Left: {steam.EstimatedDownloadTimeLeft:hh\\:mm\\:ss} | Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed):000.00}Mb/s");
+                        }
+                    }
+                };
+
+                if (await steam.LoginAnonymously())
+                {
+                    await steam.ForceInstallDirectory(WorkingDirectory);
+
+                    await steam.AppUpdate(App.SteamID, true);
+                }
+
+                if (steam.AppInstallationSuccess)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
         }
 
-        void Reinstall()
+        internal async Task<bool> Reinstall()
         {
-            throw new NotImplementedException();
+            return await Uninstall() && await Install();
         }
 
-        bool Restart()
+        internal async Task<bool> Uninstall()
         {
-             return Stop() && Start();
-        }
+            using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
+            {
+                steam.Finished += delegate { Log.Verbose($"SteamCMD:  Finished"); };
+                steam.StateChanged += delegate { Log.Verbose("SteamCMD: " + steam.State); };
 
-        bool Start()
-        {
-            throw new NotImplementedException();
-        }
+                if (await steam.LoginAnonymously())
+                {
 
-        bool Stop()
-        {
-            throw new NotImplementedException();
-        }
+                    await steam.ForceInstallDirectory($"{WorkingDirectory}");
 
-        bool Uninstall()
-        {
-            throw new NotImplementedException();
+                    await steam.AppUninstall(App.SteamID, true);
+
+                    await steam.Shutdown();
+
+                    if (Directory.Exists(WorkingDirectory))
+                    {
+                        Directory.Delete(WorkingDirectory, true);
+                    }
+                }
+            }
+
+            if (Utility.OperatingSystemHelper.IsWindows())
+            {
+                return !Directory.Exists(WorkingDirectory);
+            }
+            else
+            {
+                return !Directory.Exists(WorkingDirectory);
+            }
         }
     }
 }

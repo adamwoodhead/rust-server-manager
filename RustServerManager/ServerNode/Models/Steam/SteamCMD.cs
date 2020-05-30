@@ -1,4 +1,5 @@
 ﻿using Pty.Net;
+using ServerNode.Logging;
 using ServerNode.Models.Terminal;
 using System;
 using System.Collections.Generic;
@@ -22,8 +23,8 @@ namespace ServerNode.Models.Steam
     {
         private SteamCMDState _state = SteamCMDState.UNDEFINED;
         private double _progress = 0;
-        private long _downloadStartedOnByteCount = -1;
-        private long _totalDownloadBytes = 0;
+        private long _downloadStartedOnBytes = -1;
+        private long _totalBytesToDownload = 0;
         private long _totalDownloadedBytes = 0;
         private DateTime? downloadStartedDateTime;
 
@@ -276,13 +277,34 @@ namespace ServerNode.Models.Steam
         }
 
         /// <summary>
+        /// Sends the "app_uninstall" command followed by the steamdb app id, and whether it should be a complete uninstall or only game files.
+        /// Followed with "validate" if applicable
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="validate"></param>
+        /// <returns></returns>
+        internal async Task AppUninstall(int id, bool complete)
+        {
+            if (complete)
+            {
+                await SendCommand(@$"app_uninstall {id} -complete");
+            }
+            else
+            {
+                await SendCommand(@$"app_uninstall {id}");
+            }
+
+            await ReadyForInputTsk.Task;
+        }
+
+        /// <summary>
         /// Sends the "force_install_dir" command, followed by the path parameter to the steamcmd
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
         internal async Task ForceInstallDirectory(string path)
         {
-            await SendCommand(@$"force_install_dir {path}");
+            await SendCommand($"force_install_dir \"{path}\"");
 
             await ReadyForInputTsk.Task;
         }
@@ -349,13 +371,18 @@ namespace ServerNode.Models.Steam
             // Wait one second for steamcmd to shutdown peacefully
             await Task.Delay(1000);
 
-            CancellationTokenSource.Cancel();
             CancelInputTimeout();
 
             // Exit the terminal peacefully
-            //await SendCommand(@"exit");
+            await SendCommand(@"exit");
+            CancellationTokenSource.Cancel();
 
-            base.Shutdown(timeout);
+            await Task.Delay(1000);
+
+            if (!HasFinished)
+            {
+                base.Shutdown(timeout);
+            }
         }
 
         /// <summary>
@@ -368,7 +395,7 @@ namespace ServerNode.Models.Steam
             // remove whitespaces
             data = data.Trim();
 
-            //Console.WriteLine($"PTY ({PseudoTerminal.Pid}): {data}");
+            //Log.Verbose($"PTY ({PseudoTerminal.Pid}): {data}");
 
             // if the string is now null or empty after trimming, we don't want to handle it
             if (!string.IsNullOrEmpty(data))
@@ -482,28 +509,28 @@ namespace ServerNode.Models.Steam
                         try
                         {
                             // _downloadStartedOnByteCount initializes on -1 so that we set it ONCE
-                            if (_downloadStartedOnByteCount == -1)
+                            if (_downloadStartedOnBytes == -1)
                             {
-                                _downloadStartedOnByteCount = Convert.ToInt64(match3.Groups[2].Captures[0].Value);
+                                _downloadStartedOnBytes = Convert.ToInt64(match3.Groups[2].Captures[0].Value);
                             }
 
                             // update the fields for downloaded and total
                             _totalDownloadedBytes = Convert.ToInt64(match3.Groups[2].Captures[0].Value);
-                            _totalDownloadBytes = Convert.ToInt64(match3.Groups[4].Captures[0].Value);
+                            _totalBytesToDownload = Convert.ToInt64(match3.Groups[4].Captures[0].Value);
 
                             // check that we're not on the first progress report
-                            if (_totalDownloadedBytes != _downloadStartedOnByteCount)
+                            if (_totalDownloadedBytes != _downloadStartedOnBytes)
                             {
                                 // estimate the average download speed
-                                AverageDownloadSpeed = Utility.DownloadEstimator.EstimateSpeed(_downloadStartedOnByteCount, _totalDownloadedBytes, DownloadStartedDateTime.Value);
+                                AverageDownloadSpeed = Utility.DownloadEstimator.EstimateSpeed(_downloadStartedOnBytes, _totalDownloadedBytes, DownloadStartedDateTime.Value);
                                 // estimate the time left for download
-                                EstimatedDownloadTimeLeft = Utility.DownloadEstimator.EstimateTimeLeft(_downloadStartedOnByteCount, _totalDownloadedBytes, _totalDownloadBytes, DownloadStartedDateTime.Value);
+                                EstimatedDownloadTimeLeft = Utility.DownloadEstimator.EstimateTimeLeft(_downloadStartedOnBytes, _totalDownloadedBytes, _totalBytesToDownload, DownloadStartedDateTime.Value);
                             }
                         }
                             
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex);
+                            Log.Error(ex);
                             throw;
                         }
                     }

@@ -1,4 +1,6 @@
-﻿using ServerNode.Models.Steam;
+﻿using ServerNode.Logging;
+using ServerNode.Models.Games;
+using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
 using System;
 using System.IO;
@@ -13,16 +15,21 @@ namespace ServerNode
     {
         internal static string WorkingDirectory { get; private set; }
 
+        internal static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
+
         private static ManualResetEvent _quitEvent = new ManualResetEvent(false);
+
+        internal static bool ShouldRun { get; set; } = true;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
-            Console.WriteLine("Server Node Booting Up");
+            Log.Informational("Server Node Booting Up");
 
             Console.CancelKeyPress += (sender, eArgs) => {
                 _quitEvent.Set();
                 eArgs.Cancel = true;
+                ShouldRun = false;
             };
 
             if (Utility.OperatingSystemHelper.IsWindows())
@@ -30,6 +37,7 @@ namespace ServerNode
                 // Create Directories
                 WorkingDirectory = @"C:\ServerNode";
                 Directory.CreateDirectory(WorkingDirectory);
+                Directory.CreateDirectory(GameServersDirectory);
 
                 // check if steam cmd is installed
             }
@@ -38,6 +46,7 @@ namespace ServerNode
                 // Create Directories
                 WorkingDirectory = @"/opt/servernode";
                 Directory.CreateDirectory(WorkingDirectory);
+                Directory.CreateDirectory(GameServersDirectory);
             }
             else
             {
@@ -54,41 +63,16 @@ namespace ServerNode
             {
                 try
                 {
-                    using (SteamCMD steam = (SteamCMD)await Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
+                    RustGameserver server = new RustGameserver();
+
+                    if (await server.Reinstall())
                     {
-                        steam.Finished += delegate { Console.WriteLine($"SteamCMD Finished {(steam.AppInstallationSuccess ? "Successfully" : "Unexpectedly (check for errors)")}"); };
-                        steam.StateChanged += delegate { Console.WriteLine(steam.State); };
-                        steam.ProgressChanged += delegate {
-                            if (steam.State == SteamCMDState.APP_DOWNLOADING)
-                            {
-                                if (steam.Progress != 0)
-                                {
-                                    Console.WriteLine($"Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed).ToString("000.00")}Mb/s");
-                                    Console.WriteLine($"Estimated Time Left: {(int)steam.EstimatedDownloadTimeLeft.TotalSeconds}s");
-                                }
-                            }
-                        };
-
-                        if (await steam.LoginAnonymously())
-                        {
-
-                            if (Utility.OperatingSystemHelper.IsWindows())
-                            {
-                                await steam.ForceInstallDirectory($"\"{@"C:\ServerNode\gameservers\1"}\"");
-                            }
-                            else
-                            {
-                                await steam.ForceInstallDirectory($"\"{@"/home/adam/gameservers/1"}\"");
-                            }
-
-                            await steam.AppUpdate(SteamApp.Apps[0].SteamID, true);
-                        }
-
+                        Log.Success("YIPPIYY!");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex);
+                    Log.Error(ex);
                     throw;
                 }
                 
@@ -99,7 +83,7 @@ namespace ServerNode
 
             _quitEvent.WaitOne();
 
-            Console.WriteLine("Server Node Shutting Down");
+            Log.Informational("Server Node Shutting Down");
 
             // cleanup/shutdown and quit
         }
