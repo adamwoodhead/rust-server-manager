@@ -14,12 +14,6 @@ namespace RustServerManager.Models
     [DataContract]
     public class Gameserver : IGameserver
     {
-        [DllImport("user32.dll")]
-        private static extern Boolean ShowWindow(IntPtr hWnd, Int32 nCmdShow);
-
-        [DllImport("user32.dll")]
-        static extern int SetWindowText(IntPtr hWnd, string text);
-
         [DataMember]
         public int ID { get; set; }
 
@@ -388,16 +382,6 @@ namespace RustServerManager.Models
                     catch (Exception) { }
                 }
             });
-        }
-
-        public void ShowWindow()
-        {
-            ShowWindow(GameProcess.MainWindowHandle, 1);
-        }
-
-        public void HideWindow()
-        {
-            ShowWindow(GameProcess.MainWindowHandle, 0);
         }
     }
 }

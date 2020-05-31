@@ -15,8 +15,7 @@ namespace ServerNode.Utility
         {
             int nextID = Servers.Count;
             Server server = new Server(nextID, app);
-            server.CommandLine = app.DefaultCommandLine;
-            server.DeterminesInput = app.DeterminesInput;
+            server.CommandLine = string.Join(' ', app.DefaultCommandLine);
             Servers.Add(server);
             return server;
         }

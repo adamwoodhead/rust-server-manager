@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Models.Games
 {
-    internal class Server : Terminal.Terminal, ITerminal, IDisposable
+    internal class Server
     {
         internal Server(int id, SteamApp app)
         {
@@ -25,11 +25,19 @@ namespace ServerNode.Models.Games
 
         internal string WorkingDirectory { get => Path.Combine(Program.GameServersDirectory, ID.ToString()); }
 
+        internal string ExecutablePath { get; }
+
         internal bool IsInstalled { get; private set; } = true;
 
-        internal bool IsRunning { get => !HasFinished; }
+        internal string CommandLine { get; set; }
 
-        internal string[] CommandLine { get; set; }
+        internal bool IsRunning { get => (GameProcess != null) ? (bool)!GameProcess?.HasExited : false; }
+
+        internal bool ShouldRun { get; set; }
+
+        internal string Status { get; set; }
+
+        internal Process GameProcess { get; set; }
 
         internal async Task PreInstall()
         {
@@ -65,7 +73,7 @@ namespace ServerNode.Models.Games
                     {
                         if (steam.Progress != 0 && steam.EstimatedDownloadTimeLeft.TotalSeconds != 0)
                         {
-                            Log.Informational("Server {ID} Install: " + $"Progress: {steam.Progress:00.00}% | Estimated Time Left: {steam.EstimatedDownloadTimeLeft:hh\\:mm\\:ss} | Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed):000.00}Mb/s");
+                            Log.Informational($"Server {ID} Install: " + $"Progress: {steam.Progress:00.00}% | Estimated Time Left: {steam.EstimatedDownloadTimeLeft:hh\\:mm\\:ss} | Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed):000.00}Mb/s");
                         }
                     }
                 };
@@ -163,45 +171,87 @@ namespace ServerNode.Models.Games
 
         internal async Task<bool> Start()
         {
-            if (PseudoTerminal == null)
+            return await Task<bool>.Run(() =>
             {
-                Log.Informational($"Server {ID} Starting");
-
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-
-                await InstantiateTerminal(new TerminalStartUpOptions(
-                    "Gameserver Terminal"),
-                    WorkingDirectory,
-                    $"{Path.Combine(WorkingDirectory, App.RelativeExecutablePath)} {string.Join(' ', CommandLine)}");
-
-                if (PseudoTerminal != null)
+                if (IsInstalled)
                 {
-                    stopwatch.Stop();
-                    Log.Success($"Server {ID} Started in {stopwatch.Elapsed.TotalSeconds:mm\\:ss}");
+                    ShouldRun = true;
 
+                    GameProcess = new Process()
+                    {
+                        StartInfo = new ProcessStartInfo()
+                        {
+                            WorkingDirectory = WorkingDirectory,
+                            FileName = ExecutablePath,
+                            Arguments = CommandLine,
+                            UseShellExecute = false,
+                            CreateNoWindow = true,
+                            WindowStyle = ProcessWindowStyle.Hidden,
+                        }
+                    };
+
+                    GameProcess.Start();
+
+                    GameProcess.Exited += delegate
+                    {
+                        if (!ShouldRun)
+                        {
+                            GameProcess = null;
+                        }
+                    };
+
+                    KeepAliveAsync(GameProcess);
+
+                    Log.Verbose($"Launched Server {ID}");
                     return true;
                 }
 
-                Log.Verbose("Should be unreached..");
-            }
-
-            return false;
+                Log.Verbose($"Failed To Launch Server {ID}");
+                return false;
+            });
         }
 
-
-
-        /// <summary>
-        /// Output handler for Terminal Process
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        public override void Terminal_ParseOutput(string data)
+        internal virtual void Stop()
         {
-            if (!string.IsNullOrEmpty(data))
-            {
-                Log.Verbose($"Server {ID}: {data}");
-            }
+            ShouldRun = false;
+
+            Kill();
+        }
+
+        internal void Restart()
+        {
+            Stop();
+            Start();
+        }
+
+        internal void Kill()
+        {
+            ShouldRun = false;
+
+            GameProcess?.Kill();
+            GameProcess?.WaitForExit();
+        }
+
+        public void KeepAliveAsync(Process process)
+        {
+            Task.Run(async () => {
+                while (process != null)
+                {
+                    try
+                    {
+                        if (process.HasExited)
+                        {
+                            Kill();
+                            Start();
+                            process = null;
+                            break;
+                        }
+
+                        await Task.Delay(5000);
+                    }
+                    catch (Exception) { }
+                }
+            });
         }
     }
 }

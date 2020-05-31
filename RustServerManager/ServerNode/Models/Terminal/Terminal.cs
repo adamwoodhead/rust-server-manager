@@ -155,12 +155,28 @@ namespace ServerNode.Models.Terminal
             }
             else if (Utility.OperatingSystemHelper.IsLinux())
             {
-                await SendCommand($"sh -c {startup}");
+                await SendCommand($"bash -c {startup}");
             }
             else
             {
                 throw new ApplicationException("Failed to determine operating system for instantiating terminal.");
             }
+
+            await ReadyForInputTsk.Task;
+
+            Log.Verbose("Terminal Ready");
+        }
+
+        /// <summary>
+        /// Instantiate a new terminal containing Terminal natively, and return upon input available
+        /// </summary>
+        /// <param name="timeoutOnAwaitingInputMilliseconds"></param>
+        /// <returns></returns>
+        protected async Task InstantiateTerminal(TerminalStartUpOptions terminalStartUpOptions, string workingDir, string startup, string[] commandline)
+        {
+            await ConnectToTerminal(terminalStartUpOptions.Name, workingDir, startup, commandline);
+
+            Log.Verbose("Terminal Connected");
 
             await ReadyForInputTsk.Task;
 
@@ -241,9 +257,9 @@ namespace ServerNode.Models.Terminal
         /// Spawn a new Pseudoterminal, begin asyncronously reading its input and output, apply terminal events
         /// </summary>
         /// <returns></returns>
-        public async Task ConnectToTerminal(string _terminalName, string workingDir = null)
+        public async Task ConnectToTerminal(string _terminalName, string workingDir = null, string executablePath = null, string[] commandLine = null)
         {
-            string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
+            string app = executablePath ?? (Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh");
             PtyOptions options = new PtyOptions
             {
                 Name = _terminalName,
@@ -253,11 +269,13 @@ namespace ServerNode.Models.Terminal
                 Rows = 1,
                 Cwd = workingDir ?? Program.WorkingDirectory,
                 App = app,
+                CommandLine = commandLine ?? new string[] { },
+                VerbatimCommandLine = true
             };
 
             PseudoTerminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
 
-            Log.Verbose("Terminal Instantiated");
+            Log.Verbose($"Terminal Instantiated : {PseudoTerminal != null}");
 
             var processExitedTcs = new TaskCompletionSource<uint>();
             PseudoTerminal.ProcessExited += (sender, e) =>
