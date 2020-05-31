@@ -64,8 +64,36 @@ namespace ServerNode
                 throw new Exception("This operating system is not currently supported...");
             }
 
-            PreAPIHelper.CreateApp("Counter Strike: Source",       "css",      "srcds.exe",            232330);
-            PreAPIHelper.CreateApp("Rust",                         "rust",     "RustDedicated.exe",    258550);
+            PreAPIHelper.CreateApp(
+                "Counter Strike: Source",
+                "css",
+                "srcds.exe",
+                "srcds",
+                232330,
+                new string[] { "-game css", "+map de_dust2", "+maxplayers 10" },
+                new string[] { });
+
+            PreAPIHelper.CreateApp("Rust",
+                "rust",
+                "RustDedicated.exe",
+                "RustDedicated",
+                258550,
+                new string[] {  $"-batchmode",
+                                $"+server.ip 0.0.0.0",
+                                $"+server.port 28015",
+                                $"+server.tickrate 10",
+                                $"+server.hostname \"A New Rust Server\"",
+                                $"+server.identity server",
+                                $"+server.seed 12345",
+                                $"+server.maxplayers 100",
+                                $"+server.worldsize 3500",
+                                $"+server.saveinterval 300",
+                                $"+rcon.ip 0.0.0.0",
+                                $"+rcon.port 28016",
+                                $"+rcon.password \"apassword\"",
+                                $"+rcon.web 1"
+                },
+                new string[] { "Checking for new Steam Item Definitions.." });
 
             SteamCMD.EnsureAvailable();
 
@@ -76,12 +104,14 @@ namespace ServerNode
                 {
                     Server server = PreAPIHelper.CreateServer(PreAPIHelper.Apps["rust"]);
 
-                    server.CommandLine = "-batchmode";
-
-                    if (await server.Start())
+                    if (await server.Install() && await server.Start())
                     {
                         Log.Success("Wahoooo!");
                     }
+
+                    //await server.ReadyForInputTsk.Task;
+
+                    await server.SendCommand("playerlist");
                 }
                 catch (Exception ex)
                 {

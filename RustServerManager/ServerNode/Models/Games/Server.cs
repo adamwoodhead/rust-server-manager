@@ -2,6 +2,7 @@
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -28,7 +29,7 @@ namespace ServerNode.Models.Games
 
         internal bool IsRunning { get => !HasFinished; }
 
-        internal string CommandLine { get; set; }
+        internal string[] CommandLine { get; set; }
 
         internal async Task PreInstall()
         {
@@ -166,17 +167,41 @@ namespace ServerNode.Models.Games
             {
                 Log.Informational($"Server {ID} Starting");
 
-                await InstantiateTerminal(new TerminalStartUpOptions("Gameserver Terminal"), false, CommandLine);
+                Stopwatch stopwatch = new Stopwatch();
+                stopwatch.Start();
+
+                await InstantiateTerminal(new TerminalStartUpOptions(
+                    "Gameserver Terminal"),
+                    WorkingDirectory,
+                    $"{Path.Combine(WorkingDirectory, App.RelativeExecutablePath)} {string.Join(' ', CommandLine)}");
 
                 if (PseudoTerminal != null)
                 {
-                    Log.Success($"Server {ID} Started");
+                    stopwatch.Stop();
+                    Log.Success($"Server {ID} Started in {stopwatch.Elapsed.TotalSeconds:mm\\:ss}");
 
                     return true;
                 }
+
+                Log.Verbose("Should be unreached..");
             }
 
             return false;
+        }
+
+
+
+        /// <summary>
+        /// Output handler for Terminal Process
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        public override void Terminal_ParseOutput(string data)
+        {
+            if (!string.IsNullOrEmpty(data))
+            {
+                Log.Verbose($"Server {ID}: {data}");
+            }
         }
     }
 }

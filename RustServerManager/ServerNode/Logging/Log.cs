@@ -35,7 +35,7 @@ namespace ServerNode.Logging
             Task.Run(() => {
                 if (Options[LogType.VERBOSE])
                 {
-                    LogItem logItem = new LogItem("Verbose: " + value.ToString());
+                    LogItem logItem = new LogItem(value.ToString());
                     LogQueue.Add(logItem);
                 }
             });
@@ -46,7 +46,7 @@ namespace ServerNode.Logging
             Task.Run(() => {
                 if (Options[LogType.SUCCESS])
                 {
-                    LogItem logItem = new LogItem("Success: " + value.ToString(), ConsoleColor.Green);
+                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.Green);
                     LogQueue.Add(logItem);
                 }
             });
@@ -68,7 +68,7 @@ namespace ServerNode.Logging
             Task.Run(() => {
                 if (Options[LogType.WARNINGS])
                 {
-                    LogItem logItem = new LogItem("Warning: " + value.ToString(), ConsoleColor.DarkYellow);
+                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.DarkYellow);
                     LogQueue.Add(logItem);
                 }
             });
@@ -79,7 +79,7 @@ namespace ServerNode.Logging
             Task.Run(() => {
                 if (Options[LogType.ERRORS])
                 {
-                    LogItem logItem = new LogItem("Error: " + value.ToString(), ConsoleColor.DarkRed);
+                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.DarkRed);
                     LogQueue.Add(logItem);
                 }
             });

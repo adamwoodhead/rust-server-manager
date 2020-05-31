@@ -127,14 +127,7 @@ namespace ServerNode.Models.Terminal
                 throw new InvalidOperationException("Could not start the terminal", ex);
             }
 
-            if (Utility.OperatingSystemHelper.IsWindows())
-            {
-                await _terminal.SendCommand(_terminal.ExecutablePath);
-            }
-            else
-            {
-                await _terminal.SendCommand(_terminal.ExecutablePath);
-            }
+            await _terminal.SendCommand(_terminal.ExecutablePath);
 
             Log.Verbose("Terminal Waiting For Input");
 
@@ -150,20 +143,26 @@ namespace ServerNode.Models.Terminal
         /// </summary>
         /// <param name="timeoutOnAwaitingInputMilliseconds"></param>
         /// <returns></returns>
-        protected async Task InstantiateTerminal(TerminalStartUpOptions terminalStartUpOptions, bool waitForInput, string commandline = null)
+        protected async Task InstantiateTerminal(TerminalStartUpOptions terminalStartUpOptions, string workingDir, string startup)
         {
-            await ConnectToTerminal(terminalStartUpOptions.Name);
+            await ConnectToTerminal(terminalStartUpOptions.Name, workingDir);
 
             Log.Verbose("Terminal Connected");
 
-            await SendCommand($"{ExecutablePath} {commandline}");
-
-            Log.Verbose("Terminal Waiting For Input");
-
-            if (waitForInput)
+            if (Utility.OperatingSystemHelper.IsWindows())
             {
-                await ReadyForInputTsk.Task;
+                await SendCommand($"cmd /c {startup}");
             }
+            else if (Utility.OperatingSystemHelper.IsLinux())
+            {
+                await SendCommand($"sh -c {startup}");
+            }
+            else
+            {
+                throw new ApplicationException("Failed to determine operating system for instantiating terminal.");
+            }
+
+            await ReadyForInputTsk.Task;
 
             Log.Verbose("Terminal Ready");
         }
@@ -217,41 +216,43 @@ namespace ServerNode.Models.Terminal
         /// </summary>
         protected void ApplyInputTimeout()
         {
-            if (ReadyForInputTimeoutTsk != null)
+            if (_timeoutOnAwaitingInput != 0)
             {
-                ReadyForInputTimeoutTskCts.Cancel();
-            }
-
-            ReadyForInputTimeoutTskCts = new CancellationTokenSource();
-            ReadyForInputTimeoutTsk = Task.Run(async () =>
-            {
-                CancellationTokenSource localToken = ReadyForInputTimeoutTskCts;
-                await Task.Delay(_timeoutOnAwaitingInput);
-                if (!localToken.IsCancellationRequested && !HasFinished && CancellationTokenSource != null && !CancellationTokenSource.IsCancellationRequested)
+                if (ReadyForInputTimeoutTsk != null)
                 {
-                    Log.Warning($"Exceeded Awaiting Input Timeout: {_timeoutOnAwaitingInput}ms");
-                    CancellationTokenSource.Cancel();
+                    ReadyForInputTimeoutTskCts.Cancel();
                 }
-            }, ReadyForInputTimeoutTskCts.Token);
+
+                ReadyForInputTimeoutTskCts = new CancellationTokenSource();
+                ReadyForInputTimeoutTsk = Task.Run(async () =>
+                {
+                    CancellationTokenSource localToken = ReadyForInputTimeoutTskCts;
+                    await Task.Delay(_timeoutOnAwaitingInput);
+                    if (!localToken.IsCancellationRequested && !HasFinished && CancellationTokenSource != null && !CancellationTokenSource.IsCancellationRequested)
+                    {
+                        Log.Warning($"Exceeded Awaiting Input Timeout: {_timeoutOnAwaitingInput}ms");
+                        CancellationTokenSource.Cancel();
+                    }
+                }, ReadyForInputTimeoutTskCts.Token);
+            }
         }
 
         /// <summary>
         /// Spawn a new Pseudoterminal, begin asyncronously reading its input and output, apply terminal events
         /// </summary>
         /// <returns></returns>
-        public async Task ConnectToTerminal(string _terminalName)
+        public async Task ConnectToTerminal(string _terminalName, string workingDir = null)
         {
             string app = Utility.OperatingSystemHelper.IsWindows() ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
             PtyOptions options = new PtyOptions
             {
                 Name = _terminalName,
                 // TODO this should be quite long, and cover anything that Terminal can spit out in a single line + the current directory length
-                Cols = Environment.CurrentDirectory.Length + app.Length + 200,
+                Cols = Environment.CurrentDirectory.Length + app.Length + 100,
                 // we want it line by line, no more than that
                 Rows = 1,
-                Cwd = Program.WorkingDirectory,
+                Cwd = workingDir ?? Program.WorkingDirectory,
                 App = app,
-                //CommandLine = commandline
             };
 
             PseudoTerminal = await PtyProvider.SpawnAsync(options, this.CancellationToken);
@@ -357,7 +358,10 @@ namespace ServerNode.Models.Terminal
         /// <param name="e"></param>
         public virtual void Terminal_ParseOutput(string data)
         {
-            Log.Verbose($"base terminal: {data}");
+            if (!string.IsNullOrEmpty(data))
+            {
+                Log.Verbose($"Base Terminal: {data}");
+            }
         }
 
         /// <summary>

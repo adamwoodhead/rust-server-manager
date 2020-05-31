@@ -15,6 +15,8 @@ namespace ServerNode.Utility
         {
             int nextID = Servers.Count;
             Server server = new Server(nextID, app);
+            server.CommandLine = app.DefaultCommandLine;
+            server.DeterminesInput = app.DeterminesInput;
             Servers.Add(server);
             return server;
         }
@@ -23,9 +25,9 @@ namespace ServerNode.Utility
         #region apps
         internal static Dictionary<string, SteamApp> Apps { get; } = new Dictionary<string, SteamApp>();
 
-        internal static SteamApp CreateApp(string name, string shortName, string relativeExecutablePath, int steamID)
+        internal static SteamApp CreateApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, string[] defaultCommandLine, string[] defaultInput)
         {
-            SteamApp app = new SteamApp(name, shortName, relativeExecutablePath, steamID);
+            SteamApp app = new SteamApp(name, shortName, relativeWindowsExecutablePath, relativeLinuxExecutablePath, steamID, defaultCommandLine, defaultInput);
             Apps.Add(shortName, app);
             return app;
         }
