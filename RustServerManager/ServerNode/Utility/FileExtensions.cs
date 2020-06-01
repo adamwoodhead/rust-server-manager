@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -42,7 +44,7 @@ namespace ServerNode.Utility
                         }
                     });
 
-                    if (Task.WhenAny(waitTask, Task.Run(async () => { await Task.Delay(timeoutms); })) == waitTask)
+                    if (Task.WhenAny(waitTask, Task.Delay(timeoutms)).Result == waitTask)
                     {
                         return true;
                     }
@@ -60,6 +62,37 @@ namespace ServerNode.Utility
             {
                 return false;
             }
+        }
+
+        internal static bool DeleteOrTimeoutFilteredFilesInDirectory(string directory, params string[] filters)
+        {
+            DirectoryInfo dir = new DirectoryInfo(directory);
+            // get list of files matching filters
+            IEnumerable<string> files = filters.SelectMany(dir.EnumerateFiles).Select(x => x.FullName);
+
+            // for every file
+            foreach (string file in files)
+            {
+                // lets double check that the file path is correct
+                if (File.Exists(file))
+                {
+                    // get the fileinfo of the path
+                    FileInfo fileInfo = new FileInfo(file);
+                    // delete and wait for non-existence, or timeout.
+                    // if the file has been deleted successfully
+                    if (DeleteOrTimeout(fileInfo))
+                    {
+                        Log.Verbose($"File Deleted ({fileInfo.Name})");
+                    }
+                    // if the file still exists after the deletion timeout
+                    else
+                    {
+                        Log.Error($"File Not Deleted ({fileInfo.Name})");
+                    }
+                }
+            }
+
+            return files.All(x => !File.Exists(x));
         }
     }
 }

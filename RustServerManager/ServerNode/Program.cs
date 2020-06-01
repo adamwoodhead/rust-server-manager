@@ -29,6 +29,11 @@ namespace ServerNode
         internal static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
 
         /// <summary>
+        /// Working Directory for Server Node Logs
+        /// </summary>
+        internal static string LogsDirectory { get => Path.Combine(WorkingDirectory, "logs"); }
+
+        /// <summary>
         /// Triggered Event for Ctrl-C
         /// </summary>
         private static readonly ManualResetEvent _quitEvent = new ManualResetEvent(false);
@@ -46,15 +51,25 @@ namespace ServerNode
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
-            Log.Options = new Dictionary<LogType, bool>()
+            WorkingDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            if (Debugger.IsAttached)
             {
-                { LogType.VERBOSE, true },
-                { LogType.INFORMATIONAL, true },
-                { LogType.SUCCESS, true },
-                { LogType.WARNINGS, true },
-                { LogType.ERRORS, true },
-                { LogType.DEBUGGING, true },
-            };
+                WorkingDirectory = @"C:\ServerNode";
+            }
+
+            Log.Initialise(
+                new Dictionary<LogType, (bool, bool, ConsoleColor)>() // Visibility Options
+                {
+                    { LogType.VERBOSE, (true, true, ConsoleColor.Gray) },
+                    { LogType.INFORMATIONAL, (true, true, ConsoleColor.White) },
+                    { LogType.SUCCESS, (true, true, ConsoleColor.Green) },
+                    { LogType.WARNINGS, (true, true, ConsoleColor.DarkYellow) },
+                    { LogType.ERRORS, (true, true, ConsoleColor.Red) },
+                    { LogType.DEBUGGING, (true, !Debugger.IsAttached, ConsoleColor.Magenta) },
+                },
+                5 // Hard Logs Count
+            );
 
             Log.Informational("Server Node Booting Up");
 
@@ -69,15 +84,8 @@ namespace ServerNode
                 ShouldRun = false;
             };
 
-            WorkingDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
-            if (System.Diagnostics.Debugger.IsAttached)
-            {
-                WorkingDirectory = @"C:\ServerNode";
-            }
-
             Directory.CreateDirectory(GameServersDirectory);
-            Directory.CreateDirectory(GameServersDirectory);
+            Directory.CreateDirectory(LogsDirectory);
 
             // create some apps for us to test with
             // create css template
@@ -136,14 +144,14 @@ namespace ServerNode
                     Log.Debug("Starting Server 1");
                     await server2.StartAsync();
 
-                    Log.Debug("Wait 3 minutes for a map to generate partially");
-                    await Task.Delay(180000);
+                    Log.Debug("Wait 10 seconds");
+                    await Task.Delay(10000);
 
                     Log.Debug("Stopping Server 1");
                     await server2.StopAsync();
 
                     Log.Debug("Wipe Server 1 Map");
-                    await RustServer.WipeMapAsync(server2);
+                    await RustServer.FullWipeAsync(server2);
 
 
                     //Log.Debug("Delaying 10 seconds");

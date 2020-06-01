@@ -32,80 +32,163 @@ namespace ServerNode.Models.Servers.Extensions
         /// <returns></returns>
         internal static bool WipeMap(Server server)
         {
+            if (DeleteServerIdentityFiles(server, "*.map", "*.sav"))
+            {
+                Log.Success($"Server {server.ID} (rust) Map Wiped Successfully");
+                return true;
+            }
+            else
+            {
+                Log.Error($"Server {server.ID} (rust) Map Wiped Unsuccessfully");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Wipes all Player Data in the server identity folder
+        /// </summary>
+        /// <param name="server"></param>
+        /// <returns></returns>
+        internal static async Task<bool> WipePlayerDataAsync(Server server)
+        {
+            return await Task.Run(() => {
+                return WipePlayerData(server);
+            });
+        }
+
+        /// <summary>
+        /// Wipes all Player Data in the server identity folder
+        /// </summary>
+        /// <returns></returns>
+        internal static bool WipePlayerData(Server server)
+        {
+            if (DeleteServerIdentityFiles(server, "*.db"))
+            {
+                Log.Success($"Server {server.ID} (rust) Player Data Wiped Successfully");
+                return true;
+            }
+            else
+            {
+                Log.Error($"Server {server.ID} (rust) Player Data Wiped Unsuccessfully");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Wipes all Map & Player Data in the server identity folder
+        /// </summary>
+        /// <param name="server"></param>
+        /// <returns></returns>
+        internal static async Task<bool> FullWipeAsync(Server server)
+        {
+            return await Task.Run(() => {
+                return FullWipe(server);
+            });
+        }
+
+        /// <summary>
+        /// Wipes all Map & Player Data in the server identity folder
+        /// </summary>
+        /// <param name="server"></param>
+        /// <returns></returns>
+        internal static bool FullWipe(Server server)
+        {
+            if (DeleteServerIdentityFiles(server, "*.map", "*.sav", "*.db"))
+            {
+                Log.Success($"Server {server.ID} (rust) Full Wipe Successful");
+                return true;
+            }
+            else
+            {
+                Log.Error($"Server {server.ID} (rust) Full Wipe Unsuccessful");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempt to delete files inside the identity folder based on the pattern provided, returns true if all files matchs are deleted successfully.
+        /// </summary>
+        /// <param name="server"></param>
+        /// <param name="filters"></param>
+        /// <returns></returns>
+        private static bool DeleteServerIdentityFiles(Server server, params string[] filters)
+        {
             // if the server isnt running
             if (!server.IsRunning)
             {
-                string identity = "";
-
-                // cycle each commandline parameter
-                foreach (string parameter in server.CommandLine)
+                if (FileExtensions.DeleteOrTimeoutFilteredFilesInDirectory(GetIdendityDirectory(server), filters))
                 {
-                    // if it contains identity
-                    if (parameter.Contains("+server.identity"))
-                    {
-                        // then split it up by spaces
-                        string[] twovars = parameter.Split(' ');
-
-                        // check we only have two strings from our split (+server.identity & the *identity)
-                        if (twovars.Count() == 2)
-                        {
-                            // take the identity part
-                            identity = twovars[1];
-
-                            // if the server identity is empty, it's incorrect
-                            if (string.IsNullOrEmpty(identity))
-                            {
-                                Log.Error("Rust Server parameter for identity is incorrect");
-                                // as the identity is incorrect, we should cancel here
-                                // before we accidentally iterate all identity folders
-                                return false;
-                            }
-
-                            // break out of loop
-                            break;
-                        }
-                        // if we have more than two strings, our identity string is incorrect
-                        else
-                        {
-                            Log.Error("Rust Server parameter for identity is incorrect");
-                            return false;
-                        }
-                    }
+                    Log.Verbose($"Server {server.ID} - (rust) - File Deletion Complete");
+                    return true;
                 }
-
-                // find the map file(s)
-                foreach (string file in Directory.EnumerateFiles(Path.Combine(server.WorkingDirectory, "server", identity), "*.map"))
+                else
                 {
-                    // lets double check that the file path is correct
-                    if (File.Exists(file))
-                    {
-                        // delete the map file
-                        FileInfo fileInfo = new FileInfo(file);
-                        // if the file has been deleted successfully
-                        if (FileExtensions.DeleteOrTimeout(fileInfo))
-                        {
-                            Log.Success($"Server {server.ID} - (rust) - Map Deleted ({fileInfo.Name})");
-                            return true;
-                        }
-                        // if the file still exists after the deletion timeout
-                        else
-                        {
-                            Log.Error($"Server {server.ID} - (rust) - Map Not Deleted ({fileInfo.Name})");
-                            return false;
-                        }
-                    }
+                    Log.Warning($"Server {server.ID} - (rust) - File Deletion Incomplete");
+                    return false;
                 }
-
-                Log.Warning($"Server {server.ID} - (rust) - Can't find a map file to delete in ({Path.Combine(server.WorkingDirectory, "server", identity)})");
-                // we couldn't find a map file to delete, but that's exactly what we want
-                return true;
             }
             // otherwise
             else
             {
                 // we cant wipe when the server is running
-                Log.Error($"Server {server.ID} - (rust) - Tried to Wipe Map: Failed as the server is running");
+                Log.Error($"Server {server.ID} - (rust) - Can't delete server files whilst it's running!");
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Return the directory of the server identity
+        /// </summary>
+        /// <param name="server"></param>
+        /// <returns></returns>
+        private static string GetIdendityDirectory(Server server)
+        {
+            // declare identity
+            string identity = "";
+
+            // cycle each commandline parameter
+            foreach (string parameter in server.CommandLine)
+            {
+                // if it contains identity
+                if (parameter.Contains("+server.identity"))
+                {
+                    // then split it up by spaces
+                    string[] twovars = parameter.Split(' ');
+
+                    // check we only have two strings from our split (+server.identity & the *identity)
+                    if (twovars.Count() == 2)
+                    {
+                        // take the identity part
+                        identity = twovars[1];
+
+                        // if the server identity is empty, it's incorrect
+                        if (string.IsNullOrEmpty(identity))
+                        {
+                            Log.Error("Rust Server parameter for identity is incorrect");
+                            // as the identity is incorrect, we should cancel here
+                            // before we accidentally iterate all identity folders
+                            return null;
+                        }
+
+                        // break out of loop
+                        break;
+                    }
+                    // if we have more than two strings, our identity string is incorrect
+                    else
+                    {
+                        Log.Error("Rust Server parameter for identity is incorrect");
+                        return null;
+                    }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(identity))
+            {
+                return Path.Combine(server.WorkingDirectory, "server", identity);
+            }
+            else
+            {
+                return null;
             }
         }
     }
