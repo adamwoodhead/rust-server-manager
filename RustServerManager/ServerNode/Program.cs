@@ -17,14 +17,29 @@ namespace ServerNode
 {
     class Program
     {
+        /// <summary>
+        /// Working Directory for Server Node
+        /// </summary>
         internal static string WorkingDirectory { get; private set; }
 
+        /// <summary>
+        /// Working Directory for Server Node Game Servers
+        /// </summary>
         internal static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
 
+        /// <summary>
+        /// Triggered Event for Ctrl-C
+        /// </summary>
         private static readonly ManualResetEvent _quitEvent = new ManualResetEvent(false);
 
+        /// <summary>
+        /// Whether Server Node should be running
+        /// </summary>
         internal static bool ShouldRun { get; set; } = true;
 
+        /// <summary>
+        /// Whether the safe exit cleanup procedure has completed
+        /// </summary>
         private static bool _safeExitComplete = false;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
@@ -186,18 +201,22 @@ namespace ServerNode
         /// </summary>
         private static void SafeExit()
         {
+            // if this hasn't be been ran before 
             if (!_safeExitComplete)
             {
                 Log.Informational("Server Node Shutting Down");
 
+                // then each server
                 foreach (Server server in PreAPIHelper.Servers)
                 {
+                    // should stop
                     server.Stop();
                 }
 
                 Log.Informational("Server Node Shutdown Complete");
             }
 
+            // now this has been ran
             _safeExitComplete = true;
         }
     }
