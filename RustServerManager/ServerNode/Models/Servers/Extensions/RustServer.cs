@@ -58,6 +58,7 @@ namespace ServerNode.Models.Servers.Extensions
                         else
                         {
                             Log.Error("Rust Server parameter for identity is incorrect");
+                            return false;
                         }
                     }
                 }
