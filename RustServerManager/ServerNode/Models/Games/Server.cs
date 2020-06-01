@@ -37,7 +37,7 @@ namespace ServerNode.Models.Games
 
         internal string[] CommandLine { get; set; }
 
-        internal bool IsRunning { get => (GameProcess != null) ? (bool)!GameProcess?.HasExited : false; }
+        internal bool IsRunning { get => (GameProcess != null) && (bool)!GameProcess?.HasExited; }
 
         internal bool ShouldRun { get; set; }
 

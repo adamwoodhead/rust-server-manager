@@ -14,8 +14,10 @@ namespace ServerNode.Utility
         internal static Server CreateServer(SteamApp app)
         {
             int nextID = Servers.Count;
-            Server server = new Server(nextID, app);
-            server.CommandLine = app.DefaultCommandLine;
+            Server server = new Server(nextID, app)
+            {
+                CommandLine = app.DefaultCommandLine
+            };
             Servers.Add(server);
             return server;
         }

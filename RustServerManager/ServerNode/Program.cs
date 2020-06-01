@@ -20,7 +20,7 @@ namespace ServerNode
 
         internal static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
 
-        private static ManualResetEvent _quitEvent = new ManualResetEvent(false);
+        private static readonly ManualResetEvent _quitEvent = new ManualResetEvent(false);
 
         internal static bool ShouldRun { get; set; } = true;
 
