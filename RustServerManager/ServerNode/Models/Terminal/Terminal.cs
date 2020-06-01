@@ -184,41 +184,6 @@ namespace ServerNode.Models.Terminal
         }
 
         /// <summary>
-        /// Sends a command to Terminal requesting a peaceful quit.
-        /// Kills the process and pseudoterminal after x seconds if it does not exit peacefully.
-        /// </summary>
-        /// <returns></returns>
-        protected void Shutdown(int timeout = 10)
-        {
-            System.Timers.Timer aTimer = new System.Timers.Timer(1000);
-            // Hook up the Elapsed event for the timer. 
-            int seconds = timeout + 1;
-            aTimer.Elapsed += delegate { Log.Verbose($"Waiting for steam to close peacefully.. {--seconds}"); };
-            aTimer.AutoReset = true;
-            aTimer.Enabled = true;
-
-            // If the terminal hasn't exited, we should wait a short amount of time and then kill it if it's still alive
-            if (PseudoTerminal.WaitForExit(seconds * 1000) || disposedValue)
-            {
-                // cancel the timer
-                aTimer.Enabled = false;
-            }
-            else
-            {
-                // cancel the timer
-                aTimer.Enabled = false;
-                // Kill the terminal process containing Terminal
-                Kill();
-            }
-        }
-
-        public void Kill()
-        {
-            // Kill the terminal process containing Terminal
-            PseudoTerminal?.Kill();
-        }
-
-        /// <summary>
         /// Cancel the input timeout task if it's not null
         /// </summary>
         protected void CancelInputTimeout()
@@ -412,7 +377,7 @@ namespace ServerNode.Models.Terminal
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
+            Dispose(!disposedValue);
             GC.SuppressFinalize(this);
         }
     }

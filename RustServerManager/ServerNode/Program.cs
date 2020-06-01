@@ -68,11 +68,10 @@ namespace ServerNode
                 "Counter Strike: Source",
                 "css",
                 "srcds.exe",
-                "srcds",
+                "srcds_run",
                 232330,
                 new string[] {  
                     "-console",
-                    "-noassert",
                     "-game cstrike",
                     "+map de_dust2",
                     "+maxplayers 10"
@@ -112,14 +111,17 @@ namespace ServerNode
                     Server server = PreAPIHelper.CreateServer(PreAPIHelper.Apps["css"]);
                     Server server2 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["rust"]);
 
-                    if (await server.Start() && await server2.Start())
-                    {
-                        Log.Success("Wahoooo!");
-                    }
+                    await server2.StartAsync();
+
+                    await server2.RestartAsync();
+
+                    await Task.Delay(10000);
+
+                    await server2.StopAsync();
                 }
                 catch (Exception ex)
                 {
-                    Log.Error(ex);
+                    Log.Error(ex.ToString());
                     throw;
                 }
                 
@@ -128,9 +130,15 @@ namespace ServerNode
             // asyncronously ping for requests
             // TODO get requests
 
-            _quitEvent.WaitOne();
+            Console.ReadLine();
+            //_quitEvent.WaitOne();
 
             Log.Informational("Server Node Shutting Down");
+
+            foreach (Server server in PreAPIHelper.Servers)
+            {
+                server.Stop();
+            }
 
             // cleanup/shutdown and quit
         }

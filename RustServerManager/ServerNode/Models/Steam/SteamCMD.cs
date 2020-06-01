@@ -331,7 +331,13 @@ namespace ServerNode.Models.Steam
 
             await SendCommand(@"login anonymous");
 
-            await ReadyForInputTsk.Task;
+            await Task.WhenAny(ReadyForInputTsk.Task, Task.Delay(_timeoutOnAwaitingInput));
+
+            if (!ReadyForInputTsk.Task.IsCompleted && State == SteamCMDState.LOGGED_IN)
+            {
+                Log.Verbose("SteamCMD login flag stalled, we're still ok");
+                ReadyForInputTsk.TrySetResult(null);
+            }
 
             return (LoggedIn);
         }
@@ -341,26 +347,10 @@ namespace ServerNode.Models.Steam
         /// Kills the process and pseudoterminal after x seconds if it does not exit peacefully.
         /// </summary>
         /// <returns></returns>
-        internal new async Task Shutdown(int timeout = 10)
+        internal async Task Shutdown()
         {
             // steamcmd command to peacefully quit
             await SendCommand(@"quit");
-
-            // Wait one second for steamcmd to shutdown peacefully
-            await Task.Delay(1000);
-
-            CancelInputTimeout();
-
-            // Exit the terminal peacefully
-            await SendCommand(@"exit");
-            CancellationTokenSource.Cancel();
-
-            await Task.Delay(1000);
-
-            if (!HasFinished)
-            {
-                base.Shutdown(timeout);
-            }
         }
 
         /// <summary>
@@ -373,7 +363,7 @@ namespace ServerNode.Models.Steam
             // remove whitespaces
             data = data.Trim();
 
-            //Log.Verbose($"PTY ({PseudoTerminal.Pid}): {data}");
+            //Log.Verbose($"SteamCMD> {data}");
 
             // if the string is now null or empty after trimming, we don't want to handle it
             if (!string.IsNullOrEmpty(data))

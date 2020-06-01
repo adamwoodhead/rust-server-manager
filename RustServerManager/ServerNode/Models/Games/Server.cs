@@ -2,8 +2,11 @@
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ServerNode.Models.Games
@@ -27,9 +30,10 @@ namespace ServerNode.Models.Games
 
         internal string ExecutablePath { get; }
 
+        // TODO Remove true, for testing purposes only.
         internal bool IsInstalled { get; private set; } = true;
 
-        internal string CommandLine { get; set; }
+        internal string[] CommandLine { get; set; }
 
         internal bool IsRunning { get => (GameProcess != null) ? (bool)!GameProcess?.HasExited : false; }
 
@@ -39,25 +43,25 @@ namespace ServerNode.Models.Games
 
         internal Process GameProcess { get; set; }
 
-        internal async Task PreInstall()
+        private async Task PreInstallAsync()
         {
             await Task.Run(() => {
-                Log.Verbose("Creating Gameserver Directory");
+                Log.Verbose($"Creating Server {ID} Directory");
                 Directory.CreateDirectory(WorkingDirectory);
             });
         }
 
-        internal async Task<bool> Update()
+        internal async Task<bool> UpdateAsync()
         {
-            return await Install(true);
+            return await InstallAsync(true);
         }
 
-        internal async Task<bool> Install(bool updating = false)
+        internal async Task<bool> InstallAsync(bool updating = false)
         {
             if (!updating)
             {
                 Log.Informational($"Server {ID} Installing");
-                await PreInstall();
+                await PreInstallAsync();
             }
             else
             {
@@ -83,6 +87,8 @@ namespace ServerNode.Models.Games
                     await steam.ForceInstallDirectory(WorkingDirectory);
 
                     await steam.AppUpdate(App.SteamID, true);
+
+                    await steam.Shutdown();
                 }
 
                 if (steam.AppInstallationSuccess)
@@ -105,10 +111,10 @@ namespace ServerNode.Models.Games
             return IsInstalled;
         }
 
-        internal async Task<bool> Reinstall()
+        internal async Task<bool> ReinstallAsync()
         {
             Log.Informational($"Server {ID} Reinstalling");
-            if (await Uninstall() && await Install())
+            if (await UninstallAsync() && await InstallAsync())
             {
                 Log.Success($"Server {ID} Successfully Reinstalled");
                 return true;
@@ -120,14 +126,14 @@ namespace ServerNode.Models.Games
             }
         }
 
-        internal async Task<bool> Uninstall()
+        internal async Task<bool> UninstallAsync()
         {
             Log.Informational($"Server {ID} Uninstalling");
 
             using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
             {
                 steam.Finished += delegate { Log.Verbose($"Server {ID} Uninstall: Finished"); };
-                steam.StateChanged += delegate { Log.Verbose("Server {ID} Uninstall: " + steam.State); };
+                steam.StateChanged += delegate { Log.Verbose($"Server {ID} Uninstall: " + steam.State); };
 
                 if (await steam.LoginAnonymously())
                 {
@@ -169,89 +175,190 @@ namespace ServerNode.Models.Games
             }
         }
 
-        internal async Task<bool> Start()
+        internal async Task<bool> StartAsync()
         {
-            return await Task<bool>.Run(() =>
-            {
-                if (IsInstalled)
-                {
-                    ShouldRun = true;
-
-                    GameProcess = new Process()
-                    {
-                        StartInfo = new ProcessStartInfo()
-                        {
-                            WorkingDirectory = WorkingDirectory,
-                            FileName = ExecutablePath,
-                            Arguments = CommandLine,
-                            UseShellExecute = false,
-                            CreateNoWindow = true,
-                            WindowStyle = ProcessWindowStyle.Hidden,
-                        }
-                    };
-
-                    GameProcess.Start();
-
-                    GameProcess.Exited += delegate
-                    {
-                        if (!ShouldRun)
-                        {
-                            GameProcess = null;
-                        }
-                    };
-
-                    KeepAliveAsync(GameProcess);
-
-                    Log.Verbose($"Launched Server {ID}");
-                    return true;
-                }
-
-                Log.Verbose($"Failed To Launch Server {ID}");
-                return false;
+            return await Task.Run(() => {
+                return Start();
             });
         }
 
-        internal virtual void Stop()
+        internal bool Start()
         {
+            if (IsInstalled)
+            {
+                Log.Informational($"Starting Server {ID} ({App.Name})");
+
+                ShouldRun = true;
+
+                string shell;
+                string shellScript;
+
+                if (Utility.OperatingSystemHelper.IsWindows())
+                {
+                    string wrappedCommandline = string.Join(',', CommandLine.Select(x => $"'{x}'"));
+                    shell = "powershell";
+                    shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -PassThru; echo $server" + ID + @".ID;";
+                }
+                else if (Utility.OperatingSystemHelper.IsLinux())
+                {
+                    string wrappedCommandline = string.Join(' ', CommandLine.Select(x => $"{x.Replace("\"", "\\\\\\\"")}"));
+                    shell = "sh";
+                    shellScript = @"-c ""screen -wipe; for pid in $(screen -ls | awk '/\.Server" + ID + @"\t/ { print strtonum($1)}'); do kill $pid; done; screen -wipe; screen -S Server" + ID + @" -dm sh -c \$\""sh " + ExecutablePath + " " + wrappedCommandline + @"\""; screen -ls | awk '/\.Server" + ID + @"\t/ {print strtonum($1)}'""";
+                }
+                else
+                {
+                    throw new ApplicationException("Couldn't find suitable shell to start gameserver.");
+                }
+
+                //Log.Verbose(shellScript);
+
+                Process starter = new Process()
+                {
+                    StartInfo = new ProcessStartInfo()
+                    {
+                        WorkingDirectory = WorkingDirectory,
+                        FileName = shell,
+                        Arguments = shellScript,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    },
+                    EnableRaisingEvents = true
+                };
+
+                List<string> output = new List<string>();
+                List<string> errors = new List<string>();
+                starter.OutputDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        output.Add(e.Data); //Log.Verbose($"{shell} Out: \"{e.Data}\"");
+                    }
+                };
+
+                starter.ErrorDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        errors.Add(e.Data); Log.Verbose($"{shell} Error: \"{e.Data}\"");
+                    }
+                };
+
+                starter.Start();
+
+                starter.BeginOutputReadLine();
+                starter.BeginErrorReadLine();
+
+                Log.Verbose($"Waiting for {shell} responses");
+                starter.WaitForExit();
+
+                //output.ForEach(x => Log.Verbose(x));
+
+                string returnedID = output.Last();
+
+                if (!string.IsNullOrEmpty(returnedID) && returnedID.All(c => c >= '0' && c <= '9'))
+                {
+                    Log.Verbose($"Process Captured Successfully - PID {returnedID}");
+                    GameProcess = Process.GetProcessById(Convert.ToInt32(returnedID));
+                    while (GameProcess.SafeHandle.IsInvalid)
+                    {
+                        Log.Verbose("Invalid Handle!");
+                        Thread.Sleep(10);
+                    }
+
+                    // Keep Alive
+                    GameProcess.Exited += GameProcess_Exited;
+                }
+                else
+                {
+                    Log.Verbose($"Process Not Captured");
+                    throw new ApplicationException($"Error Starting New Game Server in {shell}:{Environment.NewLine}{returnedID}");
+                }
+
+                Log.Success($"Server {ID} Started ({App.Name})");
+                return true;
+            }
+            else
+            {
+                Log.Verbose($"Failed To Launch Server {ID} ({App.Name}) - Not Installed");
+                return false;
+            }
+        }
+
+        private void GameProcess_Exited(object sender, EventArgs e)
+        {
+            Log.Warning($"Server {ID} has closed unexpectedly");
+
+            if (ShouldRun)
+            {
+                Log.Warning($"Server {ID} Keep Alive Activated!");
+                Start();
+            }
+        }
+
+        internal async Task<bool> StopAsync()
+        {
+            return await Task<bool>.Run(() => {
+                return Stop();
+            });
+        }
+
+        internal bool Stop()
+        {
+            GameProcess.Exited -= GameProcess_Exited;
             ShouldRun = false;
 
-            Kill();
+            if (!GameProcess?.HasExited ?? false)
+            {
+                Log.Informational($"Shutting Down Server {ID}");
+                if (Kill())
+                {
+                    Log.Success($"Successfully shutdown server {ID}");
+                    return true;
+                }
+                else
+                {
+                    Log.Warning($"Could not shutdown server {ID}");
+                    return false;
+                }
+            }
+            else
+            {
+                Log.Warning($"Tried Shutting Down Server {ID} - It's not running!");
+                return true;
+            }
         }
 
-        internal void Restart()
+        internal async Task<bool> RestartAsync()
+        {
+            return await Task<bool>.Run(() => {
+                return Restart();
+            });
+        }
+
+        internal bool Restart()
         {
             Stop();
-            Start();
+            return Start();
         }
 
-        internal void Kill()
+        internal async Task<bool> KillAsync()
+        {
+            return await Task<bool>.Run(() => {
+                return Kill();
+            });
+        }
+
+        internal bool Kill()
         {
             ShouldRun = false;
 
             GameProcess?.Kill();
             GameProcess?.WaitForExit();
-        }
 
-        public void KeepAliveAsync(Process process)
-        {
-            Task.Run(async () => {
-                while (process != null)
-                {
-                    try
-                    {
-                        if (process.HasExited)
-                        {
-                            Kill();
-                            Start();
-                            process = null;
-                            break;
-                        }
-
-                        await Task.Delay(5000);
-                    }
-                    catch (Exception) { }
-                }
-            });
+            return GameProcess.HasExited;
         }
     }
 }

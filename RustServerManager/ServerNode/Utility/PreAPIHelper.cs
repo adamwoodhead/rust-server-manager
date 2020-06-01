@@ -9,13 +9,13 @@ namespace ServerNode.Utility
     public static class PreAPIHelper
     {
         #region servers
-        private static List<Server> Servers { get; set; } = new List<Server>();
+        internal static List<Server> Servers { get; set; } = new List<Server>();
 
         internal static Server CreateServer(SteamApp app)
         {
             int nextID = Servers.Count;
             Server server = new Server(nextID, app);
-            server.CommandLine = string.Join(' ', app.DefaultCommandLine);
+            server.CommandLine = app.DefaultCommandLine;
             Servers.Add(server);
             return server;
         }
