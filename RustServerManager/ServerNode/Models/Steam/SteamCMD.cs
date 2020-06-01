@@ -506,6 +506,11 @@ namespace ServerNode.Models.Steam
             }
         }
 
+        /// <summary>
+        /// Gets the os native executable file for steamcmd
+        /// </summary>
+        /// <exception cref="ApplicationException"/>
+        /// <returns></returns>
         internal static string GetNativeExectutablePath()
         {
             if (Utility.OperatingSystemHelper.IsWindows())
