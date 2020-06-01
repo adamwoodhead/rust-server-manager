@@ -1,7 +1,9 @@
-﻿using System;
+﻿using ServerNode.Utility;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,52 +14,108 @@ namespace ServerNode.Logging
     internal static class Log
     {
         /// <summary>
-        /// Log Visibility Options
-        /// </summary>
-        internal static Dictionary<LogType, bool> Options;
-
-        /// <summary>
         /// Queued Logs to Print
         /// </summary>
-        private static BlockingCollection<LogItem> LogQueue = new BlockingCollection<LogItem>();
+        private static BlockingCollection<LogItem> LogQueue { get; set; } = new BlockingCollection<LogItem>();
+        private static int HardLogCount;
+        private static bool IsInitialised = false;
+        private static string hardLogDirectoryPath;
+
+        /// <summary>
+        /// Log Visibility Options
+        /// </summary>
+        internal static Dictionary<LogType, (bool, bool, ConsoleColor)> Options { get; private set; }
 
         /// <summary>
         /// Static Constructor for Log, starts thread for log queuing
         /// </summary>
-        static Log()
+        internal static void Initialise(Dictionary<LogType, (bool, bool, ConsoleColor)> visibilityOptions, int hardLogCount)
         {
-            // start a new thread
-            Thread thread = new Thread(() => {
-                // only log when the program should be running
-                while (Program.ShouldRun)
-                {
-                    // take the first item (fifo)
-                    LogItem logItem = LogQueue.Take();
-                    // set the console forground
-                    Console.ForegroundColor = logItem.color;
-                    // print message
-                    Console.WriteLine($"{logItem.recordedAt:G}: {logItem.message}");
-                    // reset colour
-                    Console.ResetColor();
-                }
-            });
+            // if log hasn't been initialised before, then proceed
+            if (!IsInitialised)
+            {
+                // don't allow initialisation again
+                IsInitialised = true;
 
-            // thread should work in the background
-            thread.IsBackground = true;
-            // start the thread
-            thread.Start();
+                // set visibility options
+                Options = visibilityOptions;
+
+                // set hard log count
+                HardLogCount = hardLogCount;
+
+                hardLogDirectoryPath = Path.Combine(Program.LogsDirectory, DateTime.Now.ToString("dd_MM_yyyy__hh_mm_ss"));
+                Verbose("Creating Log Directory at: " + hardLogDirectoryPath);
+                Directory.CreateDirectory(hardLogDirectoryPath);
+
+                string[] logDirectories = Directory.GetDirectories(Program.LogsDirectory);
+                if (logDirectories.Count() > HardLogCount)
+                {
+                    Warning($"Exceeded Hard Log Count - Deleting Oldest");
+
+                    foreach (DirectoryInfo dir in logDirectories.Select(x => new DirectoryInfo(x)).OrderByDescending(x => x.CreationTime).Skip(hardLogCount))
+                    {
+                        if (DirectoryExtensions.DeleteOrTimeout(dir))
+                        {
+                            Verbose($"Deleted Log Folder {dir.FullName}");
+                        }
+                        
+                        if (Directory.GetDirectories(Program.LogsDirectory).Count() <= 5)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                // start a new thread
+                Thread thread = new Thread(() =>
+                {
+                    // cast LogType to a list of LogType, cast each to a string, aggregate to longest string, get length
+                    // This could probably be hard-coded to 13 (INFORMATIONAL), but if we add any more that are longer
+                    // we'll probably forget about hard-logging files taking this value..
+                    int longestTypeLength = Enum.GetValues(typeof(LogType)).Cast<LogType>().Select(x => x.ToString()).Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur).Length;
+
+                    // only log when the program should be running
+                    while (Program.ShouldRun)
+                    {
+                        // take the first item (fifo)
+                        LogItem logItem = LogQueue.Take();
+                        // set the console forground
+                        Console.ForegroundColor = logItem.conColor;
+                        // if our settings allow this console write
+                        if (logItem.conWrite)
+                        {
+                            // then print message
+                            Console.WriteLine($"{logItem.recordedAt:G}: {logItem.message}");
+                        }
+                        // reset colour
+                        Console.ResetColor();
+                        // if our settings allow this hard log
+                        if (logItem.hardLog)
+                        {
+                            File.AppendAllLines(Path.Combine(hardLogDirectoryPath, "_ALL.log"), new string[] { $"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}" });
+                            File.AppendAllLines(Path.Combine(hardLogDirectoryPath, logItem.type.ToString() + ".log"), new string[] { $"{logItem.recordedAt:G}: {logItem.message}" });
+                        }
+                    }
+                });
+
+                // thread should work in the background
+                thread.IsBackground = true;
+                // start the thread
+                thread.Start();
+            }
         }
 
         /// <summary>
-        /// Prints to Console in the Console Default Colour
+        /// Prints to Console in Gray
         /// </summary>
         /// <param name="value"></param>
         internal static void Verbose(object value)
         {
-            Task.Run(() => {
-                if (Options[LogType.VERBOSE])
+            Task.Run(() =>
+            {
+                if (Options[LogType.VERBOSE].Item1)
                 {
-                    LogItem logItem = new LogItem(value.ToString());
+                    LogItem logItem = new LogItem(value.ToString(), LogType.VERBOSE, Options[LogType.VERBOSE]);
                     LogQueue.Add(logItem);
                 }
             });
@@ -69,10 +127,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Success(object value)
         {
-            Task.Run(() => {
-                if (Options[LogType.SUCCESS])
+            Task.Run(() =>
+            {
+                if (Options[LogType.SUCCESS].Item1)
                 {
-                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.Green);
+                    LogItem logItem = new LogItem(value.ToString(), LogType.SUCCESS, Options[LogType.SUCCESS]);
                     LogQueue.Add(logItem);
                 }
             });
@@ -84,10 +143,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Informational(object value)
         {
-            Task.Run(() => {
-                if (Options[LogType.INFORMATIONAL])
+            Task.Run(() =>
+            {
+                if (Options[LogType.INFORMATIONAL].Item1)
                 {
-                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.White);
+                    LogItem logItem = new LogItem(value.ToString(), LogType.INFORMATIONAL, Options[LogType.INFORMATIONAL]);
                     LogQueue.Add(logItem);
                 }
             });
@@ -99,10 +159,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Warning(object value)
         {
-            Task.Run(() => {
-                if (Options[LogType.WARNINGS])
+            Task.Run(() =>
+            {
+                if (Options[LogType.WARNINGS].Item1)
                 {
-                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.DarkYellow);
+                    LogItem logItem = new LogItem(value.ToString(), LogType.WARNINGS, Options[LogType.WARNINGS]);
                     LogQueue.Add(logItem);
                 }
             });
@@ -114,10 +175,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Error(object value)
         {
-            Task.Run(() => {
-                if (Options[LogType.ERRORS])
+            Task.Run(() =>
+            {
+                if (Options[LogType.ERRORS].Item1)
                 {
-                    LogItem logItem = new LogItem(value.ToString(), ConsoleColor.DarkRed);
+                    LogItem logItem = new LogItem(value.ToString(), LogType.ERRORS, Options[LogType.ERRORS]);
                     LogQueue.Add(logItem);
                 }
             });
@@ -129,10 +191,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Debug(object value)
         {
-            Task.Run(() => {
-                if (Options[LogType.ERRORS])
+            Task.Run(() =>
+            {
+                if (Options[LogType.DEBUGGING].Item1)
                 {
-                    LogItem logItem = new LogItem("### DEBUG TRACE: " + value.ToString(), ConsoleColor.Magenta);
+                    LogItem logItem = new LogItem("### DEBUG TRACE: " + value.ToString(), LogType.DEBUGGING, Options[LogType.DEBUGGING]);
                     LogQueue.Add(logItem);
                 }
             });

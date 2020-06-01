@@ -8,18 +8,24 @@ namespace ServerNode.Logging
     {
         internal DateTime recordedAt;
         internal string message;
-        internal ConsoleColor color;
+        internal LogType type;
+        internal ConsoleColor conColor;
+        internal bool hardLog;
+        internal bool conWrite;
 
         /// <summary>
         /// Construct a log item
         /// </summary>
         /// <param name="value"></param>
         /// <param name="color"></param>
-        public LogItem(string value, ConsoleColor color = ConsoleColor.DarkGray)
+        public LogItem(string value, LogType logType, (bool, bool, ConsoleColor) p)
         {
             this.recordedAt = DateTime.Now;
             this.message = value;
-            this.color = color;
+            this.type = logType;
+            this.conWrite = p.Item1;
+            this.hardLog = p.Item2;
+            this.conColor = p.Item3;
         }
 
         public void Dispose()
