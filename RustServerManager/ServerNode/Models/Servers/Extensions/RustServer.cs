@@ -1,4 +1,5 @@
 ﻿using ServerNode.Logging;
+using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -68,11 +69,24 @@ namespace ServerNode.Models.Servers.Extensions
                     if (File.Exists(file))
                     {
                         // delete the map file
-                        File.Delete(file);
-                        Log.Success($"Server {server.ID} - (rust) - Map Deleted ({new FileInfo(file).Name})");
+                        FileInfo fileInfo = new FileInfo(file);
+                        // if the file has been deleted successfully
+                        if (FileExtensions.DeleteOrTimeout(fileInfo))
+                        {
+                            Log.Success($"Server {server.ID} - (rust) - Map Deleted ({fileInfo.Name})");
+                            return true;
+                        }
+                        // if the file still exists after the deletion timeout
+                        else
+                        {
+                            Log.Error($"Server {server.ID} - (rust) - Map Not Deleted ({fileInfo.Name})");
+                            return false;
+                        }
                     }
                 }
-                
+
+                Log.Warning($"Server {server.ID} - (rust) - Can't find a map file to delete in ({Path.Combine(server.WorkingDirectory, "server", identity)})");
+                // we couldn't find a map file to delete, but that's exactly what we want
                 return true;
             }
             // otherwise

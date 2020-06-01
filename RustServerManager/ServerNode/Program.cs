@@ -75,23 +75,9 @@ namespace ServerNode
             {
                 WorkingDirectory = @"C:\ServerNode";
             }
-            
-            if (Utility.OperatingSystemHelper.IsWindows())
-            {
-                // Create Directories
-                Directory.CreateDirectory(GameServersDirectory);
 
-                // check if steam cmd is installed
-            }
-            else if (Utility.OperatingSystemHelper.IsLinux())
-            {
-                // Create Directories
-                Directory.CreateDirectory(GameServersDirectory);
-            }
-            else
-            {
-                throw new Exception("This operating system is not currently supported...");
-            }
+            Directory.CreateDirectory(GameServersDirectory);
+            Directory.CreateDirectory(GameServersDirectory);
 
             // create some apps for us to test with
             // create css template
@@ -150,11 +136,8 @@ namespace ServerNode
                     Log.Debug("Starting Server 1");
                     await server2.StartAsync();
 
-                    Log.Debug("Starting Server 1");
-                    await server2.StartAsync();
-
-                    Log.Debug("Restarting Server 1");
-                    await server2.RestartAsync();
+                    Log.Debug("Wait 30 seconds for a map to generate partially");
+                    await Task.Delay(30000);
 
                     Log.Debug("Stopping Server 1");
                     await server2.StopAsync();
