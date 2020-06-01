@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Logging
 {
+    // TODO Add File Logging for each type & mixed
     internal static class Log
     {
         /// <summary>
@@ -35,7 +36,7 @@ namespace ServerNode.Logging
                     // set the console forground
                     Console.ForegroundColor = logItem.color;
                     // print message
-                    Console.WriteLine(logItem.message);
+                    Console.WriteLine($"{logItem.recordedAt:G}: {logItem.message}");
                     // reset colour
                     Console.ResetColor();
                 }

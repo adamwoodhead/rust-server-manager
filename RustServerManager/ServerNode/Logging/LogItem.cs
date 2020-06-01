@@ -6,6 +6,7 @@ namespace ServerNode.Logging
 {
     internal class LogItem : IDisposable
     {
+        internal DateTime recordedAt;
         internal string message;
         internal ConsoleColor color;
 
@@ -16,6 +17,7 @@ namespace ServerNode.Logging
         /// <param name="color"></param>
         public LogItem(string value, ConsoleColor color = ConsoleColor.DarkGray)
         {
+            this.recordedAt = DateTime.Now;
             this.message = value;
             this.color = color;
         }
