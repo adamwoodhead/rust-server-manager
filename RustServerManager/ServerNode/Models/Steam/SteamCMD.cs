@@ -363,7 +363,7 @@ namespace ServerNode.Models.Steam
             // remove whitespaces
             data = data.Trim();
 
-            //Log.Verbose($"SteamCMD> {data}");
+            Log.Verbose($"SteamCMD> {data}");
 
             // if the string is now null or empty after trimming, we don't want to handle it
             if (!string.IsNullOrEmpty(data))

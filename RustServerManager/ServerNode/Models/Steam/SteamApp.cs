@@ -13,9 +13,8 @@ namespace ServerNode.Models.Steam
         internal string RelativeExecutablePath { get => Utility.OperatingSystemHelper.IsWindows() ? WindowsRelativeExecutablePath : LinuxRelativeExecutablePath; }
         internal int SteamID { get; }
         public string[] DefaultCommandLine { get; }
-        public string[] DeterminesInput { get; }
 
-        internal SteamApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, string[] defaultCommandLine, string[] defaultInput)
+        internal SteamApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, string[] defaultCommandLine)
         {
             Name = name;
             ShortName = shortName;
@@ -23,7 +22,6 @@ namespace ServerNode.Models.Steam
             LinuxRelativeExecutablePath = relativeLinuxExecutablePath;
             SteamID = steamID;
             DefaultCommandLine = defaultCommandLine;
-            DeterminesInput = defaultInput;
         }
     }
 }

@@ -6,6 +6,7 @@ using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -23,6 +24,8 @@ namespace ServerNode
 
         internal static bool ShouldRun { get; set; } = true;
 
+        private static bool _safeExitComplete = false;
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
@@ -37,8 +40,13 @@ namespace ServerNode
 
             Log.Informational("Server Node Booting Up");
 
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => { SafeExit(); };
+
             Console.CancelKeyPress += (sender, eArgs) => {
+                SafeExit();
+
                 _quitEvent.Set();
+
                 eArgs.Cancel = true;
                 ShouldRun = false;
             };
@@ -75,8 +83,7 @@ namespace ServerNode
                     "-game cstrike",
                     "+map de_dust2",
                     "+maxplayers 10"
-                },
-                new string[] { });
+                });
 
             PreAPIHelper.CreateApp("Rust",
                 "rust",
@@ -98,8 +105,7 @@ namespace ServerNode
                     $"+rcon.port 28016",
                     $"+rcon.password \"apassword\"",
                     $"+rcon.web 1"
-                },
-                new string[] { "Checking for new Steam Item Definitions.." });
+                });
 
             SteamCMD.EnsureAvailable();
 
@@ -108,16 +114,22 @@ namespace ServerNode
             {
                 try
                 {
-                    Server server = PreAPIHelper.CreateServer(PreAPIHelper.Apps["css"]);
+                    Server server1 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["css"]);
                     Server server2 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["rust"]);
 
-                    await server2.StartAsync();
+                    //await server1.InstallAsync();
 
-                    await server2.RestartAsync();
+                    //await server2.InstallAsync();
+
+                    await server1.StartAsync();
+
+                    await server1.StartAsync();
+
+                    await server1.RestartAsync();
 
                     await Task.Delay(10000);
 
-                    await server2.StopAsync();
+                    //await server2.StopAsync();
                 }
                 catch (Exception ex)
                 {
@@ -130,17 +142,24 @@ namespace ServerNode
             // asyncronously ping for requests
             // TODO get requests
 
-            Console.ReadLine();
-            //_quitEvent.WaitOne();
+            _quitEvent.WaitOne();
+        }
 
-            Log.Informational("Server Node Shutting Down");
-
-            foreach (Server server in PreAPIHelper.Servers)
+        private static void SafeExit()
+        {
+            if (!_safeExitComplete)
             {
-                server.Stop();
+                Log.Informational("Server Node Shutting Down");
+
+                foreach (Server server in PreAPIHelper.Servers)
+                {
+                    server.Stop();
+                }
+
+                Log.Informational("Server Node Shutdown Complete");
             }
 
-            // cleanup/shutdown and quit
+            _safeExitComplete = true;
         }
     }
 }

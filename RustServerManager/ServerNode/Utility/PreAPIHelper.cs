@@ -24,9 +24,9 @@ namespace ServerNode.Utility
         #region apps
         internal static Dictionary<string, SteamApp> Apps { get; } = new Dictionary<string, SteamApp>();
 
-        internal static SteamApp CreateApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, string[] defaultCommandLine, string[] defaultInput)
+        internal static SteamApp CreateApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, string[] defaultCommandLine)
         {
-            SteamApp app = new SteamApp(name, shortName, relativeWindowsExecutablePath, relativeLinuxExecutablePath, steamID, defaultCommandLine, defaultInput);
+            SteamApp app = new SteamApp(name, shortName, relativeWindowsExecutablePath, relativeLinuxExecutablePath, steamID, defaultCommandLine);
             Apps.Add(shortName, app);
             return app;
         }

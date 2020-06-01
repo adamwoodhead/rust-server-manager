@@ -13,6 +13,8 @@ namespace ServerNode.Models.Games
 {
     internal class Server
     {
+        private TaskCompletionSource<object?> keepAliveWaiting;
+
         internal Server(int id, SteamApp app)
         {
             ID = id;
@@ -31,7 +33,7 @@ namespace ServerNode.Models.Games
         internal string ExecutablePath { get; }
 
         // TODO Remove true, for testing purposes only.
-        internal bool IsInstalled { get; private set; } = true;
+        internal bool IsInstalled => File.Exists(ExecutablePath);
 
         internal string[] CommandLine { get; set; }
 
@@ -93,12 +95,10 @@ namespace ServerNode.Models.Games
 
                 if (steam.AppInstallationSuccess)
                 {
-                    IsInstalled = true;
                     Log.Success($"Server {ID} Successfully {(updating ? "Updated" : "Installed")}");
                 }
                 else
                 {
-                    IsInstalled = false;
                     Log.Warning($"Server {ID} Unsuccessfully {(updating ? "Updated" : "Installed")}");
                 }
             }
@@ -164,13 +164,11 @@ namespace ServerNode.Models.Games
             if (await Task.WhenAny(waitTask, Task.Delay(2000)) == waitTask)
             {
                 Log.Success($"Server {ID} Successfully Uninstalled");
-                IsInstalled = false;
                 return true;
             }
             else
             {
                 Log.Warning($"Server {ID} Unsuccessfully Uninstalled");
-                IsInstalled = true;
                 return false;
             }
         }
@@ -184,7 +182,12 @@ namespace ServerNode.Models.Games
 
         internal bool Start()
         {
-            if (IsInstalled)
+            if (IsRunning)
+            {
+                Log.Warning($"Starting Server {ID} Failed - already running, did you mean to restart?");
+                return false;
+            }
+            else if (IsInstalled)
             {
                 Log.Informational($"Starting Server {ID} ({App.Name})");
 
@@ -269,7 +272,46 @@ namespace ServerNode.Models.Games
                     }
 
                     // Keep Alive
-                    GameProcess.Exited += GameProcess_Exited;
+                    Task.Run(async() => {
+                        int id = GameProcess.Id;
+                        TaskCompletionSource<object?> localTaskSource = (keepAliveWaiting = new TaskCompletionSource<object?>());
+
+                        // We can safely assume that if the process has died within 10 seconds
+                        // it's either been stopped manually, or the server has crashed.
+                        // lets not keep that alive...
+                        Log.Verbose($"Keep Alive waiting then waiting");
+
+                        await Task.WhenAny(Task.Delay(10000), localTaskSource.Task);
+
+                        Process proc;
+
+                        try
+                        {
+                            // This exception throws if the process is not found by id.
+                            // Some how only throws on linux so far.
+                            proc = Process.GetProcessById(id);
+                        }
+                        catch (ArgumentException)
+                        {
+                            proc = null;
+                        }
+
+                        if (localTaskSource.Task.IsCompleted)
+                        {
+                            Log.Warning($"Keep Alive for Server {ID} Cancelled");
+                        }
+                        else if (proc != null && !proc.HasExited)
+                        {
+                            Log.Verbose($"Started Keep Alive for Server {ID}");
+                            BeginKeepAliveAsync(GameProcess.Id);
+                        }
+                        else
+                        {
+                            ShouldRun = false;
+                            Log.Error($"Keep Alive for Server {ID} failed - typically due to a server crash. (check your game servers log file(s))");
+                        }
+
+                    });
                 }
                 else
                 {
@@ -287,17 +329,6 @@ namespace ServerNode.Models.Games
             }
         }
 
-        private void GameProcess_Exited(object sender, EventArgs e)
-        {
-            Log.Warning($"Server {ID} has closed unexpectedly");
-
-            if (ShouldRun)
-            {
-                Log.Warning($"Server {ID} Keep Alive Activated!");
-                Start();
-            }
-        }
-
         internal async Task<bool> StopAsync()
         {
             return await Task<bool>.Run(() => {
@@ -307,10 +338,10 @@ namespace ServerNode.Models.Games
 
         internal bool Stop()
         {
-            GameProcess.Exited -= GameProcess_Exited;
             ShouldRun = false;
+            keepAliveWaiting?.TrySetResult(null);
 
-            if (!GameProcess?.HasExited ?? false)
+            if (IsRunning)
             {
                 Log.Informational($"Shutting Down Server {ID}");
                 if (Kill())
@@ -333,9 +364,8 @@ namespace ServerNode.Models.Games
 
         internal async Task<bool> RestartAsync()
         {
-            return await Task<bool>.Run(() => {
-                return Restart();
-            });
+            await StopAsync();
+            return await StartAsync();
         }
 
         internal bool Restart()
@@ -359,6 +389,33 @@ namespace ServerNode.Models.Games
             GameProcess?.WaitForExit();
 
             return GameProcess.HasExited;
+        }
+
+        private async void BeginKeepAliveAsync(int id)
+        {
+            await Task.Run(async () => {
+                // Throws an exception in linux..?
+                try
+                {
+                    while (!Process.GetProcessById(id)?.HasExited ?? false)
+                    {
+                        await Task.Delay(1000);
+                    }
+                }
+                catch (ArgumentException e)
+                {
+                    // This exception throws if the process is not found by id.
+                    // Some how only throws on linux so far.
+                }
+
+                if (ShouldRun)
+                {
+                    Log.Warning($"Server {ID} Unexpectedly Closed");
+                    Log.Warning($"Server {ID} Keep Alive: Rebooting!");
+                    GameProcess = null;
+                    Start();
+                }
+            });
         }
     }
 }
