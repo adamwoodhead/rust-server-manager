@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerNode.Logging;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -20,7 +21,15 @@ namespace ServerNode.Utility
         {
             if (file.Exists)
             {
-                file.Delete();
+                try
+                {
+                    file.Delete();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex);
+                    return false;
+                }
 
                 if (timeoutms > 0)
                 {
