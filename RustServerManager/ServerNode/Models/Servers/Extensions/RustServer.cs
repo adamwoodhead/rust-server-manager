@@ -52,9 +52,19 @@ namespace ServerNode.Models.Servers.Extensions
                             // take the identity part
                             identity = twovars[1];
 
+                            // if the server identity is empty, it's incorrect
+                            if (string.IsNullOrEmpty(identity))
+                            {
+                                Log.Error("Rust Server parameter for identity is incorrect");
+                                // as the identity is incorrect, we should cancel here
+                                // before we accidentally iterate all identity folders
+                                return false;
+                            }
+
                             // break out of loop
                             break;
                         }
+                        // if we have more than two strings, our identity string is incorrect
                         else
                         {
                             Log.Error("Rust Server parameter for identity is incorrect");

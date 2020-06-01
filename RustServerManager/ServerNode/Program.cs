@@ -136,8 +136,8 @@ namespace ServerNode
                     Log.Debug("Starting Server 1");
                     await server2.StartAsync();
 
-                    Log.Debug("Wait 30 seconds for a map to generate partially");
-                    await Task.Delay(30000);
+                    Log.Debug("Wait 3 minutes for a map to generate partially");
+                    await Task.Delay(180000);
 
                     Log.Debug("Stopping Server 1");
                     await server2.StopAsync();
