@@ -1,5 +1,6 @@
 ﻿using ServerNode.Logging;
 using ServerNode.Models.Servers;
+using ServerNode.Models.Servers.Extensions;
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
 using ServerNode.Utility;
@@ -92,6 +93,8 @@ namespace ServerNode
                 throw new Exception("This operating system is not currently supported...");
             }
 
+            // create some apps for us to test with
+            // create css template
             PreAPIHelper.CreateApp(
                 "Counter Strike: Source",
                 "css",
@@ -105,6 +108,7 @@ namespace ServerNode
                     "+maxplayers 10"
                 });
 
+            // create rust tempate
             PreAPIHelper.CreateApp("Rust",
                 "rust",
                 "RustDedicated.exe",
@@ -127,6 +131,7 @@ namespace ServerNode
                     $"+rcon.web 1"
                 });
 
+            // make sure that steamcmd is available
             SteamCMD.EnsureAvailable();
 
             // TESTING ONLY
@@ -135,51 +140,57 @@ namespace ServerNode
                 try
                 {
                     Server server1 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["css"]);
+
                     Server server2 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["rust"]);
 
                     //await server1.InstallAsync();
 
                     //await server2.InstallAsync();
 
-                    Log.Debug("Starting Server 0");
-                    await server1.StartAsync();
+                    Log.Debug("Starting Server 1");
+                    await server2.StartAsync();
 
-                    Log.Debug("Starting Server 0");
-                    await server1.StartAsync();
+                    Log.Debug("Starting Server 1");
+                    await server2.StartAsync();
 
-                    Log.Debug("Restarting Server 0");
-                    await server1.RestartAsync();
+                    Log.Debug("Restarting Server 1");
+                    await server2.RestartAsync();
 
-                    Log.Debug("Delaying 10 seconds");
-                    await Task.Delay(10000);
+                    Log.Debug("Stopping Server 1");
+                    await server2.StopAsync();
 
-                    Log.Debug("Server 0 Keep Alive = false");
-                    server1.KeepAlive = false;
+                    Log.Debug("Wipe Server 1 Map");
+                    await RustServer.WipeMapAsync(server2);
 
-                    Log.Debug("Killed Server 0 Process Externally (emulated)");
-                    server1.GameProcess.Kill();
 
-                    Log.Debug("Delaying 10 seconds");
-                    await Task.Delay(10000);
+                    //Log.Debug("Delaying 10 seconds");
+                    //await Task.Delay(10000);
 
-                    Log.Debug("Starting Server 0");
-                    await server1.StartAsync();
+                    //Log.Debug("Server 0 Keep Alive = false");
+                    //server2.KeepAlive = false;
 
-                    Log.Debug("Delaying 3 seconds");
-                    await Task.Delay(3000);
+                    //Log.Debug("Killed Server 0 Process Externally (emulated)");
+                    //server2.GameProcess.Kill();
 
-                    Log.Debug("Server 0 Keep Alive = true");
-                    server1.KeepAlive = true;
+                    //Log.Debug("Delaying 10 seconds");
+                    //await Task.Delay(10000);
 
-                    Log.Debug("Killed Server 0 Process Externally");
-                    server1.GameProcess.Kill();
+                    //Log.Debug("Starting Server 0");
+                    //await server2.StartAsync();
 
-                    Log.Debug("Delaying 0.5 seconds");
-                    await Task.Delay(500);
+                    //Log.Debug("Delaying 3 seconds");
+                    //await Task.Delay(3000);
 
-                    Log.Debug("Stopping Server 0");
-                    server1.Stop();
+                    //Log.Debug("Server 0 Keep Alive = true");
+                    //server2.KeepAlive = true;
 
+                    //Log.Debug("Killed Server 0 Process Externally");
+                    //server2.GameProcess.Kill();
+
+                    //Log.Debug("Delaying 0.5 seconds");
+                    //await Task.Delay(500);
+
+                    //Log.Debug("Stopping Server 0");
                     //await server2.StopAsync();
                 }
                 catch (Exception ex)
