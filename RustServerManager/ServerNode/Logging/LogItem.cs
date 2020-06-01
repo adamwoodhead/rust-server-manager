@@ -8,8 +8,12 @@ namespace ServerNode.Logging
     {
         internal string message;
         internal ConsoleColor color;
-        private bool disposedValue;
 
+        /// <summary>
+        /// Construct a log item
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="color"></param>
         public LogItem(string value, ConsoleColor color = ConsoleColor.DarkGray)
         {
             this.message = value;
