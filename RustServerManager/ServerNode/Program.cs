@@ -181,6 +181,9 @@ namespace ServerNode
             _quitEvent.WaitOne();
         }
 
+        /// <summary>
+        /// Perform clean up tasks
+        /// </summary>
         private static void SafeExit()
         {
             if (!_safeExitComplete)

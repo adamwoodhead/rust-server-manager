@@ -24,47 +24,94 @@ namespace ServerNode.Models.Servers
 
         internal Server() { }
 
+        /// <summary>
+        /// The SteamApp of the Server
+        /// </summary>
         internal SteamApp App { get; set; }
 
+        /// <summary>
+        /// Servers ID
+        /// </summary>
         internal int ID { get; set; }
 
+        /// <summary>
+        /// Servers Working Directory
+        /// </summary>
         internal string WorkingDirectory { get => Path.Combine(Program.GameServersDirectory, ID.ToString()); }
 
+        /// <summary>
+        /// Servers Executable File Path
+        /// </summary>
         internal string ExecutablePath { get; }
 
-        // TODO Remove true, for testing purposes only.
+        /// <summary>
+        /// Checks only if the apps executable exists
+        /// </summary>
         internal bool IsInstalled => File.Exists(ExecutablePath);
 
+        /// <summary>
+        /// Servers Commandline
+        /// </summary>
         internal string[] CommandLine { get; set; }
 
+        /// <summary>
+        /// Whether the servers process is currently active, and not exited
+        /// </summary>
         internal bool IsRunning { get => (GameProcess != null) && (bool)!GameProcess?.HasExited; }
 
+        /// <summary>
+        /// Whether the server should be running
+        /// </summary>
         internal bool ShouldRun { get; set; }
 
+        /// <summary>
+        /// Whether to reboot the server, if it's process exits unexpectedly
+        /// </summary>
         internal bool KeepAlive { get; set; } = true;
 
+        /// <summary>
+        /// Current status of the server
+        /// </summary>
         internal string Status { get; set; }
 
+        /// <summary>
+        /// Process of the game app
+        /// </summary>
         internal Process GameProcess { get; set; }
 
+        /// <summary>
+        /// Pre-Installation Tasks, such as gameserver directory creation
+        /// </summary>
+        /// <returns></returns>
         private async Task PreInstallAsync()
         {
             await Task.Run(() => {
                 Log.Verbose($"Creating Server {ID} Directory");
+                // create the gameservers working directory
                 Directory.CreateDirectory(WorkingDirectory);
             });
         }
 
+        /// <summary>
+        /// Updates the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> UpdateAsync()
         {
             return await InstallAsync(true);
         }
 
+        /// <summary>
+        /// Installs the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> InstallAsync(bool updating = false)
         {
+            // if we're installing (not updating)
             if (!updating)
             {
                 Log.Informational($"Server {ID} Installing");
+                // perform the pre install procedures
                 await PreInstallAsync();
             }
             else
@@ -72,88 +119,129 @@ namespace ServerNode.Models.Servers
                 Log.Informational($"Server {ID} Updating");
             }
 
+            // instantiate a new steamcmd terminal
             using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
             {
+                // when its finished, inform
                 steam.Finished += delegate { Log.Verbose($"Server {ID} Install: Finished {(steam.AppInstallationSuccess ? "Successfully" : "Unexpectedly (check for errors)")}"); };
+                
+                // when the state changes, inform
                 steam.StateChanged += delegate { Log.Verbose($"Server {ID} Install: {steam.State}"); };
+                
+                // when the progress changes, inform
                 steam.ProgressChanged += delegate {
+                    // if the state is currently downloading
                     if (steam.State == SteamCMDState.APP_DOWNLOADING)
                     {
+                        // and the progress isn't zero, and the time left isnt zero
                         if (steam.Progress != 0 && steam.EstimatedDownloadTimeLeft.TotalSeconds != 0)
                         {
+                            // then provide install progress, timeleft, and speed
                             Log.Informational($"Server {ID} Install: " + $"Progress: {steam.Progress:00.00}% | Estimated Time Left: {steam.EstimatedDownloadTimeLeft:hh\\:mm\\:ss} | Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed):000.00}Mb/s");
                         }
                     }
                 };
 
+                // if we login to steamcmd anonymously
                 if (await steam.LoginAnonymously())
                 {
+                    // force the steamcmd working directory
                     await steam.ForceInstallDirectory(WorkingDirectory);
 
+                    // install the game app
                     await steam.AppUpdate(App.SteamID, true);
 
+                    // shutdown the steamcmd terminal
                     await steam.Shutdown();
                 }
 
+                // if we successfully installed the app
                 if (steam.AppInstallationSuccess)
                 {
+                    // inform the user of success
                     Log.Success($"Server {ID} Successfully {(updating ? "Updated" : "Installed")}");
                 }
                 else
                 {
+                    // inform the user of failure
                     Log.Warning($"Server {ID} Unsuccessfully {(updating ? "Updated" : "Installed")}");
                 }
             }
 
+            // if the steamapps folder still exists after using steamcmd
             if (Directory.Exists(Path.Combine(WorkingDirectory, "steamapps")))
             {
+                // then delete it
                 Directory.Delete(Path.Combine(WorkingDirectory, "steamapps"), true);
             }
 
             return IsInstalled;
         }
 
+        /// <summary>
+        /// Reinstalls the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> ReinstallAsync()
         {
             Log.Informational($"Server {ID} Reinstalling");
-            if (await UninstallAsync() && await InstallAsync())
+            
+            // uninstall the app
+            await UninstallAsync();
+
+            // if we install the app successfully
+            if (await InstallAsync())
             {
+                // return true
                 Log.Success($"Server {ID} Successfully Reinstalled");
                 return true;
             }
+            // otherwise
             else
             {
+                // return false
                 Log.Warning($"Server {ID} Unsuccessfully Reinstalled");
                 return false;
             }
         }
 
+        /// <summary>
+        /// Uninstalls the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> UninstallAsync()
         {
             Log.Informational($"Server {ID} Uninstalling");
 
+            // instantiate a new steamcmd terminal
             using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
             {
                 steam.Finished += delegate { Log.Verbose($"Server {ID} Uninstall: Finished"); };
                 steam.StateChanged += delegate { Log.Verbose($"Server {ID} Uninstall: " + steam.State); };
 
+                // if we login to steamcmd
                 if (await steam.LoginAnonymously())
                 {
-
+                    // force steamcmd to use servers working directory
                     await steam.ForceInstallDirectory($"{WorkingDirectory}");
 
+                    // safely uninstall the app
                     await steam.AppUninstall(App.SteamID, true);
 
+                    // shutdown steamcmd
                     await steam.Shutdown();
 
+                    // if the servers directory exists
                     if (Directory.Exists(WorkingDirectory))
                     {
+                        // delete it
                         Directory.Delete(WorkingDirectory, true);
                     }
                 }
             }
 
             Task waitTask = Task.Run(async() => {
+                // wait for the directory to not exist
                 while (Directory.Exists(WorkingDirectory))
                 {
                     await Task.Delay(2);
@@ -175,6 +263,10 @@ namespace ServerNode.Models.Servers
             }
         }
 
+        /// <summary>
+        /// Starts the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> StartAsync()
         {
             return await Task.Run(() => {
@@ -182,34 +274,48 @@ namespace ServerNode.Models.Servers
             });
         }
 
+        /// <summary>
+        /// Starts the server
+        /// </summary>
+        /// <exception cref="ArgumentException"/>
+        /// <returns></returns>
         internal bool Start()
         {
+            // If the server is already running, we dont want to start it again, but we have the result we want
             if (IsRunning)
             {
                 Log.Warning($"Starting Server {ID} Failed - already running, did you mean to restart?");
-                return false;
+                return true;
             }
+            // if the server is installed
             else if (IsInstalled)
             {
                 Log.Informational($"Starting Server {ID} ({App.Name})");
 
+                // any externals should now know that this server should be running
                 ShouldRun = true;
 
                 string shell;
                 string shellScript;
+                string wrappedCommandline;
 
+                // if os is windows, we want a powershell shell
                 if (Utility.OperatingSystemHelper.IsWindows())
                 {
-                    string wrappedCommandline = string.Join(',', CommandLine.Select(x => $"'{x}'"));
+                    // run the application externally through shell and output the applications process id
+                    wrappedCommandline = string.Join(',', CommandLine.Select(x => $"'{x}'"));
                     shell = "powershell";
                     shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -PassThru; echo $server" + ID + @".ID;";
                 }
+                // if os is linux, we want an sh shell
                 else if (Utility.OperatingSystemHelper.IsLinux())
                 {
-                    string wrappedCommandline = string.Join(' ', CommandLine.Select(x => $"{x.Replace("\"", "\\\\\\\"")}"));
+                    // wipes any killed screens, kills any screens matching our server id, run the application externally through shell and output the applications process id, echo the new screen id
+                    wrappedCommandline = string.Join(' ', CommandLine.Select(x => $"{x.Replace("\"", "\\\\\\\"")}"));
                     shell = "sh";
                     shellScript = @"-c ""screen -wipe; for pid in $(screen -ls | awk '/\.Server" + ID + @"\t/ { print strtonum($1)}'); do kill $pid; done; screen -wipe; screen -S Server" + ID + @" -dm sh -c \$\""sh " + ExecutablePath + " " + wrappedCommandline + @"\""; screen -ls | awk '/\.Server" + ID + @"\t/ {print strtonum($1)}'""";
                 }
+                // cant determine a shell to utilize
                 else
                 {
                     throw new ApplicationException("Couldn't find suitable shell to start gameserver.");
@@ -253,6 +359,7 @@ namespace ServerNode.Models.Servers
 
                 starter.Start();
 
+                // asyncronously read error and output
                 starter.BeginOutputReadLine();
                 starter.BeginErrorReadLine();
 
@@ -261,12 +368,16 @@ namespace ServerNode.Models.Servers
 
                 //output.ForEach(x => Log.Verbose(x));
 
+                // the id should be the last output reports from the shell
                 string returnedID = output.Last();
 
+                // if the returned id isn't null, and only contains digits..
                 if (!string.IsNullOrEmpty(returnedID) && returnedID.All(c => c >= '0' && c <= '9'))
                 {
                     Log.Verbose($"Process Captured Successfully - PID {returnedID}");
+                    // capture our game app process
                     GameProcess = Process.GetProcessById(Convert.ToInt32(returnedID));
+                    // wait for the handle to become valid
                     while (GameProcess.SafeHandle.IsInvalid)
                     {
                         Log.Verbose("Invalid Handle!");
@@ -292,24 +403,27 @@ namespace ServerNode.Models.Servers
 
                         try
                         {
-                            // This exception throws if the process is not found by id.
-                            // Some how only throws on linux so far.
                             proc = Process.GetProcessById(id);
                         }
                         catch (ArgumentException)
                         {
+                            // This exception throws if the process is not found by id.
+                            // Some how only throws on linux so far.
                             proc = null;
                         }
 
+                        // The server has been stopped by command
                         if (localTaskSource.Task.IsCompleted)
                         {
                             Log.Warning($"Keep Alive for Server {ID} Cancelled");
                         }
+                        // The server is active after our timeout
                         else if (proc != null && !proc.HasExited)
                         {
                             Log.Verbose($"Started Keep Alive for Server {ID}");
                             BeginKeepAliveAsync(GameProcess.Id);
                         }
+                        // The server isn't active anymore
                         else
                         {
                             ShouldRun = false;
@@ -318,9 +432,11 @@ namespace ServerNode.Models.Servers
                     });
                 }
                 else
+                // something went wrong with the shell script, and is most likely something to do
+                // with the provided games commandline formatting
                 {
                     Log.Verbose($"Process Not Captured");
-                    throw new ApplicationException($"Error Starting New Game Server in {shell}:{Environment.NewLine}{returnedID}");
+                    throw new ArgumentException($"Error Starting New Game Server in {shell} with commandline:{Environment.NewLine}{wrappedCommandline}");
                 }
 
                 Log.Success($"Server {ID} Started ({App.Name})");
@@ -333,6 +449,10 @@ namespace ServerNode.Models.Servers
             }
         }
 
+        /// <summary>
+        /// Stops the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> StopAsync()
         {
             return await Task<bool>.Run(() => {
@@ -340,19 +460,28 @@ namespace ServerNode.Models.Servers
             });
         }
 
+        /// <summary>
+        /// Stops the server
+        /// </summary>
+        /// <returns></returns>
         internal bool Stop()
         {
+            // Turn off ShouldRun, as we want it to stop!
             ShouldRun = false;
+            // If KeepAlive is in the startup phase, lets cancel it
             keepAliveWaiting?.TrySetResult(null);
 
+            // only perform a kill if the server is running
             if (IsRunning)
             {
                 Log.Informational($"Shutting Down Server {ID}");
-                if (Kill())
+                // kill the process and wait for it to exit
+                if (KillAndWaitForExit())
                 {
                     Log.Success($"Successfully shutdown server {ID}");
                     return true;
                 }
+                // couldn't kill, we shouldn't really ever get here
                 else
                 {
                     Log.Warning($"Could not shutdown server {ID}");
@@ -361,31 +490,48 @@ namespace ServerNode.Models.Servers
             }
             else
             {
+                // the server is already not running, return true as we have the result we're wanting
                 Log.Warning($"Tried Shutting Down Server {ID} - It's not running!");
                 return true;
             }
         }
 
+        /// <summary>
+        /// Restart the server
+        /// </summary>
+        /// <returns></returns>
         internal async Task<bool> RestartAsync()
         {
             await StopAsync();
             return await StartAsync();
         }
 
+        /// <summary>
+        /// Restart the server
+        /// </summary>
+        /// <returns></returns>
         internal bool Restart()
         {
             Stop();
             return Start();
         }
 
-        internal async Task<bool> KillAsync()
+        /// <summary>
+        /// Kills the process, and waits for the process to exit.
+        /// </summary>
+        /// <returns></returns>
+        internal async Task<bool> KillAndWaitForExitAsync()
         {
             return await Task<bool>.Run(() => {
-                return Kill();
+                return KillAndWaitForExit();
             });
         }
 
-        internal bool Kill()
+        /// <summary>
+        /// Kills the process, and waits for the process to exit.
+        /// </summary>
+        /// <returns></returns>
+        internal bool KillAndWaitForExit()
         {
             ShouldRun = false;
 
@@ -395,6 +541,10 @@ namespace ServerNode.Models.Servers
             return GameProcess.HasExited;
         }
 
+        /// <summary>
+        /// Begin watching the server process id, if the server process exits and checks are passed, reboot the server
+        /// </summary>
+        /// <param name="id"></param>
         private async void BeginKeepAliveAsync(int id)
         {
             await Task.Run(async () => {
