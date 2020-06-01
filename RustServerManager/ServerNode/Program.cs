@@ -1,10 +1,11 @@
 ﻿using ServerNode.Logging;
-using ServerNode.Models.Games;
+using ServerNode.Models.Servers;
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
 using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -36,6 +37,7 @@ namespace ServerNode
                 { LogType.SUCCESS, true },
                 { LogType.WARNINGS, true },
                 { LogType.ERRORS, true },
+                { LogType.DEBUGGING, true },
             };
 
             Log.Informational("Server Node Booting Up");
@@ -51,11 +53,16 @@ namespace ServerNode
                 ShouldRun = false;
             };
 
+            WorkingDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            if (System.Diagnostics.Debugger.IsAttached)
+            {
+                WorkingDirectory = @"C:\ServerNode";
+            }
+            
             if (Utility.OperatingSystemHelper.IsWindows())
             {
                 // Create Directories
-                WorkingDirectory = @"C:\ServerNode";
-                Directory.CreateDirectory(WorkingDirectory);
                 Directory.CreateDirectory(GameServersDirectory);
 
                 // check if steam cmd is installed
@@ -63,8 +70,6 @@ namespace ServerNode
             else if (Utility.OperatingSystemHelper.IsLinux())
             {
                 // Create Directories
-                WorkingDirectory = @"/opt/servernode";
-                Directory.CreateDirectory(WorkingDirectory);
                 Directory.CreateDirectory(GameServersDirectory);
             }
             else
@@ -121,13 +126,44 @@ namespace ServerNode
 
                     //await server2.InstallAsync();
 
+                    Log.Debug("Starting Server 0");
                     await server1.StartAsync();
 
+                    Log.Debug("Starting Server 0");
                     await server1.StartAsync();
 
+                    Log.Debug("Restarting Server 0");
                     await server1.RestartAsync();
 
+                    Log.Debug("Delaying 10 seconds");
                     await Task.Delay(10000);
+
+                    Log.Debug("Server 0 Keep Alive = false");
+                    server1.KeepAlive = false;
+
+                    Log.Debug("Killed Server 0 Process Externally (emulated)");
+                    server1.GameProcess.Kill();
+
+                    Log.Debug("Delaying 10 seconds");
+                    await Task.Delay(10000);
+
+                    Log.Debug("Starting Server 0");
+                    await server1.StartAsync();
+
+                    Log.Debug("Delaying 3 seconds");
+                    await Task.Delay(3000);
+
+                    Log.Debug("Server 0 Keep Alive = true");
+                    server1.KeepAlive = true;
+
+                    Log.Debug("Killed Server 0 Process Externally");
+                    server1.GameProcess.Kill();
+
+                    Log.Debug("Delaying 0.5 seconds");
+                    await Task.Delay(500);
+
+                    Log.Debug("Stopping Server 0");
+                    server1.Stop();
 
                     //await server2.StopAsync();
                 }

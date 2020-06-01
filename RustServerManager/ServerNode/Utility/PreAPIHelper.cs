@@ -1,4 +1,4 @@
-﻿using ServerNode.Models.Games;
+﻿using ServerNode.Models.Servers;
 using ServerNode.Models.Steam;
 using System;
 using System.Collections.Generic;

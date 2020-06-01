@@ -9,7 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ServerNode.Models.Games
+namespace ServerNode.Models.Servers
 {
     internal class Server
     {
@@ -40,6 +40,8 @@ namespace ServerNode.Models.Games
         internal bool IsRunning { get => (GameProcess != null) && (bool)!GameProcess?.HasExited; }
 
         internal bool ShouldRun { get; set; }
+
+        internal bool KeepAlive { get; set; } = true;
 
         internal string Status { get; set; }
 
@@ -271,8 +273,11 @@ namespace ServerNode.Models.Games
                         Thread.Sleep(10);
                     }
 
-                    // Keep Alive
-                    Task.Run(async() => {
+                    // We run the keep alive task regardless of the KeepAlive property
+                    // This way, keep alive can be turned on and off whilst the server is running
+                    // without requiring a restart.
+                    // The actual keep alive task will only take effect on a server with keepalive = true;
+                    Task.Run(async () => {
                         int id = GameProcess.Id;
                         TaskCompletionSource<object?> localTaskSource = (keepAliveWaiting = new TaskCompletionSource<object?>());
 
@@ -310,7 +315,6 @@ namespace ServerNode.Models.Games
                             ShouldRun = false;
                             Log.Error($"Keep Alive for Server {ID} failed - typically due to a server crash. (check your game servers log file(s))");
                         }
-
                     });
                 }
                 else
@@ -408,7 +412,7 @@ namespace ServerNode.Models.Games
                     // Some how only throws on linux so far.
                 }
 
-                if (ShouldRun)
+                if (KeepAlive && ShouldRun)
                 {
                     Log.Warning($"Server {ID} Unexpectedly Closed");
                     Log.Warning($"Server {ID} Keep Alive: Rebooting!");

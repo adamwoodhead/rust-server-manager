@@ -11,5 +11,6 @@ namespace ServerNode.Logging
         SUCCESS,
         WARNINGS,
         ERRORS,
+        DEBUGGING
     }
 }

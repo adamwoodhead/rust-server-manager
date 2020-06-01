@@ -84,5 +84,16 @@ namespace ServerNode.Logging
                 }
             });
         }
+
+        internal static void Debug(object value)
+        {
+            Task.Run(() => {
+                if (Options[LogType.ERRORS])
+                {
+                    LogItem logItem = new LogItem("### DEBUG TRACE: " + value.ToString(), ConsoleColor.Magenta);
+                    LogQueue.Add(logItem);
+                }
+            });
+        }
     }
 }
