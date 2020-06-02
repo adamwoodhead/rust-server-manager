@@ -61,6 +61,7 @@ sudo apt install steamcmd
 Create Directory, and set File Permissions
 
 ```
-sudo mkdir /opt/servernode
-sudo chown -R youruser:youruser /opt/servernode
+sudo mkdir /home/adam/servernode
+sudo chown -R youruser:youruser /home/adam/servernode
+sudo chmod 777 /home/adam/servernode
 ```
