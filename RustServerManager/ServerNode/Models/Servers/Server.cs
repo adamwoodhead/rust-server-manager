@@ -366,6 +366,8 @@ namespace ServerNode.Models.Servers
                 // the id should be the last output reports from the shell
                 string returnedID = output.Last();
 
+                // TODO Start here - CSS server process id is not captured on LINUX
+
                 // if the returned id isn't null, and only contains digits..
                 if (!string.IsNullOrEmpty(returnedID) && returnedID.All(c => c >= '0' && c <= '9'))
                 {
