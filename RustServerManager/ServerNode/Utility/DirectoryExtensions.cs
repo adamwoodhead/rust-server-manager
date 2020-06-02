@@ -60,5 +60,17 @@ namespace ServerNode.Utility
                 return false;
             }
         }
+
+        /// <summary>
+        /// Delete a directory recursively and wait for it to not exist, or timeout
+        /// </summary>
+        /// <param name="directory"></param>
+        /// <param name="timeoutms"></param>
+        /// <exception cref="ArgumentException"/>
+        /// <returns></returns>
+        internal static bool DeleteOrTimeout(string directory, int timeoutms = 5000)
+        {
+            return DeleteOrTimeout(new DirectoryInfo(directory), timeoutms);
+        }
     }
 }
