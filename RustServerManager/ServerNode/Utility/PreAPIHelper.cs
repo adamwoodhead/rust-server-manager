@@ -1,7 +1,9 @@
-﻿using ServerNode.Models.Servers;
+﻿using ServerNode.Logging;
+using ServerNode.Models.Servers;
 using ServerNode.Models.Steam;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace ServerNode.Utility
@@ -11,14 +13,25 @@ namespace ServerNode.Utility
         #region servers
         internal static List<Server> Servers { get; set; } = new List<Server>();
 
-        internal static Server CreateServer(SteamApp app)
+        internal static Server CreateServer(SteamApp app, int? forcedID = null)
         {
-            int nextID = Servers.Count;
-            Server server = new Server(nextID, app)
+            int nextID = 0;
+
+            if (forcedID == null)
+            {
+                while (Servers.Exists(x => x.ID == nextID))
+                {
+                    nextID++;
+                }
+            }
+
+            Server server = new Server(forcedID ?? nextID, app)
             {
                 CommandLine = app.DefaultCommandLine
             };
             Servers.Add(server);
+            Directory.CreateDirectory(server.WorkingDirectory);
+            Log.Success($"Server Created - ID: {server.ID} | App: {app.Name}");
             return server;
         }
         #endregion

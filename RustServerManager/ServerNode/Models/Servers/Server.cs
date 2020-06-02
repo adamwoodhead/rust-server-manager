@@ -1,6 +1,7 @@
 ﻿using ServerNode.Logging;
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
+using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -78,6 +79,11 @@ namespace ServerNode.Models.Servers
         /// Process of the game app
         /// </summary>
         internal Process GameProcess { get; set; }
+
+        /// <summary>
+        /// Saved instance of the gameprocess pid
+        /// </summary>
+        internal int? PID { get; private set; }
 
         /// <summary>
         /// Pre-Installation Tasks, such as gameserver directory creation
@@ -230,30 +236,19 @@ namespace ServerNode.Models.Servers
 
                     // shutdown steamcmd
                     await steam.Shutdown();
-
-                    // if the servers directory exists
-                    if (Directory.Exists(WorkingDirectory))
-                    {
-                        // delete it
-                        Directory.Delete(WorkingDirectory, true);
-                    }
                 }
             }
-
-            Task waitTask = Task.Run(async() => {
-                // wait for the directory to not exist
-                while (Directory.Exists(WorkingDirectory))
-                {
-                    await Task.Delay(2);
-                }
-            });
 
             // Directory.Delete marks a directory for deletion, and doesn't actually delete the directory
             // therefore still exists until the last handle is closed. 
             // Lets wait 2 seconds for that handle to close which realistically should be less than 20ms
-            if (await Task.WhenAny(waitTask, Task.Delay(2000)) == waitTask)
+            if (DirectoryExtensions.DeleteOrTimeout(WorkingDirectory, 2000))
             {
                 Log.Success($"Server {ID} Successfully Uninstalled");
+                // We just wanted to ensure that it's entirely empty
+                // It's better this way than enumerating each file,
+                // as we offload that to the native os
+                Directory.CreateDirectory(WorkingDirectory);
                 return true;
             }
             else
@@ -305,7 +300,7 @@ namespace ServerNode.Models.Servers
                     // run the application externally through shell and output the applications process id
                     wrappedCommandline = string.Join(',', CommandLine.Select(x => $"'{x}'"));
                     shell = "powershell";
-                    shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -PassThru; echo $server" + ID + @".ID;";
+                    shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -WindowStyle Minimized -PassThru; echo $server" + ID + @".ID;";
                 }
                 // if os is linux, we want an sh shell
                 else if (Utility.OperatingSystemHelper.IsLinux())
@@ -377,10 +372,12 @@ namespace ServerNode.Models.Servers
                     Log.Verbose($"Process Captured Successfully - PID {returnedID}");
                     // capture our game app process
                     GameProcess = Process.GetProcessById(Convert.ToInt32(returnedID));
+                    // get the pid
+                    PID = GameProcess.Id;
                     // wait for the handle to become valid
                     while (GameProcess.SafeHandle.IsInvalid)
                     {
-                        Log.Verbose("Invalid Handle!");
+                        Log.Warning("Invalid Handle!");
                         Thread.Sleep(10);
                     }
 
@@ -395,7 +392,7 @@ namespace ServerNode.Models.Servers
                         // We can safely assume that if the process has died within 10 seconds
                         // it's either been stopped manually, or the server has crashed.
                         // lets not keep that alive...
-                        Log.Verbose($"Keep Alive waiting then waiting");
+                        Log.Verbose($"Keep Alive waiting ..");
 
                         await Task.WhenAny(Task.Delay(10000), localTaskSource.Task);
 
@@ -468,8 +465,12 @@ namespace ServerNode.Models.Servers
         {
             // Turn off ShouldRun, as we want it to stop!
             ShouldRun = false;
-            // If KeepAlive is in the startup phase, lets cancel it
-            keepAliveWaiting?.TrySetResult(null);
+
+            if (keepAliveWaiting != null)
+            {
+                // If KeepAlive is in the startup phase, lets cancel it
+                keepAliveWaiting.TrySetResult(null);
+            }
 
             // only perform a kill if the server is running
             if (IsRunning)
@@ -541,6 +542,54 @@ namespace ServerNode.Models.Servers
             return GameProcess.HasExited;
         }
 
+        internal async Task<bool> DeleteAsync()
+        {
+            return await Task<bool>.Run(() => {
+                return Delete();
+            });
+        }
+
+        internal bool Delete()
+        {
+            try
+            {
+                if (IsRunning)
+                {
+                    Log.Verbose("Stopping Server For Deletion.");
+                    Stop();
+                }
+
+                if (IsInstalled)
+                {
+                    Log.Verbose("Uninstalling Server For Deletion.");
+                    UninstallAsync().Wait();
+                }
+
+                if (Directory.Exists(WorkingDirectory))
+                {
+                    Log.Verbose("Deleting Server Directory For Deletion");
+                    if (!DirectoryExtensions.DeleteOrTimeout(WorkingDirectory, 5000))
+                    {
+                        Log.Error($"Something went wrong whilst trying to delete server {ID} directory");
+                        return false;
+                    }
+                }
+
+                Log.Verbose("Removing Server from Servers List");
+                PreAPIHelper.Servers.Remove(this);
+
+                Log.Success($"Server {ID} Deleted - The ID {ID} is now free.");
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Something went wrong whilst trying to delete server {ID}");
+                Log.Error(ex);
+                return false;
+            }
+        }
+
         /// <summary>
         /// Begin watching the server process id, if the server process exits and checks are passed, reboot the server
         /// </summary>
@@ -560,13 +609,17 @@ namespace ServerNode.Models.Servers
                 {
                     // This exception throws if the process is not found by id.
                     // Some how only throws on linux so far.
+                    GameProcess = null;
+                    PID = null;
                 }
 
-                if (KeepAlive && ShouldRun)
+                // if keep alive is active, our gameserver should run, and the app should run..
+                if (KeepAlive && ShouldRun && Program.ShouldRun)
                 {
                     Log.Warning($"Server {ID} Unexpectedly Closed");
                     Log.Warning($"Server {ID} Keep Alive: Rebooting!");
                     GameProcess = null;
+                    PID = null;
                     Start();
                 }
             });
