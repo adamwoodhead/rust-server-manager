@@ -308,7 +308,7 @@ namespace ServerNode
 
         private static void ExecuteServerAction(string action, string[] targets = null)
         {
-            bool parseID(string target, out int id)
+            static bool parseID(string target, out int id)
             {
                 try
                 {
@@ -323,7 +323,7 @@ namespace ServerNode
                 }
             }
 
-            bool findServer(int id, out Server server)
+            static bool findServer(int id, out Server server)
             {
                 try
                 {
@@ -347,7 +347,7 @@ namespace ServerNode
                 }
             }
 
-            void cleanupServers()
+            static void cleanupServers()
             {
                 Log.Verbose("Server Clean Up - Initiated...");
 
@@ -375,7 +375,7 @@ namespace ServerNode
                     }
                     else
                     {
-                        Log.Verbose($"Server Clean Up - Directory doesn't match our system, we're ignoring it.");
+                        Log.Verbose($"Server Clean Up - Directory doesn't match our system, ignoring.");
                     }
                 }
             }

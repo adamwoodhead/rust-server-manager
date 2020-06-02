@@ -605,7 +605,7 @@ namespace ServerNode.Models.Servers
                         await Task.Delay(1000);
                     }
                 }
-                catch (ArgumentException e)
+                catch (ArgumentException)
                 {
                     // This exception throws if the process is not found by id.
                     // Some how only throws on linux so far.
