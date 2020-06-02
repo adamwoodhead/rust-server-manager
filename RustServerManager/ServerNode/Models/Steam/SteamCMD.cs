@@ -211,6 +211,8 @@ namespace ServerNode.Models.Steam
         /// </summary>
         internal static void EnsureAvailable()
         {
+            Log.Informational("Checking if SteamCMD is available.");
+
             // check if we have the steamcmd executable available
             if (!File.Exists(GetNativeExectutablePath()))
             {
@@ -219,17 +221,26 @@ namespace ServerNode.Models.Steam
                 {
                     // download and extract steacmd into the appdata utilities folder
                     DownloadSteamCMD();
-                    Log.Success("SteamCMD Successfully Downloaded");
+                    Log.Success("SteamCMD successfully downloaded & now available");
                 }
                 else
                 {
                     // this should only occur on linux, when the user has not installed prerequisites
-                    throw new ApplicationException("SteamCMD Not Installed.");
+                    Log.Error("SteamCMD not installed.");
+
+                    Log.Informational("You can use the following commands to install steamcmd.");
+                    Log.Informational("sudo add-apt-repository multiverse");
+                    Log.Informational("sudo dpkg --add - architecture i386");
+                    Log.Informational("sudo apt update");
+                    Log.Informational("sudo apt install lib32gcc1");
+                    Log.Informational("sudo apt install steamcmd");
+
+                    throw new ApplicationException("SteamCMD not installed.");
                 }
             }
             else
             {
-                Log.Informational("SteamCMD is already installed");
+                Log.Success("SteamCMD is Available.");
             }
         }
 

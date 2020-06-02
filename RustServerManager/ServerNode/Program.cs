@@ -47,7 +47,7 @@ namespace ServerNode
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
-            WorkingDirectory = Path.GetDirectoryName(Directory.GetCurrentDirectory());
+            WorkingDirectory = Directory.GetCurrentDirectory();
 
             // only in windows debug mode
             if (Debugger.IsAttached && Utility.OperatingSystemHelper.IsWindows())
@@ -167,9 +167,9 @@ namespace ServerNode
 
             //await server2.InstallAsync();
 
-            Log.Informational("Server Node Booted");
+            Log.Success("Server Node Booted");
 
-            Log.Success("Type 'help' to view available commands.");
+            Log.Informational("Type 'help' to view available commands.");
 
             while (ShouldRun)
             {
@@ -614,6 +614,8 @@ namespace ServerNode
                     }
 
                     Log.Informational("Server Node Shutdown Complete");
+
+                    Environment.Exit(0);
                 }
             }
         }
