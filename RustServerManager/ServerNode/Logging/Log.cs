@@ -21,6 +21,8 @@ namespace ServerNode.Logging
         private static bool IsInitialised = false;
         private static string hardLogDirectoryPath;
 
+        internal static bool QueueEmpty => LogQueue.Count == 0;
+
         /// <summary>
         /// Log Visibility Options
         /// </summary>
@@ -111,14 +113,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Verbose(object value)
         {
-            Task.Run(() =>
+            if (Options[LogType.VERBOSE].Item1)
             {
-                if (Options[LogType.VERBOSE].Item1)
-                {
-                    LogItem logItem = new LogItem(value.ToString(), LogType.VERBOSE, Options[LogType.VERBOSE]);
-                    LogQueue.Add(logItem);
-                }
-            });
+                LogItem logItem = new LogItem(value.ToString(), LogType.VERBOSE, Options[LogType.VERBOSE]);
+                LogQueue.Add(logItem);
+            }
         }
 
         /// <summary>
@@ -127,14 +126,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Success(object value)
         {
-            Task.Run(() =>
+            if (Options[LogType.SUCCESS].Item1)
             {
-                if (Options[LogType.SUCCESS].Item1)
-                {
-                    LogItem logItem = new LogItem(value.ToString(), LogType.SUCCESS, Options[LogType.SUCCESS]);
-                    LogQueue.Add(logItem);
-                }
-            });
+                LogItem logItem = new LogItem(value.ToString(), LogType.SUCCESS, Options[LogType.SUCCESS]);
+                LogQueue.Add(logItem);
+            }
         }
 
         /// <summary>
@@ -143,14 +139,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Informational(object value)
         {
-            Task.Run(() =>
+            if (Options[LogType.INFORMATIONAL].Item1)
             {
-                if (Options[LogType.INFORMATIONAL].Item1)
-                {
-                    LogItem logItem = new LogItem(value.ToString(), LogType.INFORMATIONAL, Options[LogType.INFORMATIONAL]);
-                    LogQueue.Add(logItem);
-                }
-            });
+                LogItem logItem = new LogItem(value.ToString(), LogType.INFORMATIONAL, Options[LogType.INFORMATIONAL]);
+                LogQueue.Add(logItem);
+            }
         }
 
         /// <summary>
@@ -159,14 +152,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Warning(object value)
         {
-            Task.Run(() =>
+            if (Options[LogType.WARNINGS].Item1)
             {
-                if (Options[LogType.WARNINGS].Item1)
-                {
-                    LogItem logItem = new LogItem(value.ToString(), LogType.WARNINGS, Options[LogType.WARNINGS]);
-                    LogQueue.Add(logItem);
-                }
-            });
+                LogItem logItem = new LogItem(value.ToString(), LogType.WARNINGS, Options[LogType.WARNINGS]);
+                LogQueue.Add(logItem);
+            }
         }
 
         /// <summary>
@@ -175,14 +165,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Error(object value)
         {
-            Task.Run(() =>
+            if (Options[LogType.ERRORS].Item1)
             {
-                if (Options[LogType.ERRORS].Item1)
-                {
-                    LogItem logItem = new LogItem(value.ToString(), LogType.ERRORS, Options[LogType.ERRORS]);
-                    LogQueue.Add(logItem);
-                }
-            });
+                LogItem logItem = new LogItem(value.ToString(), LogType.ERRORS, Options[LogType.ERRORS]);
+                LogQueue.Add(logItem);
+            }
         }
 
         /// <summary>
@@ -191,14 +178,11 @@ namespace ServerNode.Logging
         /// <param name="value"></param>
         internal static void Debug(object value)
         {
-            Task.Run(() =>
+            if (Options[LogType.DEBUGGING].Item1)
             {
-                if (Options[LogType.DEBUGGING].Item1)
-                {
-                    LogItem logItem = new LogItem("### DEBUG TRACE: " + value.ToString(), LogType.DEBUGGING, Options[LogType.DEBUGGING]);
-                    LogQueue.Add(logItem);
-                }
-            });
+                LogItem logItem = new LogItem("### DEBUG TRACE: " + value.ToString(), LogType.DEBUGGING, Options[LogType.DEBUGGING]);
+                LogQueue.Add(logItem);
+            }
         }
     }
 }
