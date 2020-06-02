@@ -229,7 +229,7 @@ namespace ServerNode.Models.Steam
             }
             else
             {
-                Log.Success("SteamCMD is already installed");
+                Log.Informational("SteamCMD is already installed");
             }
         }
 
