@@ -47,11 +47,14 @@ namespace ServerNode
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
-            WorkingDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            WorkingDirectory = Path.GetDirectoryName(Directory.GetCurrentDirectory());
 
-            if (Debugger.IsAttached)
+            // only in windows debug mode
+            if (Debugger.IsAttached && Utility.OperatingSystemHelper.IsWindows())
             {
-                WorkingDirectory = @"C:\ServerNode";
+                WorkingDirectory = @"C:\servernode";
+                // no harm in it..
+                Directory.CreateDirectory(WorkingDirectory);
             }
 
             Log.Initialise(
@@ -219,6 +222,10 @@ namespace ServerNode
                     SafeExit();
                     break;
 
+                case "exit":
+                    SafeExit();
+                    break;
+
                 case "server":
                     Console.WriteLine($"Command <{command}> requires an action. Type '{command} --help' for more info.");
                     break;
@@ -233,7 +240,7 @@ namespace ServerNode
 
                 default:
                     Console.WriteLine($"Command <{command}> not recognised.");
-                    Console.WriteLine($"Commands available: <quit>, <server>, <apps>, <help>.");
+                    Console.WriteLine($"Commands available: <exit>, <quit>, <server>, <apps>, <help>.");
                     break;
             }
         }
@@ -481,18 +488,26 @@ namespace ServerNode
                         "Multi Target: <command> <action> <id,id,id>\n" +
                         "Target All: <command> <action> *",
                         new Dictionary<string, string> {
-                            { "quit", "Safely exit Server Node, cleaning up active servers and data." },
+                            { "quit | exit", "Safely exit Server Node, cleaning up active servers and data." },
                             { "server <action>", "Control a server, use 'server --help' for more info." },
                             { "apps <action>", "Apps Information, use 'server --help' for more info." },
                             { "<command> --help", "View more in depth help on a specific command." }
                         });
                     break;
 
+                case "exit":
+                    WrapHelpInfo(
+                        "Exit",
+                        "Commands",
+                        "The <exit> command will clean up any loose ends before shutting down. (Highly recommended)",
+                        new Dictionary<string, string>());
+                    break;
+
                 case "quit":
                     WrapHelpInfo(
                         "Quit",
                         "Commands",
-                        "The <quit> command will attempt to clean up any loose ends before shutting down.",
+                        "The <quit> command will clean up any loose ends before shutting down. (Highly recommended)",
                         new Dictionary<string, string>());
                     break;
 
