@@ -444,7 +444,7 @@ namespace ServerNode.Models.Servers
             }
             else
             {
-                Log.Verbose($"Failed To Launch Server {ID} ({App.Name}) - Not Installed");
+                Log.Error($"Failed To Launch Server {ID} ({App.Name}) - Not Installed");
                 return false;
             }
         }
