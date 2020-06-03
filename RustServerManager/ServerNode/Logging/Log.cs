@@ -56,14 +56,27 @@ namespace ServerNode.Logging
 
                     foreach (DirectoryInfo dir in logDirectories.Select(x => new DirectoryInfo(x)).OrderByDescending(x => x.CreationTime).Skip(hardLogCount))
                     {
-                        if (DirectoryExtensions.DeleteOrTimeout(dir))
+                        try
                         {
-                            Verbose($"Deleted Log Folder {dir.FullName}");
+
+                            if (DirectoryExtensions.DeleteOrTimeout(dir))
+                            {
+                                Verbose($"Deleted Log Folder {dir.FullName}");
+                            }
+
+                            if (Directory.GetDirectories(Program.LogsDirectory).Count() <= 5)
+                            {
+                                break;
+                            }
                         }
-                        
-                        if (Directory.GetDirectories(Program.LogsDirectory).Count() <= 5)
+                        // System.IO.IOException: Directory not empty
+                        catch (System.IO.IOException)
                         {
-                            break;
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"{DateTime.Now:G}: Server Node doesn't have access to it's the filesystem!");
+                            Console.WriteLine($"{DateTime.Now:G}: Try running 'sudo ./ServerNode'.");
+                            Console.ResetColor();
+                            throw new ApplicationException("Server Node doesn't have access to it's the filesystem!");
                         }
                     }
                 }

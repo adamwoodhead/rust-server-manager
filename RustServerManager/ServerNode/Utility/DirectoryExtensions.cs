@@ -20,15 +20,8 @@ namespace ServerNode.Utility
         {
             if (directory.Exists)
             {
-                try
-                {
-                    directory.Delete(true);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                    return false;
-                }
+
+                directory.Delete(true);
 
                 if (timeoutms > 0)
                 {

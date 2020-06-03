@@ -316,7 +316,7 @@ namespace ServerNode.Models.Servers
                     throw new ApplicationException("Couldn't find suitable shell to start gameserver.");
                 }
 
-                //Log.Verbose(shellScript);
+                Log.Debug(shellScript);
 
                 Process starter = new Process()
                 {
@@ -340,7 +340,7 @@ namespace ServerNode.Models.Servers
                 {
                     if (!string.IsNullOrEmpty(e.Data))
                     {
-                        output.Add(e.Data); //Log.Verbose($"{shell} Out: \"{e.Data}\"");
+                        output.Add(e.Data); Log.Debug($"{shell} Out: \"{e.Data}\"");
                     }
                 };
 
@@ -435,6 +435,7 @@ namespace ServerNode.Models.Servers
                 // with the provided games commandline formatting
                 {
                     Log.Verbose($"Process Not Captured");
+                    Log.Debug(output);
                     throw new ArgumentException($"Error Starting New Game Server in {shell} with commandline:{Environment.NewLine}{wrappedCommandline}");
                 }
 

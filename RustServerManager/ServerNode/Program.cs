@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Permissions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -87,6 +88,24 @@ namespace ServerNode
 
                 SafeExit();
             };
+
+            if (Utility.OperatingSystemHelper.IsLinux())
+            {
+                Log.Informational("Performing Screen Test");
+                if (!Native.Linux.HasScreenAccess())
+                {
+                    Log.Error("Server Node does not have access to the screen command.");
+                    Log.Informational("If you do not have screen installed, please use the following:");
+                    Log.Informational("sudo apt-get update");
+                    Log.Informational("sudo apt-get install screen");
+                    Log.Informational("If you do have screen installed, please try running sudo ./ServerNode");
+                    throw new ApplicationException("ServerNode does not have access to screen command.");
+                }
+                else
+                {
+                    Log.Success("Successfully Launched and killed a screen!");
+                }
+            }
 
             Directory.CreateDirectory(GameServersDirectory);
             Directory.CreateDirectory(LogsDirectory);
