@@ -31,8 +31,6 @@ namespace ServerNode.Native
                 EnableRaisingEvents = true
             };
 
-            bool hasErrors = false;
-
             List<string> output = new List<string>();
             List<string> errors = new List<string>();
             starter.OutputDataReceived += (s, e) =>
@@ -50,7 +48,6 @@ namespace ServerNode.Native
                 {
                     Log.Error($"{shell} error: \"{e.Data}\"");
                     errors.Add(e.Data);
-                    hasErrors = false;
                 }
             };
 
