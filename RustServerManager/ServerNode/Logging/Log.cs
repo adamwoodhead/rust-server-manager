@@ -74,7 +74,7 @@ namespace ServerNode.Logging
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine($"{DateTime.Now:G}: Server Node doesn't have access to it's the filesystem!");
-                            Console.WriteLine($"{DateTime.Now:G}: Try running 'sudo ./ServerNode'.");
+                            Console.WriteLine($"{DateTime.Now:G}: Try running with admin privileges -> 'sudo ./ServerNode'.");
                             Console.ResetColor();
                             throw new ApplicationException("Server Node doesn't have access to it's the filesystem!");
                         }

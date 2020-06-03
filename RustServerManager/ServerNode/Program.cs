@@ -50,6 +50,62 @@ namespace ServerNode
         {
             WorkingDirectory = Directory.GetCurrentDirectory();
 
+            // Lets check that we've executed servernode from it's directory..
+            if (!args.Contains("-skip-directory-check"))
+            {
+                string executableName = Utility.OperatingSystemHelper.IsWindows() ? "ServerNode.exe" : "ServerNode";
+                bool insideExecutablesFolder = false;
+
+                foreach (string filestr in Directory.EnumerateFiles(WorkingDirectory))
+                {
+                    FileInfo file = new FileInfo(filestr);
+                    if (file.Name == executableName)
+                    {
+                        insideExecutablesFolder = true;
+                        break;
+                    }
+                }
+
+                if (!insideExecutablesFolder)
+                {
+                    bool? getyn()
+                    {
+                        string responded = Console.ReadLine();
+
+                        switch (responded)
+                        {
+                            case "y":
+                                return true;
+                            case "n":
+                                return false;
+                            default:
+                                return null;
+                        }
+                    }
+
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine($"WARNING: YOU HAVE STARTED SERVERNODE IN ANOTHER DIRECTORY THAN IT'S OWN");
+                    Console.WriteLine($"WARNING: '{WorkingDirectory}' WILL BE THE WORKING DIRECTORY!");
+                    Console.WriteLine($"Do you want to continue?");
+
+                    bool? answer = getyn();
+                    while (answer == null)
+                    {
+                        answer = getyn();
+                    }
+
+                    if (!answer.Value)
+                    {
+                        Console.WriteLine("Please launch in the correct directory.");
+                        return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Continuing launch in current directory, don't say we didn't warn you!.");
+                    }
+                }
+            }
+
             // only in windows debug mode
             if (Debugger.IsAttached && Utility.OperatingSystemHelper.IsWindows())
             {

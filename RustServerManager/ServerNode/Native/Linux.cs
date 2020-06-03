@@ -75,6 +75,8 @@ namespace ServerNode.Native
                     {
                         Process.GetProcessById(pid).Kill();
 
+                        CleanUpScreens();
+
                         return true;
                     }
                     catch (Exception)
@@ -85,6 +87,29 @@ namespace ServerNode.Native
             }
 
             return false;
+        }
+
+        internal static void CleanUpScreens()
+        {
+            string shell = "sh";
+            string shellScript = @"-c ""screen -wipe;""";
+
+            Process starter = new Process()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    WorkingDirectory = Program.WorkingDirectory,
+                    FileName = shell,
+                    Arguments = shellScript,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                },
+            };
+
+            starter.Start();
+
+            starter.WaitForExit();
         }
     }
 }
