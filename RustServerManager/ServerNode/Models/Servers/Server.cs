@@ -290,7 +290,6 @@ namespace ServerNode.Models.Servers
                 // any externals should now know that this server should be running
                 ShouldRun = true;
 
-                string shell;
                 string shellScript;
                 string wrappedCommandline;
 
@@ -299,7 +298,6 @@ namespace ServerNode.Models.Servers
                 {
                     // run the application externally through shell and output the applications process id
                     wrappedCommandline = string.Join(',', CommandLine.Select(x => $"'{x}'"));
-                    shell = "powershell";
                     shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -WindowStyle Minimized -PassThru; echo $server" + ID + @".ID;";
                 }
                 // if os is linux, we want an sh shell
@@ -307,7 +305,6 @@ namespace ServerNode.Models.Servers
                 {
                     // wipes any killed screens, kills any screens matching our server id, run the application externally through shell and output the applications process id, echo the new screen id
                     wrappedCommandline = string.Join(' ', CommandLine.Select(x => $"{x.Replace("\"", "\\\\\\\"")}"));
-                    shell = "sh";
                     shellScript = @"-c ""screen -wipe; for pid in $(screen -ls | awk '/\.Server" + ID + @"\t/ { print strtonum($1)}'); do kill $pid; done; screen -wipe; screen -S Server" + ID + @" -dm sh -c \$\""sh " + ExecutablePath + " " + wrappedCommandline + @"\""; screen -ls | awk '/\.Server" + ID + @"\t/ {print strtonum($1)}'""";
                 }
                 // cant determine a shell to utilize
@@ -318,48 +315,7 @@ namespace ServerNode.Models.Servers
 
                 Log.Debug(shellScript);
 
-                Process starter = new Process()
-                {
-                    StartInfo = new ProcessStartInfo()
-                    {
-                        WorkingDirectory = WorkingDirectory,
-                        FileName = shell,
-                        Arguments = shellScript,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        WindowStyle = ProcessWindowStyle.Hidden,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    },
-                    EnableRaisingEvents = true
-                };
-
-                List<string> output = new List<string>();
-                List<string> errors = new List<string>();
-                starter.OutputDataReceived += (s, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        output.Add(e.Data); Log.Debug($"{shell} Out: \"{e.Data}\"");
-                    }
-                };
-
-                starter.ErrorDataReceived += (s, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        errors.Add(e.Data); Log.Verbose($"{shell} Error: \"{e.Data}\"");
-                    }
-                };
-
-                starter.Start();
-
-                // asyncronously read error and output
-                starter.BeginOutputReadLine();
-                starter.BeginErrorReadLine();
-
-                Log.Verbose($"Waiting for {shell} responses");
-                starter.WaitForExit();
+                string[] output = Native.Native.Shell(WorkingDirectory, shellScript);
 
                 //output.ForEach(x => Log.Verbose(x));
 
@@ -436,7 +392,7 @@ namespace ServerNode.Models.Servers
                 {
                     Log.Verbose($"Process Not Captured");
                     Log.Debug(output);
-                    throw new ArgumentException($"Error Starting New Game Server in {shell} with commandline:{Environment.NewLine}{wrappedCommandline}");
+                    throw new ArgumentException($"Error Starting New Game Server with commandline:{Environment.NewLine}{wrappedCommandline}");
                 }
 
                 Log.Success($"Server {ID} Started ({App.Name})");

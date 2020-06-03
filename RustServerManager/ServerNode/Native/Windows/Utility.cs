@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ServerNode.Native
+namespace ServerNode.Native.Windows
 {
-    internal static class Windows
+    internal static class Utility
     {
         [DllImport("user32.dll")]
         static extern int SetWindowText(IntPtr hWnd, string text);

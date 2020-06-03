@@ -148,7 +148,7 @@ namespace ServerNode
             if (Utility.OperatingSystemHelper.IsLinux())
             {
                 Log.Informational("Performing Screen Test");
-                if (!Native.Linux.HasScreenAccess())
+                if (!Native.Linux.Screens.HasScreenAccess())
                 {
                     Log.Error("Server Node does not have access to the screen command.");
                     Log.Informational("If you do not have screen installed, please use the following:");
