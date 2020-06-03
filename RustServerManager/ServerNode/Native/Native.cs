@@ -24,5 +24,21 @@ namespace ServerNode.Native
                 return Linux.SH.Shell(workingDir, script);
             }
         }
+
+        internal static IPerformanceMonitor GetPerformanceMonitor(int processId)
+        {
+            if (Utility.OperatingSystemHelper.IsWindows())
+            {
+                return new Windows.PerformanceMonitor(processId);
+            }
+            else if (Utility.OperatingSystemHelper.IsLinux())
+            {
+                return new Linux.PerformanceMonitor(processId);
+            }
+            else
+            {
+                throw new ApplicationException("Performance Counter not valid on operating system.");
+            }
+        }
     }
 }

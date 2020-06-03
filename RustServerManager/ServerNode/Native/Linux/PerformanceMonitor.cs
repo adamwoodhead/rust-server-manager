@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerNode.Logging;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
@@ -9,13 +10,33 @@ namespace ServerNode.Native.Linux
 {
     internal class PerformanceMonitor : ServerNode.Native.PerformanceMonitor
     {
-        public PerformanceMonitor(Process p, CancellationToken token, int tick = 5) : base(p, token, tick)
+        public PerformanceMonitor(int pid, int tick = 5) : base(pid, tick)
         {
         }
 
-        internal override void BeginMonitoring()
+        /// <summary>
+        /// Begin monitoring the system usage of a process, by id
+        /// </summary>
+        /// <param name="pid"></param>
+        /// <param name="tokenSource"></param>
+        /// <param name="tick"></param>
+        public override void BeginMonitoring(int serverID)
         {
-            throw new NotImplementedException();
+            Task.Run(async() => {
+                if (!IsInitialised)
+                {
+                    Log.Warning("Attempted to begin monitoring a process, but it never initialised!");
+                    return;
+                }
+
+                Log.Warning($"Began Monitoring Process {this.ProcessId}.");
+
+                while (!this.Token.IsCancellationRequested)
+                {
+
+                    await Task.Delay(this.Tickrate);
+                }
+            });
         }
     }
 }

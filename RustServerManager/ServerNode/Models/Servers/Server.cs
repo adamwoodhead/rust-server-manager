@@ -1,6 +1,7 @@
 ﻿using ServerNode.Logging;
 using ServerNode.Models.Steam;
 using ServerNode.Models.Terminal;
+using ServerNode.Native;
 using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
@@ -79,6 +80,8 @@ namespace ServerNode.Models.Servers
         /// Process of the game app
         /// </summary>
         internal Process GameProcess { get; set; }
+
+        internal IPerformanceMonitor PerformanceMonitor { get; set; }
 
         /// <summary>
         /// Saved instance of the gameprocess pid
@@ -377,6 +380,8 @@ namespace ServerNode.Models.Servers
                         {
                             Log.Verbose($"Started Keep Alive for Server {ID}");
                             BeginKeepAliveAsync(GameProcess.Id);
+                            PerformanceMonitor = Native.Native.GetPerformanceMonitor(GameProcess.Id);
+                            PerformanceMonitor.BeginMonitoring(this.ID);
                         }
                         // The server isn't active anymore
                         else
@@ -434,6 +439,8 @@ namespace ServerNode.Models.Servers
             // only perform a kill if the server is running
             if (IsRunning)
             {
+                PerformanceMonitor.StopMonitoring();
+
                 Log.Informational($"Shutting Down Server {ID}");
                 // kill the process and wait for it to exit
                 if (KillAndWaitForExit())
@@ -494,6 +501,8 @@ namespace ServerNode.Models.Servers
         internal bool KillAndWaitForExit()
         {
             ShouldRun = false;
+
+            PerformanceMonitor.StopMonitoring();
 
             GameProcess?.Kill();
             GameProcess?.WaitForExit();

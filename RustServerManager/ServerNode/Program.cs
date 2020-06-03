@@ -246,6 +246,21 @@ namespace ServerNode
 
             Log.Informational("Type 'help' to view available commands.");
 
+
+            //PerformanceCounterCategory.GetCategories().ToList().ForEach(x => {
+            //    try
+            //    {
+            //        Log.Verbose("Category: " + x.CategoryName);
+
+            //        foreach (string item in x.GetInstanceNames())
+            //        {
+            //            Log.Verbose("       -> Instance: " + item);
+            //        }
+            //    }
+            //    catch (Exception)
+            //    { }
+            //});
+
             while (ShouldRun)
             {
                 string input = Console.ReadLine()?.Trim() ?? null;
