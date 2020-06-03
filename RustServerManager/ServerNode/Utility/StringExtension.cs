@@ -60,13 +60,25 @@ namespace ServerNode.Utility
 
             return false;
         }
-    
+
         internal static bool IsDigitsOnly(this string str)
         {
             foreach (char c in str)
             {
-                if (c < '0' || c > '9')
+                if (!IsRealDigitOnly(c))
+                {
                     return false;
+                }
+            }
+
+            return true;
+        }
+
+        internal static bool IsRealDigitOnly(this char ch)
+        {
+            if (ch < '0' || ch > '9')
+            {
+                return false;
             }
 
             return true;

@@ -147,6 +147,19 @@ namespace ServerNode
 
             if (Utility.OperatingSystemHelper.IsLinux())
             {
+                Log.Informational("Testing for sysstat");
+                if (!Native.Linux.Pidstat.IsPidstatAvailable())
+                {
+                    Log.Error("SysStat is not installed!");
+                    Log.Informational("You can install SysStat with the following command:");
+                    Log.Informational("sudo apt-get install sysstat");
+                    throw new ApplicationException("sysstat must be installed for ServerNode to function fully.");
+                }
+                else
+                {
+                    Log.Success("Successfully Collected SysStat Info!");
+                }
+
                 Log.Informational("Performing Screen Test");
                 if (!Native.Linux.Screens.HasScreenAccess())
                 {

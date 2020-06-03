@@ -27,7 +27,6 @@ namespace ServerNode.Native.Windows
             };
 
             List<string> output = new List<string>();
-            List<string> errors = new List<string>();
             starter.OutputDataReceived += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -40,7 +39,7 @@ namespace ServerNode.Native.Windows
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
-                    errors.Add(e.Data); Log.Verbose($"Powershell Error: \"{e.Data}\"");
+                    output.Add(e.Data); Log.Verbose($"Powershell Error: \"{e.Data}\"");
                 }
             };
 
