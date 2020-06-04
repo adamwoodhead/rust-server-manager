@@ -37,6 +37,7 @@ namespace ServerNode
         APP_POST_DOWNLOAD_VALIDATING,   // Update state (0x5) validating, progress: 0.03 (1401888 / 5364833225)
         APP_VERIFYING,                  // Update state (0x5) verifying install, progress: 94.11 (2178497941 / 2314842927)
         APP_INSTALLED,                  // Success! App '258550' fully installed.
-        APP_INSTALL_ERROR               // Error! App '232330' state is 0x202 after update job.
+        APP_INSTALL_ERROR,              // Error! App '232330' state is ***** after update job
+        APP_INSTALL_ERROR_NO_DISK       // Error! App '740' state is 0x202 after update job
     }
 }

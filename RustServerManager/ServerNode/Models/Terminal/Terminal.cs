@@ -127,7 +127,7 @@ namespace ServerNode.Models.Terminal
                 throw new InvalidOperationException("Could not start the terminal", ex);
             }
 
-            await _terminal.SendCommand(_terminal.ExecutablePath);
+            await _terminal.SendCommand($"\"{_terminal.ExecutablePath}\"");
 
             Log.Verbose("Terminal Waiting For Input");
 

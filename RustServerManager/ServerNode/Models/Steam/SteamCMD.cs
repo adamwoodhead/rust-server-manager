@@ -434,8 +434,22 @@ namespace ServerNode.Models.Steam
                 // steamcmd successfully install the app
                 else if (data.Contains("Success! App") && data.Contains("fully installed")) { Progress = 100; State = SteamCMDState.APP_INSTALLED; AppInstallationSuccess = true; }
 
-                // steamcmd successfully install the app
-                else if (data.Contains("Error! App") && data.Contains("state is 0x202 after update job.")) { Progress = 0; State = SteamCMDState.APP_INSTALL_ERROR; InstallError = "Not Enough Space"; AppInstallationSuccess = false; }
+                // steamcmd unsuccessfully install the app, there's an error!
+                else if (data.Contains("Error! App")) {
+                    if (data.Contains("0x202"))
+                    {
+                        State = SteamCMDState.APP_INSTALL_ERROR_NO_DISK;
+                        InstallError = "Not Enough Space";
+                    }
+                    else
+                    {
+                        State = SteamCMDState.APP_INSTALL_ERROR;
+                        InstallError = "Unhandled SteamCMD Error!";
+                    }
+
+                    Progress = 0;
+                    AppInstallationSuccess = false; 
+               }
 
                 // data has been flagged to contain progress data
                 if (shouldCheckProgress)

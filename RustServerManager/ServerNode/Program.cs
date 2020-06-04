@@ -180,7 +180,7 @@ namespace ServerNode
             Directory.CreateDirectory(LogsDirectory);
 
             // create some apps for us to test with
-            // create css template
+            // create css template - 232330
             PreAPIHelper.CreateApp(
                 "Counter Strike: Source",
                 "css",
@@ -194,7 +194,7 @@ namespace ServerNode
                     "+maxplayers 10"
                 });
 
-            // create rust tempate
+            // create rust tempate - 258550
             PreAPIHelper.CreateApp("Rust",
                 "rust",
                 "RustDedicated.exe",
@@ -215,6 +215,19 @@ namespace ServerNode
                     $"+rcon.port 28016",
                     $"+rcon.password \"apassword\"",
                     $"+rcon.web 1"
+                });
+
+            // create csgo template - 740
+            PreAPIHelper.CreateApp("Counter Strike: Global Offensive",
+                "csgo",
+                "srcds.exe",
+                "srcds_run",
+                740,
+                new string[] {
+                    "-console",
+                    "-game csgo",
+                    "+map de_dust2",
+                    "+maxplayers 10"
                 });
 
             // make sure that steamcmd is available
@@ -246,33 +259,9 @@ namespace ServerNode
                 }
             }
 
-            // TESTING ONLY
-            //Server server1 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["css"]);
-
-            //Server server2 = PreAPIHelper.CreateServer(PreAPIHelper.Apps["rust"]);
-
-            //await server1.InstallAsync();
-
-            //await server2.InstallAsync();
-
             Log.Success("Server Node Booted");
 
             Log.Informational("Type 'help' to view available commands.");
-
-
-            //PerformanceCounterCategory.GetCategories().ToList().ForEach(x => {
-            //    try
-            //    {
-            //        Log.Verbose("Category: " + x.CategoryName);
-
-            //        foreach (string item in x.GetInstanceNames())
-            //        {
-            //            Log.Verbose("       -> Instance: " + item);
-            //        }
-            //    }
-            //    catch (Exception)
-            //    { }
-            //});
 
             while (ShouldRun)
             {
@@ -360,13 +349,72 @@ namespace ServerNode
                     ExecuteAppsAction(action, targetid);
                     break;
 
+                case "logs":
+                    ExecuteLogsAction(action, targetid);
+                    break;
+
                 case "help":
                     ShowHelp("help");
                     break;
 
                 default:
                     Console.WriteLine($"Command <{command}> not recognised.");
-                    Console.WriteLine($"Commands available: <quit>, <server>, <apps>, <help>.");
+                    Console.WriteLine($"Commands available: <quit>, <logs>, <server>, <apps>, <help>.");
+                    break;
+            }
+        }
+
+        private static void ExecuteLogsAction(string action, string[] targets = null)
+        {
+            void enableLogs(string logType)
+            {
+                foreach (LogType trueType in Enum.GetValues(typeof(LogType)).Cast<LogType>())
+                {
+                    if (logType.ToUpper() == trueType.ToString())
+                    {
+                        Log.Informational($"Enabling Log Type: {trueType}");
+                        Log.Options[trueType] = (true, Log.Options[trueType].Item2, Log.Options[trueType].Item3);
+                        return;
+                    }
+                }
+
+                Log.Warning($"Attempted to enable log type <{logType}>, but it wasn't found!");
+            }
+
+            void disableLogs(string logType)
+            {
+                foreach (LogType trueType in Enum.GetValues(typeof(LogType)).Cast<LogType>())
+                {
+                    if (logType.ToUpper() == trueType.ToString())
+                    {
+                        Log.Informational($"Enabling Log Type: {trueType}");
+                        Log.Options[trueType] = (false, Log.Options[trueType].Item2, Log.Options[trueType].Item3);
+                        return;
+                    }
+                }
+
+                Log.Warning($"Attempted to enable log type <{logType}>, but it wasn't found!");
+            }
+
+            switch (action)
+            {
+                case "enable":
+                    foreach (string type in targets)
+                    {
+                        enableLogs(type);
+                    }
+                    break;
+
+                case "disable":
+                    foreach (string type in targets)
+                    {
+                        disableLogs(type);
+                    }
+                    break;
+
+                default:
+
+                    Log.Warning($"The <logs> command only allows actions: <enable>, <disable>");
                     break;
             }
         }
@@ -643,6 +691,19 @@ namespace ServerNode
                         new Dictionary<string, string> {
                             { "view <shortname>", "view app information" },
                             { "list", "lists all apps available by shortname:longname" },
+                        });
+                    break;
+
+                case "logs":
+                    WrapHelpInfo(
+                        "Logs Commands",
+                        "logs",
+                        "The <logs> command is for modifying the visibility of different log types.\n" +
+                        "Log types available:\n" +
+                        "verbose, informational, success, warnings, errors, debugging",
+                        new Dictionary<string, string> {
+                            { "enable <logtype>", "enable the specific log type" },
+                            { "disable <logtype>", "disable the specific log type" },
                         });
                     break;
 

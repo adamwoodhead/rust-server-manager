@@ -1,7 +1,9 @@
 ﻿using ServerNode.Logging;
 using ServerNode.Models.Servers;
+using ServerNode.Utility;
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
@@ -67,25 +69,39 @@ namespace ServerNode.Native.Windows
                         {
                             UsageCPU = cpuCounter.NextValue();
                             UsageMem = ramCounter.NextValue();
-                            GetProcessIoCounters(Process.GetProcessById(ProcessId).Handle, out IO_COUNTERS counters);
-                            
 
-                            if (lastWriteBytes != 0 && lastReadBytes != 0)
+                            try
                             {
-                                stopwatch.Stop();
-                                UsageDiskW = (counters.WriteTransferCount - lastWriteBytes) / stopwatch.Elapsed.TotalSeconds;
-                                UsageDiskR = (counters.ReadTransferCount - lastReadBytes) / stopwatch.Elapsed.TotalSeconds;
-                                stopwatch.Reset();
-                                stopwatch.Start();
+                                GetProcessIoCounters(Process.GetProcessById(ProcessId).Handle, out IO_COUNTERS counters);
+
+                                if (lastWriteBytes != 0 && lastReadBytes != 0)
+                                {
+                                    stopwatch.Stop();
+                                    UsageDiskW = (counters.WriteTransferCount - lastWriteBytes) / stopwatch.Elapsed.TotalSeconds;
+                                    UsageDiskR = (counters.ReadTransferCount - lastReadBytes) / stopwatch.Elapsed.TotalSeconds;
+                                    stopwatch.Reset();
+                                    stopwatch.Start();
+                                }
+
+                                lastWriteBytes = counters.WriteTransferCount;
+                                lastReadBytes = counters.ReadTransferCount;
+
+                                int padding = PreAPIHelper.Apps.Values.Max(x => x.ShortName.Length);
+
+                                Log.Verbose($"Server {server.ID:00} ({server.App.ShortName.PadLeft(padding)}) Performance - CPU: {UsageCPU:0.00}%, " +
+                                    $"Mem: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageMem):0.00}MB, " +
+                                    $"Disk Write: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskW):0.00}MB/s, " +
+                                    $"Disk Read: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskR):0.00}MB/s");
                             }
-
-                            lastWriteBytes = counters.WriteTransferCount;
-                            lastReadBytes = counters.ReadTransferCount;
-
-                            Log.Verbose($"Server {server.ID} ({server.App.ShortName,10}) Performance - CPU: {UsageCPU:0.00}%, " +
-                                $"Mem: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageMem):0.00}MB, " +
-                                $"Disk Write: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskW):0.00}MB/s, " +
-                                $"Disk Read: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskR):0.00}MB/s");
+                            catch (InvalidOperationException)
+                            {
+                                Log.Warning("Looks like our server stopped, the performance monitor just broke out.");
+                                if (Token.CanBeCanceled)
+                                {
+                                    TokenSource.Cancel();
+                                }
+                                return;
+                            }
                         }
                         catch (Exception ex)
                         {

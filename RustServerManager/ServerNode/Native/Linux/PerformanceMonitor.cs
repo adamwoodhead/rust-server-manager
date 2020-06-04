@@ -43,6 +43,8 @@ namespace ServerNode.Native.Linux
                 {
                     await Task.Delay(this.Tickrate);
 
+                    Token.ThrowIfCancellationRequested();
+
                     try
                     {
                         // refresh the pids we're watcing, child process can pop up and close at any time
@@ -88,7 +90,9 @@ namespace ServerNode.Native.Linux
                             UsageDiskR += Convert.ToDouble(cols[Array.IndexOf(pidstat_headers, "kB_rd/s")]);
                         }
 
-                        Log.Verbose($"Server {server.ID} ({server.App.ShortName,10}) Performance - CPU: {UsageCPU:000.00}%" +
+                        int padding = PreAPIHelper.Apps.Values.Max(x => x.ShortName.Length);
+
+                        Log.Verbose($"Server {server.ID:00} ({server.App.ShortName.PadLeft(padding)}) Performance - CPU: {UsageCPU:000.00}%" +
                                     $"     Mem: {ServerNode.Utility.ByteMeasurements.KiloBytesToMB(UsageMem):00000.00}MB" +
                                     $"     Disk Write: {ServerNode.Utility.ByteMeasurements.KiloBytesToMB(UsageDiskW):000.00}MB/s" +
                                     $"     Disk Read: {ServerNode.Utility.ByteMeasurements.KiloBytesToMB(UsageDiskR):000.00}MB/s");
@@ -96,6 +100,11 @@ namespace ServerNode.Native.Linux
                     catch (NullReferenceException)
                     {
                         Log.Warning("Looks like our server stopped, the performance monitor just broke out.");
+                        if (Token.CanBeCanceled)
+                        {
+                            TokenSource.Cancel();
+                        }
+                        return;
                     }
                 }
             });

@@ -26,7 +26,7 @@ namespace ServerNode.Logging
         /// <summary>
         /// Log Visibility Options
         /// </summary>
-        internal static Dictionary<LogType, (bool, bool, ConsoleColor)> Options { get; private set; }
+        internal static Dictionary<LogType, (bool, bool, ConsoleColor)> Options { get; set; }
 
         /// <summary>
         /// Static Constructor for Log, starts thread for log queuing
