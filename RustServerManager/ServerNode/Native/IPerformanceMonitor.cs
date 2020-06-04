@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerNode.Models.Servers;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -14,7 +15,7 @@ namespace ServerNode.Native
 
         double UsageDiskR { get; set; }
 
-        void BeginMonitoring(int serverID);
+        void BeginMonitoring(Server server);
 
         void StopMonitoring();
     }

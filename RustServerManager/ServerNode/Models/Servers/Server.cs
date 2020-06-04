@@ -381,7 +381,7 @@ namespace ServerNode.Models.Servers
                             Log.Verbose($"Started Keep Alive for Server {ID}");
                             BeginKeepAliveAsync(GameProcess.Id);
                             PerformanceMonitor = Native.Native.GetPerformanceMonitor(GameProcess.Id);
-                            PerformanceMonitor.BeginMonitoring(this.ID);
+                            PerformanceMonitor.BeginMonitoring(this);
                         }
                         // The server isn't active anymore
                         else

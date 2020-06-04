@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerNode.Models.Servers;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -77,7 +78,7 @@ namespace ServerNode.Native
         /// Begin the monitoring loop
         /// </summary>
         /// <param name="serverID"></param>
-        public abstract void BeginMonitoring(int serverID);
+        public abstract void BeginMonitoring(Server server);
 
         /// <summary>
         /// Signal to stop monitoring

@@ -16,6 +16,11 @@ namespace ServerNode.Utility
             return bytes / 1024;
         }
 
+        internal static double KiloBytesToMB(double kilobytes)
+        {
+            return kilobytes / 1024;
+        }
+
         /// <summary>
         /// Convert Bytes To MegaBytes
         /// </summary>

@@ -1,4 +1,5 @@
 ﻿using ServerNode.Logging;
+using ServerNode.Models.Servers;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -20,6 +21,7 @@ namespace ServerNode.Native.Windows
 
         public PerformanceMonitor(int pid, int tick = 5) : base(pid, tick)
         {
+
         }
 
         [DllImport(@"kernel32.dll", SetLastError = true)]
@@ -31,7 +33,7 @@ namespace ServerNode.Native.Windows
         /// <param name="pid"></param>
         /// <param name="tokenSource"></param>
         /// <param name="tick"></param>
-        public override void BeginMonitoring(int serverID)
+        public override void BeginMonitoring(Server server)
         {
             Task.Run(async () => {
                 if (!IsInitialised)
@@ -46,7 +48,6 @@ namespace ServerNode.Native.Windows
 
                 try
                 {
-
                     PerformanceCounter ramCounter = new PerformanceCounter("Process", "Working Set", instance);
                     PerformanceCounter cpuCounter = new PerformanceCounter("Process", "% Processor Time", instance);
 
@@ -58,7 +59,6 @@ namespace ServerNode.Native.Windows
                     while (!this.Token.IsCancellationRequested)
                     {
                         await Task.Delay(this.Tickrate);
-
 
                         this.Token.ThrowIfCancellationRequested();
 
@@ -82,7 +82,7 @@ namespace ServerNode.Native.Windows
                             lastWriteBytes = counters.WriteTransferCount;
                             lastReadBytes = counters.ReadTransferCount;
 
-                            Log.Verbose($"Server {serverID} Performance - CPU: {UsageCPU:0.00}%, " +
+                            Log.Verbose($"Server {server.ID} ({server.App.ShortName,10}) Performance - CPU: {UsageCPU:0.00}%, " +
                                 $"Mem: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageMem):0.00}MB, " +
                                 $"Disk Write: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskW):0.00}MB/s, " +
                                 $"Disk Read: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskR):0.00}MB/s");

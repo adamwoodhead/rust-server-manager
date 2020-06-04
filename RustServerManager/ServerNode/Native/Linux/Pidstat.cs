@@ -9,7 +9,7 @@ namespace ServerNode.Native.Linux
     {
         internal static bool IsPidstatAvailable()
         {
-            string[] output = SH.Shell(Program.WorkingDirectory, @"-c pidstat");
+            string[] output = SH.Shell(Program.WorkingDirectory, @"-c pidstat", null, null, true);
 
             if (output.Any(x => x.Contains("not found")))
             {

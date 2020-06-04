@@ -8,7 +8,7 @@ namespace ServerNode.Native.Linux
 {
     internal static class SH
     {
-        internal static string[] Shell(string workingDir, string script)
+        internal static string[] Shell(string workingDir, string script, DataReceivedEventHandler dataReceivedEvent = null, DataReceivedEventHandler errorReceivedEvent = null, bool disableDebugLogs = false)
         {
             Process starter = new Process()
             {
@@ -27,21 +27,46 @@ namespace ServerNode.Native.Linux
             };
 
             List<string> output = new List<string>();
-            starter.OutputDataReceived += (s, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    output.Add(e.Data); Log.Debug($"sh Out: \"{e.Data}\"");
-                }
-            };
 
-            starter.ErrorDataReceived += (s, e) =>
+            if (dataReceivedEvent != null)
             {
-                if (!string.IsNullOrEmpty(e.Data))
+                starter.OutputDataReceived += dataReceivedEvent;
+            }
+            else
+            {
+                starter.OutputDataReceived += (s, e) =>
                 {
-                    output.Add(e.Data); Log.Verbose($"sh Error: \"{e.Data}\"");
-                }
-            };
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        output.Add(e.Data);
+
+                        if (!disableDebugLogs)
+                        {
+                            Log.Debug($"sh Out: \"{e.Data}\"");
+                        }
+                    }
+                };
+            }
+
+            if (errorReceivedEvent != null)
+            {
+                starter.ErrorDataReceived += errorReceivedEvent;
+            }
+            else
+            {
+                starter.ErrorDataReceived += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(e.Data))
+                    {
+                        output.Add(e.Data);
+
+                        if (!disableDebugLogs)
+                        {
+                            Log.Debug($"sh Err: \"{e.Data}\"");
+                        }
+                    }
+                };
+            }
 
             starter.Start();
 
@@ -49,7 +74,10 @@ namespace ServerNode.Native.Linux
             starter.BeginOutputReadLine();
             starter.BeginErrorReadLine();
 
-            Log.Verbose($"Waiting for sh responses");
+            if (!disableDebugLogs)
+            {
+                Log.Verbose($"Waiting for sh responses");
+            }
 
             starter.WaitForExit();
 

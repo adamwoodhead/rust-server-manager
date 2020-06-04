@@ -1,4 +1,6 @@
 ﻿using ServerNode.Logging;
+using ServerNode.Models.Servers;
+using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,7 +23,7 @@ namespace ServerNode.Native.Linux
         /// <param name="pid"></param>
         /// <param name="tokenSource"></param>
         /// <param name="tick"></param>
-        public override void BeginMonitoring(int serverID)
+        public override void BeginMonitoring(Server server)
         {
             Task.Run(async() => {
                 if (!IsInitialised)
@@ -30,43 +32,71 @@ namespace ServerNode.Native.Linux
                     return;
                 }
 
-                Log.Warning($"Began Monitoring Process {this.ProcessId}.");
+                Log.Informational($"Began Monitoring Process {this.ProcessId}.");
 
                 // We need to get the real pid, we currently have the screen pids...
-                string[] pstree = SH.Shell(Program.WorkingDirectory, @"-c ""pstree " + ProcessId + @" -p""");
-                string firstLine = pstree.FirstOrDefault();
-                List<int> pids = new List<int>();
-                string tmpPID = "";
-                foreach (char ch in firstLine)
-                {
-                    if (Utility.StringExtension.IsRealDigitOnly(ch))
-                    {
-                        tmpPID += ch;
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(tmpPID) && tmpPID.Length != 1)
-                        {
-                            pids.Add(Convert.ToInt32(tmpPID));
-                        }
+                IEnumerable<int> pids = Pstree.ProcessTree(ProcessId).SkipLast(1);
 
-                        tmpPID = "";
-                    }
-                }
+                string[] pidstat_headers = null;
 
                 while (!this.Token.IsCancellationRequested)
                 {
                     await Task.Delay(this.Tickrate);
 
-                    string[] pidstat = SH.Shell(Program.WorkingDirectory, @"-c ""pidstat -p " + string.Join(',', pids) + @"""");
-                    string[] pidstat_d = SH.Shell(Program.WorkingDirectory, @"-c ""pidstat -d -p " + string.Join(',', pids) + @"""");
+                    try
+                    {
+                        // refresh the pids we're watcing, child process can pop up and close at any time
+                        pids = Pstree.ProcessTree(ProcessId).SkipLast(1);
 
-                    // TODO Combine all the data into singular values, and provide that as the general performance statistic for this process
+                        // get cpu stats, memory stats & disk stats
+                        string[] pidstat_values = SH.Shell(Program.WorkingDirectory, @"-c ""pidstat -urdh -p " + string.Join(',', pids) + @"""", null, null, true).Skip(1).ToArray();
 
-                    Log.Verbose($"Server {serverID} Performance - CPU: {UsageCPU:0.00}%, " +
-                                $"Mem: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageMem):0.00}MB, " +
-                                $"Disk Write: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskW):0.00}MB/s, " +
-                                $"Disk Read: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskR):0.00}MB/s");
+                        if (pidstat_values.Length <= 2)
+                        {
+                            // we have headers... but no longer have any data to parse.
+
+                            // Linux 4.19.104 - microsoft - standard(LAPTOP - ADAM)         06 / 04 / 2020      _x86_64_(8 CPU)
+                            // #      Time   UID       PID    %usr %system  %guest    %CPU   CPU  minflt/s  majflt/s     VSZ     RSS   %MEM   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+                            return;
+                        }
+
+                        // headers should only need to be handled once...
+                        // #      Time   UID       PID    %usr %system  %guest    %CPU   CPU  minflt/s  majflt/s     VSZ     RSS   %MEM   kB_rd/s   kB_wr/s kB_ccwr/s iodelay  Command
+
+                        if (pidstat_headers == null)
+                        {
+                            string header_row = pidstat_values[0];
+                            // remove stupid #
+                            header_row = header_row.Replace("#", "");
+
+                            pidstat_headers = header_row.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                        }
+
+                        double UsageCPU = 0;
+                        double UsageMem = 0;
+                        double UsageDiskW = 0;
+                        double UsageDiskR = 0;
+
+                        // data rows.. skipping the headers..
+                        foreach (string row in pidstat_values.Skip(1))
+                        {
+                            string[] cols = row.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                            UsageCPU += Convert.ToDouble(cols[Array.IndexOf(pidstat_headers, "%CPU")]);
+                            UsageMem += Convert.ToDouble(cols[Array.IndexOf(pidstat_headers, "RSS")]);
+                            UsageDiskW += Convert.ToDouble(cols[Array.IndexOf(pidstat_headers, "kB_wr/s")]);
+                            UsageDiskR += Convert.ToDouble(cols[Array.IndexOf(pidstat_headers, "kB_rd/s")]);
+                        }
+
+                        Log.Verbose($"Server {server.ID} ({server.App.ShortName,10}) Performance - CPU: {UsageCPU:000.00}%" +
+                                    $"     Mem: {ServerNode.Utility.ByteMeasurements.KiloBytesToMB(UsageMem):00000.00}MB" +
+                                    $"     Disk Write: {ServerNode.Utility.ByteMeasurements.KiloBytesToMB(UsageDiskW):000.00}MB/s" +
+                                    $"     Disk Read: {ServerNode.Utility.ByteMeasurements.KiloBytesToMB(UsageDiskR):000.00}MB/s");
+                    }
+                    catch (NullReferenceException)
+                    {
+                        Log.Warning("Looks like our server stopped, the performance monitor just broke out.");
+                    }
                 }
             });
         }
