@@ -328,8 +328,6 @@ namespace ServerNode.Models.Steam
             Log.Informational("This app requires ownership on a steam account, you must login.");
             Log.Informational("Please provide your username and password.");
 
-            TaskCompletionSource<string> interuptInput;
-
             // Lets give them more time, 10 seconds to type your
             // username, password and steamguard is a bit steep...
             await Task.Run(async() => {
