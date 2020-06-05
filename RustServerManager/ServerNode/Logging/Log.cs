@@ -20,7 +20,7 @@ namespace ServerNode.Logging
         private static int HardLogCount;
         private static bool IsInitialised = false;
         private static string hardLogDirectoryPath;
-        private static Dictionary<string, StreamWriter> StreamWriters = new Dictionary<string, StreamWriter>();
+        private static readonly Dictionary<string, StreamWriter> StreamWriters = new Dictionary<string, StreamWriter>();
 
         internal static bool QueueEmpty => LogQueue.Count == 0;
 
@@ -131,11 +131,11 @@ namespace ServerNode.Logging
                             }
                         }
                     }
-                });
+                })
+                {
+                    IsBackground = true
+                };
 
-                // thread should work in the background
-                thread.IsBackground = true;
-                // start the thread
                 thread.Start();
             }
         }
