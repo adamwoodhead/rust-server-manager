@@ -325,7 +325,7 @@ namespace ServerNode.Models.Terminal
         {
             if (!CancellationToken.IsCancellationRequested)
             {
-                Log.Verbose($"Sending Terminal Command -> {command}");
+                Log.Verbose($"Sending Terminal Command -> {(!command.StartsWith("login ") ? command : "login <REDACTED> <REDACTED>")}");
                 ReadyForInputTsk = new TaskCompletionSource<object?>();
                 byte[] commandBuffer = Encoding.GetBytes(command);
                 await PseudoTerminal.WriterStream.WriteAsync(commandBuffer, 0, commandBuffer.Length, this.CancellationToken);
