@@ -4,12 +4,9 @@ using ServerNode.Models.Terminal;
 using ServerNode.Native;
 using ServerNode.Utility;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -99,19 +96,6 @@ namespace ServerNode.Models.Servers
         /// Saved instance of the gameprocess pid
         /// </summary>
         internal int? PID { get; private set; }
-
-        /// <summary>
-        /// Pre-Installation Tasks, such as gameserver directory creation
-        /// </summary>
-        /// <returns></returns>
-        private async Task PreInstallAsync()
-        {
-            await Task.Run(() => {
-                Log.Verbose($"Creating Server {ID:00} Directory");
-                // create the gameservers working directory
-                Directory.CreateDirectory(WorkingDirectory);
-            });
-        }
 
         /// <summary>
         /// Updates the server
@@ -237,21 +221,54 @@ namespace ServerNode.Models.Servers
                 Log.Informational($"Server {ID:00} Installation Started");
                 try
                 {
+                    string[] directories = Directory.GetDirectories(App.WorkingDirectory, "*", SearchOption.AllDirectories);
+                    string[] files = Directory.GetFiles(App.WorkingDirectory, "*", SearchOption.AllDirectories);
+
+                    double actionCount = directories.Count() + files.Count();
+                    double actionPos = 0;
+                    string formatting = "".PadLeft(actionCount.ToString().Length, '0');
+                    double appSize = DirectoryExtensions.GetDirectorySize(App.WorkingDirectory);
+
+                    Log.Informational($"Server {ID:00} Install: Copying Directories.");
+
                     // create all of the directories
-                    foreach (string dirPath in Directory.GetDirectories(App.WorkingDirectory, "*", SearchOption.AllDirectories))
+                    foreach (string dirPath in directories)
                     {
+                        actionPos++;
                         string path = dirPath.Replace(App.WorkingDirectory, WorkingDirectory);
-                        Log.Verbose($"Server {ID:00} Install: Creating Directory: {path}");
+                        Log.Verbose($"Server {ID:00} Install: ({(actionCount - actionPos).ToString(formatting)}) Creating Directory: {path}");
                         Directory.CreateDirectory(path);
                     }
 
+                    Log.Informational($"Server {ID:00} Install: Copying Files (this may take a few minutes).");
+
+                    bool copyingFiles = true;
+
+                    Task task = Task.Run(async() => {
+                        await Task.Delay(1000);
+
+                        while (copyingFiles)
+                        {
+                            double serverSize = DirectoryExtensions.GetDirectorySize(this.WorkingDirectory);
+
+                            Log.Informational($"Server {ID:00} Install: Copying Files {((serverSize / appSize) * 100):00.00}% {actionPos}/{actionCount}");
+
+                            await Task.Delay(1000);
+                        }
+                    });
+
                     // copy all the files & replaces any files with the same name
-                    foreach (string newPath in Directory.GetFiles(App.WorkingDirectory, "*.*", SearchOption.AllDirectories))
+                    foreach (string newPath in files)
                     {
+                        actionPos++;
                         string path = newPath.Replace(App.WorkingDirectory, WorkingDirectory);
-                        Log.Verbose($"Server {ID:00} Install: Creating Directory: {path}");
+                        Log.Verbose($"Server {ID:00} Install: ({(actionCount - actionPos).ToString(formatting)}) Copying App File: {path}");
                         File.Copy(newPath, path, true);
                     }
+
+                    copyingFiles = false;
+
+                    Log.Informational($"Server {ID:00} Install: Copying Files complete, validating with Steam.");
 
                     return await UpdateAsync();
                 }
