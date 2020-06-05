@@ -20,6 +20,7 @@ namespace ServerNode.Logging
         private static int HardLogCount;
         private static bool IsInitialised = false;
         private static string hardLogDirectoryPath;
+        private static Dictionary<string, StreamWriter> StreamWriters = new Dictionary<string, StreamWriter>();
 
         internal static bool QueueEmpty => LogQueue.Count == 0;
 
@@ -107,8 +108,27 @@ namespace ServerNode.Logging
                         // if our settings allow this hard log
                         if (logItem.hardLog)
                         {
-                            File.AppendAllLines(Path.Combine(hardLogDirectoryPath, "_ALL.log"), new string[] { $"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}" });
-                            File.AppendAllLines(Path.Combine(hardLogDirectoryPath, logItem.type.ToString() + ".log"), new string[] { $"{logItem.recordedAt:G}: {logItem.message}" });
+                            if (StreamWriters.ContainsKey("ALL"))
+                            {
+                                StreamWriters["ALL"].WriteLineAsync($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                            }
+                            else
+                            {
+                                StreamWriter writer = new StreamWriter(Path.Combine(hardLogDirectoryPath, "_ALL.log"), true);
+                                StreamWriters.Add("ALL", writer);
+                                StreamWriters["ALL"].WriteLine($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                            }
+
+                            if (StreamWriters.ContainsKey(logItem.type.ToString()))
+                            {
+                                StreamWriters[logItem.type.ToString()].WriteLine($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                            }
+                            else
+                            {
+                                StreamWriter writer = new StreamWriter(Path.Combine(hardLogDirectoryPath, $"{logItem.type}.log"), true);
+                                StreamWriters.Add(logItem.type.ToString(), writer);
+                                StreamWriters[logItem.type.ToString()].WriteLine($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                            }
                         }
                     }
                 });
