@@ -31,6 +31,11 @@ namespace ServerNode
         internal static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
 
         /// <summary>
+        /// Working Directory for Server Node Pre-Installed Apps
+        /// </summary>
+        internal static string AppsDirectory { get => Path.Combine(WorkingDirectory, "apps"); }
+
+        /// <summary>
         /// Working Directory for Server Node Logs
         /// </summary>
         internal static string LogsDirectory { get => Path.Combine(WorkingDirectory, "logs"); }
@@ -39,6 +44,11 @@ namespace ServerNode
         /// Whether Server Node should be running
         /// </summary>
         internal static bool ShouldRun { get; set; } = true;
+
+        /// <summary>
+        /// Task for interupting command input and stealing the input for elsewhere
+        /// </summary>
+        internal static TaskCompletionSource<string> InteruptedInput { get; set; }
 
         /// <summary>
         /// Whether the safe exit cleanup procedure has completed
@@ -176,6 +186,7 @@ namespace ServerNode
                 }
             }
 
+            Directory.CreateDirectory(AppsDirectory);
             Directory.CreateDirectory(GameServersDirectory);
             Directory.CreateDirectory(LogsDirectory);
 
@@ -187,6 +198,7 @@ namespace ServerNode
                 "srcds.exe",
                 "srcds_run",
                 232330,
+                true,
                 new string[] {
                     "-console",
                     "-game cstrike",
@@ -200,6 +212,7 @@ namespace ServerNode
                 "RustDedicated.exe",
                 "RustDedicated",
                 258550,
+                false,
                 new string[] {
                     $"-batchmode",
                     $"+server.ip 0.0.0.0",
@@ -223,6 +236,7 @@ namespace ServerNode
                 "srcds.exe",
                 "srcds_run",
                 740,
+                false,
                 new string[] {
                     "-console",
                     "-game csgo",
@@ -270,6 +284,14 @@ namespace ServerNode
                 if (input != "" && input == null)
                 {
                     break;
+                }
+
+                // if something is trying to steal input...
+                if (InteruptedInput != null && !InteruptedInput.Task.IsCompleted)
+                {
+                    // pass it along, and continue our loop
+                    InteruptedInput.TrySetResult(input);
+                    continue;
                 }
 
                 ParseCommand(input);
@@ -332,7 +354,7 @@ namespace ServerNode
 
                 default:
                     Console.WriteLine($"Command <{command}> not recognised.");
-                    Console.WriteLine($"Commands available: <exit>, <quit>, <server>, <apps>, <help>.");
+                    Console.WriteLine($"Commands available: <exit>, <quit>, <logs>, <server>, <apps>, <help>.");
                     break;
             }
         }
@@ -387,7 +409,7 @@ namespace ServerNode
                 {
                     if (logType.ToUpper() == trueType.ToString())
                     {
-                        Log.Informational($"Enabling Log Type: {trueType}");
+                        Log.Informational($"Disabling Log Type: {trueType}");
                         Log.Options[trueType] = (false, Log.Options[trueType].Item2, Log.Options[trueType].Item3);
                         return;
                     }
@@ -421,6 +443,18 @@ namespace ServerNode
 
         private static void ExecuteAppsAction(string action, string[] targetid)
         {
+            bool findApp(string shortName, out SteamApp steamApp)
+            {
+                if (PreAPIHelper.Apps.ContainsKey(shortName))
+                {
+                    steamApp = PreAPIHelper.Apps[shortName];
+                    return true;
+                }
+
+                steamApp = null;
+                return false;
+            }
+
             if (targetid == null)
             {
                 switch (action)
@@ -433,6 +467,10 @@ namespace ServerNode
                         Console.WriteLine($"Apps action <{action}> requires target shortname - apps view <appshortname>");
                         break;
 
+                    case "install":
+                        Console.WriteLine($"Apps action <{action}> requires target shortname - apps install <appshortname>");
+                        break;
+
                     default:
                         Console.WriteLine($"Server action <{action}> not recognised");
                         break;
@@ -440,19 +478,29 @@ namespace ServerNode
             }
             else
             {
-                switch (action)
+                foreach (string id in targetid)
                 {
-                    case "list":
-                        Console.WriteLine($"Apps action <{action}> requires no target - apps list");
-                        break;
+                    switch (action)
+                    {
+                        case "list":
+                            Console.WriteLine($"Apps action <{action}> requires no target - apps list");
+                            break;
 
-                    case "view":
-                        Console.WriteLine($"TODO");
-                        break;
+                        case "view":
+                            Console.WriteLine($"TODO");
+                            break;
 
-                    default:
-                        Console.WriteLine($"Server action <{action}> not recognised");
-                        break;
+                        case "install":
+                            if (findApp(id, out SteamApp steamApp))
+                            {
+                                Task.Run(async() => { await steamApp.InstallAsync(); });
+                            }
+                            break;
+
+                        default:
+                            Console.WriteLine($"Server action <{action}> not recognised");
+                            break;
+                    }
                 }
             }
         }

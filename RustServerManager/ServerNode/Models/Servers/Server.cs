@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -72,9 +74,19 @@ namespace ServerNode.Models.Servers
         internal bool KeepAlive { get; set; } = true;
 
         /// <summary>
-        /// Current status of the server
+        /// Typically what the server will show as in the games server browser
         /// </summary>
-        internal string Status { get; set; }
+        internal string Hostname { get; set; }
+
+        /// <summary>
+        /// External IP Address
+        /// </summary>
+        internal string IPAddress { get; set; }
+
+        /// <summary>
+        /// Connection Port
+        /// </summary>
+        internal string Port { get; set; }
 
         /// <summary>
         /// Process of the game app
@@ -107,26 +119,8 @@ namespace ServerNode.Models.Servers
         /// <returns></returns>
         internal async Task<bool> UpdateAsync()
         {
-            return await InstallAsync(true);
-        }
-
-        /// <summary>
-        /// Installs the server
-        /// </summary>
-        /// <returns></returns>
-        internal async Task<bool> InstallAsync(bool updating = false)
-        {
-            // if we're installing (not updating)
-            if (!updating)
-            {
-                Log.Informational($"Server {ID:00} Installing");
-                // perform the pre install procedures
-                await PreInstallAsync();
-            }
-            else
-            {
-                Log.Informational($"Server {ID:00} Updating");
-            }
+            Log.Informational($"Updating Server {ID:00}");
+            bool success = false;
 
             try
             {
@@ -134,16 +128,25 @@ namespace ServerNode.Models.Servers
                 using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
                 {
                     // when its finished, inform
-                    steam.Finished += delegate { Log.Verbose($"Server {ID:00} Install: Finished {(steam.AppInstallationSuccess ? "Successfully" : "Unexpectedly (check for errors)")}"); };
+                    steam.Finished += delegate {
+                        if (steam.AppInstallationSuccess)
+                        {
+                            Log.Success($"Server {ID:00} Update: Finished Successfully");
+                        }
+                        else
+                        {
+                            Log.Error($"Server {ID:00} Update: Finished Unexpectedly (check for errors)");
+                        }
+                    };
 
                     // when the state changes, inform
                     steam.StateChanged += delegate
                     {
-                        Log.Verbose($"Server {ID:00} Install: {steam.State}");
+                        Log.Verbose($"Server {ID:00} Update: {steam.State}");
                         if (steam.State == SteamCMDState.APP_INSTALL_ERROR
                         || steam.State == SteamCMDState.APP_INSTALL_ERROR_NO_DISK)
                         {
-                            Log.Error($"Server {ID:00} Install Error: {steam.State}");
+                            Log.Error($"Server {ID:00} Update Error: {steam.State}");
                         }
                     };
 
@@ -156,7 +159,7 @@ namespace ServerNode.Models.Servers
                             if (steam.Progress != 0 && steam.EstimatedDownloadTimeLeft.TotalSeconds != 0)
                             {
                                 // then provide install progress, timeleft, and speed
-                                Log.Informational($"Server {ID:00} Install: " + $"Progress: {steam.Progress:00.00}% | Estimated Time Left: {steam.EstimatedDownloadTimeLeft:hh\\:mm\\:ss} | Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed):000.00}Mb/s");
+                                Log.Informational($"Server {ID:00} Update: " + $"Progress: {steam.Progress:00.00}% | Estimated Time Left: {steam.EstimatedDownloadTimeLeft:hh\\:mm\\:ss} | Download Speed {Utility.ByteMeasurements.BytesToMB(steam.AverageDownloadSpeed):000.00}Mb/s");
                             }
                         }
                         else if (steam.State == SteamCMDState.APP_PREALLOCATING)
@@ -165,7 +168,7 @@ namespace ServerNode.Models.Servers
                             if (steam.Progress != 0)
                             {
                                 // then provide install progress, timeleft, and speed
-                                Log.Informational($"Server {ID:00} Install: " + $"Pre-Allocating Progress: {steam.Progress:00.00}%");
+                                Log.Informational($"Server {ID:00} Update: " + $"Pre-Allocating Progress: {steam.Progress:00.00}%");
                             }
                         }
                         else if (steam.State == SteamCMDState.APP_VERIFYING)
@@ -174,13 +177,13 @@ namespace ServerNode.Models.Servers
                             if (steam.Progress != 0)
                             {
                                 // then provide install progress, timeleft, and speed
-                                Log.Informational($"Server {ID:00} Install: " + $"Validating Progress: {steam.Progress:00.00}%");
+                                Log.Informational($"Server {ID:00} Update: " + $"Validating Progress: {steam.Progress:00.00}%");
                             }
                         }
                     };
 
                     // if we login to steamcmd anonymously
-                    if (await steam.LoginAnonymously())
+                    if (await steam.Login(App))
                     {
                         // force the steamcmd working directory
                         await steam.ForceInstallDirectory(WorkingDirectory);
@@ -193,15 +196,15 @@ namespace ServerNode.Models.Servers
                     }
 
                     // if we successfully installed the app
-                    if (steam.AppInstallationSuccess)
+                    if (success = steam.AppInstallationSuccess)
                     {
                         // inform the user of success
-                        Log.Success($"Server {ID:00} Successfully {(updating ? "Updated" : "Installed")}");
+                        Log.Success($"Server {ID:00} Successfully Updated");
                     }
                     else
                     {
                         // inform the user of failure
-                        Log.Warning($"Server {ID:00} Unsuccessfully {(updating ? "Updated" : "Installed")}");
+                        Log.Warning($"Server {ID:00} Unsuccessfully Updated");
                     }
                 }
 
@@ -211,6 +214,7 @@ namespace ServerNode.Models.Servers
                 Log.Error(ex);
                 throw new ApplicationException("SteamCMD Failed to instantiate!", ex);
             }
+
             // if the steamapps folder still exists after using steamcmd
             if (Directory.Exists(Path.Combine(WorkingDirectory, "steamapps")))
             {
@@ -218,7 +222,65 @@ namespace ServerNode.Models.Servers
                 Directory.Delete(Path.Combine(WorkingDirectory, "steamapps"), true);
             }
 
-            return IsInstalled;
+            return success;
+        }
+
+        /// <summary>
+        /// Installs the server
+        /// </summary>
+        /// <returns></returns>
+        internal async Task<bool> InstallAsync(bool update = false)
+        {
+            // if the app is pre-installed
+            if (App.IsInstalled)
+            {
+                Log.Informational($"Server {ID:00} Installation Started");
+                try
+                {
+                    // create all of the directories
+                    foreach (string dirPath in Directory.GetDirectories(App.WorkingDirectory, "*", SearchOption.AllDirectories))
+                    {
+                        string path = dirPath.Replace(App.WorkingDirectory, WorkingDirectory);
+                        Log.Verbose($"Server {ID:00} Install: Creating Directory: {path}");
+                        Directory.CreateDirectory(path);
+                    }
+
+                    // copy all the files & replaces any files with the same name
+                    foreach (string newPath in Directory.GetFiles(App.WorkingDirectory, "*.*", SearchOption.AllDirectories))
+                    {
+                        string path = newPath.Replace(App.WorkingDirectory, WorkingDirectory);
+                        Log.Verbose($"Server {ID:00} Install: Creating Directory: {path}");
+                        File.Copy(newPath, path, true);
+                    }
+
+                    return await UpdateAsync();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Server {ID:00} Installation Failed");
+                    Log.Error(ex);
+                    return false;
+                }
+            }
+            // otherwise, pre-install the app, then re-run this method upon successful completion
+            else
+            {
+                Log.Informational($"App <{App.ShortName}> is not installed, installing now.");
+                bool appInstalled = await App.InstallAsync();
+
+                // we installed the app
+                if (appInstalled)
+                {
+                    Log.Informational($"App <{App.ShortName}> is now installed, installing server {ID:00}.");
+                    return await InstallAsync(update);
+                }
+                // we didnt install the app
+                else
+                {
+                    Log.Warning($"Server {ID:00} Installation Failed -> App is not installed!");
+                    return false;
+                }
+            }
         }
 
         /// <summary>
@@ -254,45 +316,28 @@ namespace ServerNode.Models.Servers
         /// <returns></returns>
         internal async Task<bool> UninstallAsync()
         {
-            Log.Informational($"Server {ID:00} Uninstalling");
-
-            // instantiate a new steamcmd terminal
-            using (SteamCMD steam = (SteamCMD)await Terminal.Terminal.Instantiate<SteamCMD>(new TerminalStartUpOptions("SteamCMD Terminal", 10000)))
+            return await Task<bool>.Run(() =>
             {
-                steam.Finished += delegate { Log.Verbose($"Server {ID:00} Uninstall: Finished"); };
-                steam.StateChanged += delegate { Log.Verbose($"Server {ID:00} Uninstall: " + steam.State); };
+                Log.Informational($"Server {ID:00} Uninstalling");
 
-                // if we login to steamcmd
-                if (await steam.LoginAnonymously())
+                // Directory.Delete marks a directory for deletion, and doesn't actually delete the directory
+                // therefore still exists until the last handle is closed. 
+                // Lets wait 2 seconds for that handle to close which realistically should be less than 20ms
+                if (DirectoryExtensions.DeleteOrTimeout(WorkingDirectory, 5000))
                 {
-                    // force steamcmd to use servers working directory
-                    await steam.ForceInstallDirectory($"{WorkingDirectory}");
-
-                    // safely uninstall the app
-                    await steam.AppUninstall(App.SteamID, true);
-
-                    // shutdown steamcmd
-                    await steam.Shutdown();
+                    Log.Success($"Server {ID:00} Successfully Uninstalled");
+                    // We just wanted to ensure that it's entirely empty
+                    // It's better this way than enumerating each file,
+                    // as we offload that to the native os
+                    Directory.CreateDirectory(WorkingDirectory);
+                    return true;
                 }
-            }
-
-            // Directory.Delete marks a directory for deletion, and doesn't actually delete the directory
-            // therefore still exists until the last handle is closed. 
-            // Lets wait 2 seconds for that handle to close which realistically should be less than 20ms
-            if (DirectoryExtensions.DeleteOrTimeout(WorkingDirectory, 2000))
-            {
-                Log.Success($"Server {ID:00} Successfully Uninstalled");
-                // We just wanted to ensure that it's entirely empty
-                // It's better this way than enumerating each file,
-                // as we offload that to the native os
-                Directory.CreateDirectory(WorkingDirectory);
-                return true;
-            }
-            else
-            {
-                Log.Warning($"Server {ID:00} Unsuccessfully Uninstalled");
-                return false;
-            }
+                else
+                {
+                    Log.Warning($"Server {ID:00} Unsuccessfully Uninstalled");
+                    return false;
+                }
+            });
         }
 
         /// <summary>

@@ -9,6 +9,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -298,6 +299,18 @@ namespace ServerNode.Models.Steam
             await ReadyForInputTsk.Task;
         }
 
+        internal async Task<bool> Login(SteamApp steamApp)
+        {
+            if (steamApp.RequiresPurchase)
+            {
+                return await LoginUserPassword();
+            }
+            else
+            {
+                return await LoginAnonymously();
+            }
+        }
+
         /// <summary>
         /// Sends commands to steamcmd to login with username and password.
         /// Hangs if a steamguard auth code is required.
@@ -306,27 +319,55 @@ namespace ServerNode.Models.Steam
         /// <param name="password"></param>
         /// <param name="steamGuard"></param>
         /// <returns></returns>
-        internal async Task<bool> LoginUserPassword(string username, string password, string steamGuard = null)
+        private async Task<bool> LoginUserPassword()
         {
             State = SteamCMDState.LOGGING_IN;
 
+            // ask the user for username
+            // TODO add an api request for steam username
+            Log.Informational("This app requires ownership on a steam account, you must login.");
+            Log.Informational("Please provide your username and password.");
+
+            TaskCompletionSource<string> interuptInput;
+
+            // Lets give them more time, 10 seconds to type your
+            // username, password and steamguard is a bit steep...
+            await Task.Run(async() => {
+                // we parse before we wait so cancelling would be overridden, wait one
+                await Task.Delay(1000);
+                CancelInputTimeout();
+            });
+
+            Log.Informational("Enter Your Username:");
+            string username = await Utility.ConsoleHelper.InteruptReadForInput(true);
+
+            Log.Informational("Enter Your Password:");
+            string password = await Utility.ConsoleHelper.InteruptReadForInput(true);
+
             await SendCommand(@$"login {username} {password}");
+
+            username = null;
+            password = null;
 
             await ReadyForInputTsk.Task;
 
             if (State == SteamCMDState.LOGIN_REQUIRES_STEAMGUARD)
             {
-                if (steamGuard != null)
-                {
-                    await SendCommand(@$"{steamGuard.ToUpper()}");
+                // Lets give them more time
+                await Task.Run(async () => {
+                    // we parse before we wait so cancelling would be overridden, wait one
+                    await Task.Delay(1000);
+                    CancelInputTimeout();
+                });
 
-                    await ReadyForInputTsk.Task;
-                }
-                else
-                {
-                    // TODO Ask the user for steamguard, and remove the below line
-                    await SendCommand(Console.ReadLine());
-                }
+                Log.Error("Your account requires a steam guard identification code, please supply this now!");
+                Log.Informational("Enter Your Steam Guard Code:");
+
+                string steamGuard = await Utility.ConsoleHelper.InteruptReadForInput(true);
+
+                await SendCommand(steamGuard.ToUpper());
+
+                await ReadyForInputTsk.Task;
             }
 
             return (LoggedIn);
@@ -336,7 +377,7 @@ namespace ServerNode.Models.Steam
         /// Send commands to steamcmd to login anonymously (login anonymous)
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> LoginAnonymously()
+        private async Task<bool> LoginAnonymously()
         {
             State = SteamCMDState.LOGGING_IN;
 
@@ -415,6 +456,12 @@ namespace ServerNode.Models.Steam
                 // login success
                 else if (data.Contains("Logged in OK")) { State = SteamCMDState.LOGGED_IN; LoggedIn = true; Progress = 0; }
 
+                // login requires steam guard token
+                else if (data.Contains("Steam Guard") || data.Contains("Two-factor")) { State = SteamCMDState.LOGIN_REQUIRES_STEAMGUARD; Progress = 0; }
+
+                // invalid steamguard code
+                else if (data.Contains("Two-factor code mismatch")) { State = SteamCMDState.LOGIN_FAILED_GUARD_MISMATCH; Progress = 0; }
+
                 // ----- steamcmd app installation section
                 // steamcmd is validating the app
                 else if (data.Contains("Update state (0x5) validating")) { State = SteamCMDState.APP_VALIDATING; shouldCheckProgress = true; }
@@ -435,7 +482,8 @@ namespace ServerNode.Models.Steam
                 else if (data.Contains("Success! App") && data.Contains("fully installed")) { Progress = 100; State = SteamCMDState.APP_INSTALLED; AppInstallationSuccess = true; }
 
                 // steamcmd unsuccessfully install the app, there's an error!
-                else if (data.Contains("Error! App")) {
+                else if (data.Contains("Error! App"))
+                {
                     if (data.Contains("0x202"))
                     {
                         State = SteamCMDState.APP_INSTALL_ERROR_NO_DISK;
@@ -448,8 +496,8 @@ namespace ServerNode.Models.Steam
                     }
 
                     Progress = 0;
-                    AppInstallationSuccess = false; 
-               }
+                    AppInstallationSuccess = false;
+                }
 
                 // data has been flagged to contain progress data
                 if (shouldCheckProgress)

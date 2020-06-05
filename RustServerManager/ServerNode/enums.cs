@@ -19,6 +19,7 @@ namespace ServerNode
         LOGIN_REQUIRES_STEAMGUARD,
         LOGIN_FAILED_BAD_PASS,
         LOGIN_FAILED_RATE_LIMIT,
+        LOGIN_FAILED_GUARD_MISMATCH,
         LOGIN_FAILED_GENERIC,
 
         // steamcmd installation section
