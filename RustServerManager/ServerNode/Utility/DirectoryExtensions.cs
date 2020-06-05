@@ -65,5 +65,20 @@ namespace ServerNode.Utility
         {
             return DeleteOrTimeout(new DirectoryInfo(directory), timeoutms);
         }
+
+        internal static long GetDirectorySize(string directory)
+        {
+            string[] files = Directory.GetFiles(directory, "*", SearchOption.AllDirectories);
+
+            long bytes = 0;
+
+            foreach (string name in files)
+            {
+                FileInfo info = new FileInfo(name);
+                bytes += info.Length;
+            }
+
+            return bytes;
+        }
     }
 }
