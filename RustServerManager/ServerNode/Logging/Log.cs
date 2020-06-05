@@ -110,7 +110,7 @@ namespace ServerNode.Logging
                         {
                             if (StreamWriters.ContainsKey("ALL"))
                             {
-                                StreamWriters["ALL"].WriteLineAsync($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                                StreamWriters["ALL"].WriteLine($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
                             }
                             else
                             {
