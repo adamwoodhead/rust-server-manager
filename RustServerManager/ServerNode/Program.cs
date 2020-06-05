@@ -78,7 +78,7 @@ namespace ServerNode
 
                 if (!insideExecutablesFolder)
                 {
-                    bool? getyn()
+                    static bool? getyn()
                     {
                         string responded = Console.ReadLine();
 
@@ -198,7 +198,7 @@ namespace ServerNode
                 "srcds.exe",
                 "srcds_run",
                 232330,
-                true,
+                false,
                 new string[] {
                     "-console",
                     "-game cstrike",
@@ -388,7 +388,7 @@ namespace ServerNode
 
         private static void ExecuteLogsAction(string action, string[] targets = null)
         {
-            void enableLogs(string logType)
+            static void enableLogs(string logType)
             {
                 foreach (LogType trueType in Enum.GetValues(typeof(LogType)).Cast<LogType>())
                 {
@@ -403,7 +403,7 @@ namespace ServerNode
                 Log.Warning($"Attempted to enable log type <{logType}>, but it wasn't found!");
             }
 
-            void disableLogs(string logType)
+            static void disableLogs(string logType)
             {
                 foreach (LogType trueType in Enum.GetValues(typeof(LogType)).Cast<LogType>())
                 {
@@ -443,7 +443,7 @@ namespace ServerNode
 
         private static void ExecuteAppsAction(string action, string[] targetid)
         {
-            bool findApp(string shortName, out SteamApp steamApp)
+            static bool findApp(string shortName, out SteamApp steamApp)
             {
                 if (PreAPIHelper.Apps.ContainsKey(shortName))
                 {
