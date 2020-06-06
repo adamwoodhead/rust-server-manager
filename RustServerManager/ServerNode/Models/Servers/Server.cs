@@ -535,8 +535,6 @@ namespace ServerNode.Models.Servers
             // only perform a kill if the server is running
             if (IsRunning)
             {
-                PerformanceMonitor.StopMonitoring();
-
                 Log.Informational($"Shutting Down Server {ID:00}");
                 // kill the process and wait for it to exit
                 if (KillAndWaitForExit())
@@ -598,7 +596,7 @@ namespace ServerNode.Models.Servers
         {
             ShouldRun = false;
 
-            PerformanceMonitor.StopMonitoring();
+            PerformanceMonitor?.StopMonitoring(this);
 
             GameProcess?.Kill();
             GameProcess?.WaitForExit();
@@ -682,6 +680,7 @@ namespace ServerNode.Models.Servers
                 {
                     Log.Warning($"Server {ID:00} Unexpectedly Closed");
                     Log.Warning($"Server {ID:00} Keep Alive: Rebooting!");
+                    PerformanceMonitor?.StopMonitoring(this);
                     GameProcess = null;
                     PID = null;
                     Start();

@@ -1,4 +1,5 @@
-﻿using ServerNode.Models.Servers;
+﻿using ServerNode.Logging;
+using ServerNode.Models.Servers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -83,11 +84,12 @@ namespace ServerNode.Native
         /// <summary>
         /// Signal to stop monitoring
         /// </summary>
-        public void StopMonitoring()
+        public void StopMonitoring(Server server)
         {
             if (Token.CanBeCanceled)
             {
                 TokenSource.Cancel();
+                Log.Verbose($"Server {server.ID:00} Performance Monitor cancelled quietly.");
             }
         }
     }

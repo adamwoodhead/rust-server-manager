@@ -17,6 +17,6 @@ namespace ServerNode.Native
 
         void BeginMonitoring(Server server);
 
-        void StopMonitoring();
+        void StopMonitoring(Server server);
     }
 }
