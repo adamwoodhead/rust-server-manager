@@ -109,6 +109,7 @@ namespace ServerNode.Native.Windows
                         }
                     }
                 }
+                catch (OperationCanceledException) { }
                 catch (Exception ex)
                 {
                     Log.Error(ex);

@@ -2,7 +2,7 @@
 
 namespace ServerNode.Models.Terminal
 {
-    internal interface ITerminal
+    public interface ITerminal
     {
         string[] DeterminesInput { get; set; }
         string ExecutablePath { get; set; }

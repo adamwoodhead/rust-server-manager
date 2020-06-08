@@ -8,12 +8,12 @@ using System.Text;
 
 namespace ServerNode.Utility
 {
-    public static class PreAPIHelper
+    internal static class PreAPIHelper
     {
         #region servers
-        internal static List<Server> Servers { get; set; } = new List<Server>();
+        public static List<Server> Servers { get; set; } = new List<Server>();
 
-        internal static Server CreateServer(SteamApp app, int? forcedID = null)
+        public static Server CreateServer(SteamApp app, int? forcedID = null)
         {
             int nextID = 0;
 
@@ -37,11 +37,11 @@ namespace ServerNode.Utility
         #endregion
 
         #region apps
-        internal static Dictionary<string, SteamApp> Apps { get; } = new Dictionary<string, SteamApp>();
+        public static Dictionary<string, SteamApp> Apps { get; } = new Dictionary<string, SteamApp>();
 
-        internal static SteamApp CreateApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, bool requirePurchase, string[] defaultCommandLine)
+        public static SteamApp CreateApp(string name, string shortName, int port, int slots, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, bool requirePurchase, string[] defaultCommandLine, Variable[] customVariables = null)
         {
-            SteamApp app = new SteamApp(name, shortName, relativeWindowsExecutablePath, relativeLinuxExecutablePath, steamID, requirePurchase, defaultCommandLine);
+            SteamApp app = new SteamApp(name, shortName, port, slots, relativeWindowsExecutablePath, relativeLinuxExecutablePath, steamID, requirePurchase, defaultCommandLine, customVariables);
             Apps.Add(shortName, app);
             return app;
         }

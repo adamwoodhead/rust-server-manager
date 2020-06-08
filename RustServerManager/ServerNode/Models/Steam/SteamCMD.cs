@@ -32,12 +32,12 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// Event Handler raised when the current State is changed.
         /// </summary>
-        internal event EventHandler StateChanged;
+        public event EventHandler StateChanged;
 
         /// <summary>
         /// Event Handler raised when the Progress of SteamCMD has changed (if applicable to current state and procedure).
         /// </summary>
-        internal event EventHandler ProgressChanged;
+        public event EventHandler ProgressChanged;
 
         /// <summary>
         /// Get the download path for steamcmd
@@ -65,7 +65,7 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// Boolean representation of whether steamcmd successfully installed the app
         /// </summary>
-        internal bool AppInstallationSuccess { get; private set; } = false;
+        public bool AppInstallationSuccess { get; private set; } = false;
 
         /// <summary>
         /// The DateTime capture for when steamcmd began an 'app_update'
@@ -90,7 +90,7 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// Current SteamCMD Procedure State
         /// </summary>
-        internal SteamCMDState State
+        public SteamCMDState State
         {
             get => _state;
             private set
@@ -106,12 +106,12 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// If SteamCMD fails an installation, this should contain the reason.
         /// </summary>
-        internal string InstallError { get; private set; }
+        public string InstallError { get; private set; }
 
         /// <summary>
         /// Current SteamCMD Procedure Progress, applicable depending on current state
         /// </summary>
-        internal double Progress
+        public double Progress
         {
             get => _progress;
             private set
@@ -127,12 +127,12 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// Provides an estimated download speed based on bytes downloaded compated to total requested.
         /// </summary>
-        internal double AverageDownloadSpeed { get; private set; } = 0;
+        public double AverageDownloadSpeed { get; private set; } = 0;
 
         /// <summary>
         /// Provides an estimated Time Left based on bytes requested, current download, and speed.
         /// </summary>
-        internal TimeSpan EstimatedDownloadTimeLeft { get; private set; } = TimeSpan.FromSeconds(0);
+        public TimeSpan EstimatedDownloadTimeLeft { get; private set; } = TimeSpan.FromSeconds(0);
 
         /// <summary>
         /// Event Trigger for a state change
@@ -210,7 +210,7 @@ namespace ServerNode.Models.Steam
         /// Check if steamcmd exists.
         /// If it doesn't exist and we're currently on the windows os, download and unzip, then cleanup
         /// </summary>
-        internal static void EnsureAvailable()
+        public static void EnsureAvailable()
         {
             Log.Informational("Checking if SteamCMD is available.");
 
@@ -252,7 +252,7 @@ namespace ServerNode.Models.Steam
         /// <param name="id"></param>
         /// <param name="validate"></param>
         /// <returns></returns>
-        internal async Task AppUpdate(int id, bool validate)
+        public async Task AppUpdate(int id, bool validate)
         {
             if (validate)
             {
@@ -273,7 +273,7 @@ namespace ServerNode.Models.Steam
         /// <param name="id"></param>
         /// <param name="validate"></param>
         /// <returns></returns>
-        internal async Task AppUninstall(int id, bool complete)
+        public async Task AppUninstall(int id, bool complete)
         {
             if (complete)
             {
@@ -292,14 +292,14 @@ namespace ServerNode.Models.Steam
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        internal async Task ForceInstallDirectory(string path)
+        public async Task ForceInstallDirectory(string path)
         {
             await SendCommand($"force_install_dir \"{path}\"");
 
             await ReadyForInputTsk.Task;
         }
 
-        internal async Task<bool> Login(SteamApp steamApp)
+        public async Task<bool> Login(SteamApp steamApp)
         {
             if (steamApp.RequiresPurchase)
             {
@@ -397,7 +397,7 @@ namespace ServerNode.Models.Steam
         /// Kills the process and pseudoterminal after x seconds if it does not exit peacefully.
         /// </summary>
         /// <returns></returns>
-        internal async Task Shutdown()
+        public async Task Shutdown()
         {
             // steamcmd command to peacefully quit
             await SendCommand(@"quit");
@@ -582,7 +582,7 @@ namespace ServerNode.Models.Steam
         /// </summary>
         /// <exception cref="ApplicationException"/>
         /// <returns></returns>
-        internal static string GetNativeExectutablePath()
+        public static string GetNativeExectutablePath()
         {
             if (Utility.OperatingSystemHelper.IsWindows())
             {

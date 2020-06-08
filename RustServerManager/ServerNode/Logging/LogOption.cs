@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ServerNode.Logging
 {
-    enum LogType
+    public enum LogType
     {
         VERBOSE,
         INFORMATIONAL,

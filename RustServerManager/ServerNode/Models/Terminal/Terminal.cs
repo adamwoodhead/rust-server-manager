@@ -19,7 +19,7 @@ namespace ServerNode.Models.Terminal
     /// <summary>
     /// Disposable Terminal Object, preferrably called within a using statement.
     /// </summary>
-    internal abstract class Terminal : IDisposable, ITerminal
+    public abstract class Terminal : IDisposable, ITerminal
     {
         protected CancellationTokenSource CancellationTokenSource;
         protected CancellationToken CancellationToken;
@@ -33,7 +33,7 @@ namespace ServerNode.Models.Terminal
         /// <summary>
         /// Event Handler raised when Terminal finishes it's procedure.
         /// </summary>
-        internal event EventHandler Finished;
+        public event EventHandler Finished;
 
         public string[] DeterminesInput { get; set; } = new string[] { };
 
@@ -112,7 +112,7 @@ namespace ServerNode.Models.Terminal
         /// </summary>
         /// <param name="timeoutOnAwaitingInputMilliseconds"></param>
         /// <returns></returns>
-        internal static async Task<ITerminal> Instantiate<T>(TerminalStartUpOptions terminalStartUpOptions)
+        public static async Task<ITerminal> Instantiate<T>(TerminalStartUpOptions terminalStartUpOptions)
         {
             ITerminal _terminal = (ITerminal)Activator.CreateInstance(typeof(T), terminalStartUpOptions.InputTimeout);
 

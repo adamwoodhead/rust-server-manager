@@ -13,7 +13,7 @@ namespace ServerNode.Utility
         /// <param name="haystack"></param>
         /// <param name="needles"></param>
         /// <returns></returns>
-        internal static bool EndsWithAny(this string haystack, IEnumerable<string> needles) => EndsWithAny(haystack, needles.ToArray());
+        public static bool EndsWithAny(this string haystack, IEnumerable<string> needles) => EndsWithAny(haystack, needles.ToArray());
 
         /// <summary>
         /// Checks if the string ends with any of the states strings
@@ -21,7 +21,7 @@ namespace ServerNode.Utility
         /// <param name="haystack"></param>
         /// <param name="needles"></param>
         /// <returns></returns>
-        internal static bool EndsWithAny(this string haystack, params string[] needles)
+        public static bool EndsWithAny(this string haystack, params string[] needles)
         {
             foreach (string needle in needles)
             {
@@ -40,7 +40,7 @@ namespace ServerNode.Utility
         /// <param name="haystack"></param>
         /// <param name="needles"></param>
         /// <returns></returns>
-        internal static bool ContainsAny(this string haystack, IEnumerable<string> needles) => ContainsAny(haystack, needles.ToArray());
+        public static bool ContainsAny(this string haystack, IEnumerable<string> needles) => ContainsAny(haystack, needles.ToArray());
 
         /// <summary>
         /// Checks if the string contains any of the states strings
@@ -48,7 +48,7 @@ namespace ServerNode.Utility
         /// <param name="haystack"></param>
         /// <param name="needles"></param>
         /// <returns></returns>
-        internal static bool ContainsAny(this string haystack, params string[] needles)
+        public static bool ContainsAny(this string haystack, params string[] needles)
         {
             foreach (string needle in needles)
             {
@@ -61,7 +61,7 @@ namespace ServerNode.Utility
             return false;
         }
 
-        internal static bool IsDigitsOnly(this string str)
+        public static bool IsDigitsOnly(this string str)
         {
             foreach (char c in str)
             {
@@ -74,7 +74,7 @@ namespace ServerNode.Utility
             return true;
         }
 
-        internal static bool IsRealDigitOnly(this char ch)
+        public static bool IsRealDigitOnly(this char ch)
         {
             if (ch < '0' || ch > '9')
             {

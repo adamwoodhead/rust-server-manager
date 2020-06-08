@@ -11,12 +11,12 @@ namespace ServerNode.Utility
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>
-        internal static double BytesToKB(double bytes)
+        public static double BytesToKB(double bytes)
         {
             return bytes / 1024;
         }
 
-        internal static double KiloBytesToMB(double kilobytes)
+        public static double KiloBytesToMB(double kilobytes)
         {
             return kilobytes / 1024;
         }
@@ -26,7 +26,7 @@ namespace ServerNode.Utility
         /// </summary>
         /// <param name="bytes"></param>
         /// <returns></returns>
-        internal static double BytesToMB(double bytes)
+        public static double BytesToMB(double bytes)
         {
             return BytesToKB(bytes) / 1024;
         }

@@ -22,17 +22,17 @@ namespace ServerNode.Logging
         private static string hardLogDirectoryPath;
         private static readonly Dictionary<string, StreamWriter> StreamWriters = new Dictionary<string, StreamWriter>();
 
-        internal static bool QueueEmpty => LogQueue.Count == 0;
+        public static bool QueueEmpty => LogQueue.Count == 0;
 
         /// <summary>
         /// Log Visibility Options
         /// </summary>
-        internal static Dictionary<LogType, (bool, bool, ConsoleColor)> Options { get; set; }
+        public static Dictionary<LogType, (bool, bool, ConsoleColor)> Options { get; set; }
 
         /// <summary>
         /// Static Constructor for Log, starts thread for log queuing
         /// </summary>
-        internal static void Initialise(Dictionary<LogType, (bool, bool, ConsoleColor)> visibilityOptions, int hardLogCount)
+        public static void Initialise(Dictionary<LogType, (bool, bool, ConsoleColor)> visibilityOptions, int hardLogCount)
         {
             // if log hasn't been initialised before, then proceed
             if (!IsInitialised)
@@ -144,7 +144,7 @@ namespace ServerNode.Logging
         /// Prints to Console in Gray
         /// </summary>
         /// <param name="value"></param>
-        internal static void Verbose(object value)
+        public static void Verbose(object value)
         {
             if (Options[LogType.VERBOSE].Item1)
             {
@@ -157,7 +157,7 @@ namespace ServerNode.Logging
         /// Prints to Console in Green
         /// </summary>
         /// <param name="value"></param>
-        internal static void Success(object value)
+        public static void Success(object value)
         {
             if (Options[LogType.SUCCESS].Item1)
             {
@@ -170,7 +170,7 @@ namespace ServerNode.Logging
         /// Prints to Console in White
         /// </summary>
         /// <param name="value"></param>
-        internal static void Informational(object value)
+        public static void Informational(object value)
         {
             if (Options[LogType.INFORMATIONAL].Item1)
             {
@@ -183,7 +183,7 @@ namespace ServerNode.Logging
         /// Prints to Console in DarkYellow
         /// </summary>
         /// <param name="value"></param>
-        internal static void Warning(object value)
+        public static void Warning(object value)
         {
             if (Options[LogType.WARNINGS].Item1)
             {
@@ -196,7 +196,7 @@ namespace ServerNode.Logging
         /// Prints to Console in DarkRed
         /// </summary>
         /// <param name="value"></param>
-        internal static void Error(object value)
+        public static void Error(object value)
         {
             if (Options[LogType.ERRORS].Item1)
             {
@@ -209,7 +209,7 @@ namespace ServerNode.Logging
         /// Prints to Console in Magenta, prefixed with "### DEBUG TRACE:"
         /// </summary>
         /// <param name="value"></param>
-        internal static void Debug(object value)
+        public static void Debug(object value)
         {
             if (Options[LogType.DEBUGGING].Item1)
             {

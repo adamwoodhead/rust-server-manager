@@ -5,9 +5,9 @@ namespace ServerNode.Models.Steam
 {
     internal class StateChangedEventArgs : EventArgs
     {
-        internal SteamCMDState State { get; private set; }
+        public SteamCMDState State { get; private set; }
 
-        internal StateChangedEventArgs(SteamCMDState _state)
+        public StateChangedEventArgs(SteamCMDState _state)
         {
             State = _state;
         }

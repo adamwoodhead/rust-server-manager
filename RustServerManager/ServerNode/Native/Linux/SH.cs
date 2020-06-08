@@ -8,7 +8,7 @@ namespace ServerNode.Native.Linux
 {
     internal static class SH
     {
-        internal static string[] Shell(string workingDir, string script, DataReceivedEventHandler dataReceivedEvent = null, DataReceivedEventHandler errorReceivedEvent = null, bool disableDebugLogs = false)
+        public static string[] Shell(string workingDir, string script, DataReceivedEventHandler dataReceivedEvent = null, DataReceivedEventHandler errorReceivedEvent = null, bool disableDebugLogs = false)
         {
             Process starter = new Process()
             {

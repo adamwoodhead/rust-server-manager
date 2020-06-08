@@ -13,7 +13,7 @@ namespace ServerNode.Native
         /// <param name="workingDir"></param>
         /// <param name="script"></param>
         /// <returns></returns>
-        internal static string[] Shell(string workingDir, string script)
+        public static string[] Shell(string workingDir, string script)
         {
             if (Utility.OperatingSystemHelper.IsWindows())
             {
@@ -25,7 +25,7 @@ namespace ServerNode.Native
             }
         }
 
-        internal static IPerformanceMonitor GetPerformanceMonitor(int processId)
+        public static IPerformanceMonitor GetPerformanceMonitor(int processId)
         {
             if (Utility.OperatingSystemHelper.IsWindows())
             {

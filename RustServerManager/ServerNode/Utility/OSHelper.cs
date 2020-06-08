@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace ServerNode.Utility
 {
-    public static class OperatingSystemHelper
+    internal static class OperatingSystemHelper
     {
         private static bool? isWindows = null;
         private static bool? isMacOS = null;

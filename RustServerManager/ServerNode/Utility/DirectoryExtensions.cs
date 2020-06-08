@@ -16,7 +16,7 @@ namespace ServerNode.Utility
         /// <param name="timeoutms"></param>
         /// <exception cref="ArgumentException"/>
         /// <returns></returns>
-        internal static bool DeleteOrTimeout(this DirectoryInfo directory, int timeoutms = 5000)
+        public static bool DeleteOrTimeout(this DirectoryInfo directory, int timeoutms = 5000)
         {
             if (directory.Exists)
             {
@@ -61,12 +61,12 @@ namespace ServerNode.Utility
         /// <param name="timeoutms"></param>
         /// <exception cref="ArgumentException"/>
         /// <returns></returns>
-        internal static bool DeleteOrTimeout(string directory, int timeoutms = 5000)
+        public static bool DeleteOrTimeout(string directory, int timeoutms = 5000)
         {
             return DeleteOrTimeout(new DirectoryInfo(directory), timeoutms);
         }
 
-        internal static long GetDirectorySize(string directory)
+        public static long GetDirectorySize(string directory)
         {
             string[] files = Directory.GetFiles(directory, "*", SearchOption.AllDirectories);
 

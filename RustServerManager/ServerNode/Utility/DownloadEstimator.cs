@@ -15,7 +15,7 @@ namespace ServerNode.Utility
         /// <param name="currentPos"></param>
         /// <param name="consumed"></param>
         /// <returns></returns>
-        internal static double EstimateSpeed(long startPos, long currentPos, DateTime timeStarted)
+        public static double EstimateSpeed(long startPos, long currentPos, DateTime timeStarted)
         {
             TimeSpan consumedTime = DateTime.Now - timeStarted;
 
@@ -32,7 +32,7 @@ namespace ServerNode.Utility
         /// <param name="endPos"></param>
         /// <param name="consumed"></param>
         /// <returns></returns>
-        internal static TimeSpan EstimateTimeLeft(long startPos, long currentPos, long endPos, DateTime timeStarted)
+        public static TimeSpan EstimateTimeLeft(long startPos, long currentPos, long endPos, DateTime timeStarted)
         {
             long downloadedAmount = currentPos;
             long toDownload = endPos - downloadedAmount;

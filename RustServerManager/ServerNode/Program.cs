@@ -23,32 +23,32 @@ namespace ServerNode
         /// <summary>
         /// Working Directory for Server Node
         /// </summary>
-        internal static string WorkingDirectory { get; private set; }
+        public static string WorkingDirectory { get; private set; }
 
         /// <summary>
         /// Working Directory for Server Node Game Servers
         /// </summary>
-        internal static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
+        public static string GameServersDirectory { get => Path.Combine(WorkingDirectory, "gameservers"); }
 
         /// <summary>
         /// Working Directory for Server Node Pre-Installed Apps
         /// </summary>
-        internal static string AppsDirectory { get => Path.Combine(WorkingDirectory, "apps"); }
+        public static string AppsDirectory { get => Path.Combine(WorkingDirectory, "apps"); }
 
         /// <summary>
         /// Working Directory for Server Node Logs
         /// </summary>
-        internal static string LogsDirectory { get => Path.Combine(WorkingDirectory, "logs"); }
+        public static string LogsDirectory { get => Path.Combine(WorkingDirectory, "logs"); }
 
         /// <summary>
         /// Whether Server Node should be running
         /// </summary>
-        internal static bool ShouldRun { get; set; } = true;
+        public static bool ShouldRun { get; set; } = true;
 
         /// <summary>
         /// Task for interupting command input and stealing the input for elsewhere
         /// </summary>
-        internal static TaskCompletionSource<string> InteruptedInput { get; set; }
+        public static TaskCompletionSource<string> InteruptedInput { get; set; }
 
         /// <summary>
         /// Whether the safe exit cleanup procedure has completed
@@ -201,7 +201,7 @@ namespace ServerNode
         /// <summary>
         /// Perform clean up tasks
         /// </summary>
-        internal static void SafeExit(bool onexit = false)
+        public static void SafeExit(bool onexit = false)
         {
             // the process has exit, we have a *very* limited amount of time before the memory is cleared
             // so we need to be extremely quick in our actions, and use zero tasks (background workers)
@@ -290,6 +290,8 @@ namespace ServerNode
             PreAPIHelper.CreateApp(
                 "Counter Strike: Source",
                 "css",
+                27015,
+                10,
                 "srcds.exe",
                 "srcds_run",
                 232330,
@@ -297,37 +299,57 @@ namespace ServerNode
                 new string[] {
                     "-console",
                     "-game cstrike",
-                    "+map de_dust2",
-                    "+maxplayers 10"
+                    "-ip !{IPAddress}",
+                    "-port !{Port}",
+                    "-maxplayers_override !{Slots}",
+                    "+map !{Map}",
+                },
+                new Variable[]
+                {
+                    new Variable("Map", "de_dust2", true),
                 });
 
             // create rust tempate - 258550
-            PreAPIHelper.CreateApp("Rust",
+            PreAPIHelper.CreateApp(
+                "Rust",
                 "rust",
+                28015,
+                100,
                 "RustDedicated.exe",
                 "RustDedicated",
                 258550,
                 false,
                 new string[] {
-                    $"-batchmode",
-                    $"+server.ip 0.0.0.0",
-                    $"+server.port 28015",
-                    $"+server.tickrate 10",
-                    $"+server.hostname \"A New Rust Server\"",
-                    $"+server.identity server",
-                    $"+server.seed 12345",
-                    $"+server.maxplayers 100",
-                    $"+server.worldsize 3500",
-                    $"+server.saveinterval 300",
-                    $"+rcon.ip 0.0.0.0",
-                    $"+rcon.port 28016",
-                    $"+rcon.password \"apassword\"",
-                    $"+rcon.web 1"
+                    "-batchmode",
+                    "+server.ip !{IPAddress}",
+                    "+server.port !{Port}",
+                    "+server.tickrate !{Tickrate}",
+                    "+server.hostname \"!{Hostname}\"",
+                    "+server.identity !{Identity}",
+                    "+server.seed !{Seed}",
+                    "+server.maxplayers !{Slots}",
+                    "+server.worldsize !{WorldSize}",
+                    "+server.saveinterval !{SaveInterval}",
+                    "+rcon.ip !{IPAddress}",
+                    "+rcon.port !{RconPort}",
+                    "+rcon.password \"!{RconPassword}\"",
+                    "+rcon.web 1"
+                },
+                new Variable[]
+                {
+                    new Variable("Tickrate", "10", true),
+                    new Variable("Identity", "server", true),
+                    new Variable("Seed", "12345", true),
+                    new Variable("WorldSize", "3500", true),
+                    new Variable("SaveInterval", "300", true),
                 });
 
             // create csgo template - 740
-            PreAPIHelper.CreateApp("Counter Strike: Global Offensive",
+            PreAPIHelper.CreateApp(
+                "Counter Strike: Global Offensive",
                 "csgo",
+                27015,
+                10,
                 "srcds.exe",
                 "srcds_run",
                 740,
@@ -335,8 +357,15 @@ namespace ServerNode
                 new string[] {
                     "-console",
                     "-game csgo",
-                    "+map de_dust2",
-                    "+maxplayers 10"
+                    "-ip !{IPAddress}",
+                    "-port !{Port}",
+                    "-maxplayers_override !{Slots}",
+                    "+map !{Map}",
+                    "+hostname \"!{Hostname}\"",
+                },
+                new Variable[]
+                {
+                    new Variable("Map", "de_dust2", true),
                 });
 
             // search gameservers folder for currently existing gameservers...
