@@ -8,7 +8,7 @@ namespace ServerNode.Native.Linux
 {
     internal static class Pstree
     {
-        internal static IEnumerable<int> ProcessTree(int processId)
+        public static IEnumerable<int> ProcessTree(int processId)
         {
             string[] pstree = SH.Shell(Program.WorkingDirectory, @"-c ""pstree " + processId + @" -p""", null, null, true);
             string firstLine = pstree.FirstOrDefault();

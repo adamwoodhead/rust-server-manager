@@ -8,7 +8,7 @@ namespace ServerNode.Native.Windows
 {
     internal static class Powershell
     {
-        internal static string[] Shell(string workingDir, string script)
+        public static string[] Shell(string workingDir, string script)
         {
             Process starter = new Process()
             {

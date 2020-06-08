@@ -4,6 +4,8 @@ using ServerNode.Models.Terminal;
 using ServerNode.Native;
 using ServerNode.Utility;
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -12,96 +14,130 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Models.Servers
 {
-    internal class Server
+    public class Server
     {
         private TaskCompletionSource<object?> keepAliveWaiting;
 
-        internal Server(int id, SteamApp app)
+        public Server(int id, SteamApp app)
         {
             ID = id;
             App = app;
             ExecutablePath = Path.Combine(WorkingDirectory, app.RelativeExecutablePath);
+
+            int nextPort = app.Port;
+            while (PreAPIHelper.Servers.Exists(x => x.Port == nextPort))
+            {
+                nextPort += 10;
+            }
+
+            Variables.Add(new Variable("Hostname", $"My New {app.Name} Server", true));
+            Variables.Add(new Variable("IPAddress", "0.0.0.0", true));
+            Variables.Add(new Variable("Port", nextPort, true));
+            Variables.Add(new Variable("Slots", app.DefaultSlots, true));
+
+            Variables.Add(new Variable("RconPort", nextPort + 1, true));
+            Variables.Add(new Variable("Password", "", true));
+            Variables.Add(new Variable("RconPassword", "Password123!", true));
+
+            foreach (Variable variable in app.CustomVariables)
+            {
+                this.Variables.Add(variable);
+            }
         }
 
-        internal Server() { }
+        public Server() { }
 
         /// <summary>
         /// The SteamApp of the Server
         /// </summary>
-        internal SteamApp App { get; set; }
+        public SteamApp App { get; set; }
 
         /// <summary>
         /// Servers ID
         /// </summary>
-        internal int ID { get; set; }
+        public int ID { get; set; }
+
+        /// <summary>
+        /// Server Variables
+        /// </summary>
+        public List<Variable> Variables { get; } = new List<Variable>();
 
         /// <summary>
         /// Servers Working Directory
         /// </summary>
-        internal string WorkingDirectory { get => Path.Combine(Program.GameServersDirectory, ID.ToString()); }
+        public string WorkingDirectory { get => Path.Combine(Program.GameServersDirectory, ID.ToString()); }
 
         /// <summary>
         /// Servers Executable File Path
         /// </summary>
-        internal string ExecutablePath { get; }
+        public string ExecutablePath { get; }
 
         /// <summary>
         /// Checks only if the apps executable exists
         /// </summary>
-        internal bool IsInstalled => File.Exists(ExecutablePath);
+        public bool IsInstalled => File.Exists(ExecutablePath);
 
         /// <summary>
         /// Servers Commandline
         /// </summary>
-        internal string[] CommandLine { get; set; }
+        public string[] CommandLine { get; set; }
 
         /// <summary>
         /// Whether the servers process is currently active, and not exited
         /// </summary>
-        internal bool IsRunning { get => (GameProcess != null) && (bool)!GameProcess?.HasExited; }
+        public bool IsRunning { get => (GameProcess != null) && (bool)!GameProcess?.HasExited; }
 
         /// <summary>
         /// Whether the server should be running
         /// </summary>
-        internal bool ShouldRun { get; set; }
+        public bool ShouldRun { get; set; }
 
         /// <summary>
         /// Whether to reboot the server, if it's process exits unexpectedly
         /// </summary>
-        internal bool KeepAlive { get; set; } = true;
-
-        /// <summary>
-        /// Typically what the server will show as in the games server browser
-        /// </summary>
-        internal string Hostname { get; set; }
-
-        /// <summary>
-        /// External IP Address
-        /// </summary>
-        internal string IPAddress { get; set; }
-
-        /// <summary>
-        /// Connection Port
-        /// </summary>
-        internal string Port { get; set; }
+        public bool KeepAlive { get; set; } = true;
 
         /// <summary>
         /// Process of the game app
         /// </summary>
-        internal Process GameProcess { get; set; }
+        public Process GameProcess { get; set; }
 
-        internal IPerformanceMonitor PerformanceMonitor { get; set; }
+        public IPerformanceMonitor PerformanceMonitor { get; set; }
+
+        public string Hostname
+        {
+            get => Variables.FirstOrDefault(x => x.Name == "Hostname").Value;
+            set => Variables.FirstOrDefault(x => x.Name == "Hostname").Value = value;
+        }
+
+        public string IP
+        {
+            get => Variables.FirstOrDefault(x => x.Name == "IPAddress").Value;
+            set => Variables.FirstOrDefault(x => x.Name == "IPAddress").Value = value;
+        }
+
+        public int Port
+        {
+            get => Convert.ToInt32(Variables.FirstOrDefault(x => x.Name == "Port").Value);
+            set => Variables.FirstOrDefault(x => x.Name == "Port").Value = value.ToString();
+        }
+
+        public int Slots
+        {
+            get => Convert.ToInt32(Variables.FirstOrDefault(x => x.Name == "Slots").Value);
+            set => Variables.FirstOrDefault(x => x.Name == "Slots").Value = value.ToString();
+        }
 
         /// <summary>
         /// Saved instance of the gameprocess pid
         /// </summary>
-        internal int? PID { get; private set; }
+        public int? PID { get; private set; }
 
         /// <summary>
         /// Updates the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> UpdateAsync()
+        public async Task<bool> UpdateAsync()
         {
             Log.Informational($"Updating Server {ID:00}");
             bool success = false;
@@ -213,7 +249,7 @@ namespace ServerNode.Models.Servers
         /// Installs the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> InstallAsync(bool update = false)
+        public async Task<bool> InstallAsync(bool update = false)
         {
             // if the app is pre-installed
             if (App.IsInstalled)
@@ -304,7 +340,7 @@ namespace ServerNode.Models.Servers
         /// Reinstalls the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> ReinstallAsync()
+        public async Task<bool> ReinstallAsync()
         {
             Log.Informational($"Server {ID:00} Reinstalling");
             
@@ -331,7 +367,7 @@ namespace ServerNode.Models.Servers
         /// Uninstalls the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> UninstallAsync()
+        public async Task<bool> UninstallAsync()
         {
             return await Task<bool>.Run(() =>
             {
@@ -361,7 +397,7 @@ namespace ServerNode.Models.Servers
         /// Starts the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> StartAsync()
+        public async Task<bool> StartAsync()
         {
             return await Task.Run(() => {
                 return Start();
@@ -373,7 +409,7 @@ namespace ServerNode.Models.Servers
         /// </summary>
         /// <exception cref="ArgumentException"/>
         /// <returns></returns>
-        internal bool Start()
+        public bool Start()
         {
             // If the server is already running, we dont want to start it again, but we have the result we want
             if (IsRunning)
@@ -396,14 +432,14 @@ namespace ServerNode.Models.Servers
                 if (Utility.OperatingSystemHelper.IsWindows())
                 {
                     // run the application externally through shell and output the applications process id
-                    wrappedCommandline = string.Join(',', CommandLine.Select(x => $"'{x}'"));
+                    wrappedCommandline = string.Join(',', Commandline.BuildCommandline(this).Select(x => $"'{x}'"));
                     shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -WindowStyle Minimized -PassThru; echo $server" + ID + @".ID;";
                 }
                 // if os is linux, we want an sh shell
                 else if (Utility.OperatingSystemHelper.IsLinux())
                 {
                     // wipes any killed screens, kills any screens matching our server id, run the application externally through shell and output the applications process id, echo the new screen id
-                    wrappedCommandline = string.Join(' ', CommandLine.Select(x => $"{x.Replace("\"", "\\\\\\\"")}"));
+                    wrappedCommandline = string.Join(' ', Commandline.BuildCommandline(this).Select(x => $"{x.Replace("\"", "\\\\\\\"")}"));
                     shellScript = @"-c ""screen -wipe; for pid in $(screen -ls | awk '/\.Server" + ID + @"\t/ { print strtonum($1)}'); do kill $pid; done; screen -wipe; screen -S Server" + ID + @" -dm sh -c \$\""sh " + ExecutablePath + " " + wrappedCommandline + @"\""; screen -ls | awk '/\.Server" + ID + @"\t/ {print strtonum($1)}'""";
                 }
                 // cant determine a shell to utilize
@@ -510,7 +546,7 @@ namespace ServerNode.Models.Servers
         /// Stops the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> StopAsync()
+        public async Task<bool> StopAsync()
         {
             return await Task<bool>.Run(() => {
                 return Stop();
@@ -521,7 +557,7 @@ namespace ServerNode.Models.Servers
         /// Stops the server
         /// </summary>
         /// <returns></returns>
-        internal bool Stop()
+        public bool Stop()
         {
             // Turn off ShouldRun, as we want it to stop!
             ShouldRun = false;
@@ -561,7 +597,7 @@ namespace ServerNode.Models.Servers
         /// Restart the server
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> RestartAsync()
+        public async Task<bool> RestartAsync()
         {
             await StopAsync();
             return await StartAsync();
@@ -571,7 +607,7 @@ namespace ServerNode.Models.Servers
         /// Restart the server
         /// </summary>
         /// <returns></returns>
-        internal bool Restart()
+        public bool Restart()
         {
             Stop();
             return Start();
@@ -581,7 +617,7 @@ namespace ServerNode.Models.Servers
         /// Kills the process, and waits for the process to exit.
         /// </summary>
         /// <returns></returns>
-        internal async Task<bool> KillAndWaitForExitAsync()
+        public async Task<bool> KillAndWaitForExitAsync()
         {
             return await Task<bool>.Run(() => {
                 return KillAndWaitForExit();
@@ -592,7 +628,7 @@ namespace ServerNode.Models.Servers
         /// Kills the process, and waits for the process to exit.
         /// </summary>
         /// <returns></returns>
-        internal bool KillAndWaitForExit()
+        public bool KillAndWaitForExit()
         {
             ShouldRun = false;
 
@@ -604,14 +640,14 @@ namespace ServerNode.Models.Servers
             return GameProcess.HasExited;
         }
 
-        internal async Task<bool> DeleteAsync()
+        public async Task<bool> DeleteAsync()
         {
             return await Task<bool>.Run(() => {
                 return Delete();
             });
         }
 
-        internal bool Delete()
+        public bool Delete()
         {
             try
             {

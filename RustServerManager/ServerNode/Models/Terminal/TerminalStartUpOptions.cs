@@ -4,13 +4,13 @@ using System.Text;
 
 namespace ServerNode.Models.Terminal
 {
-    internal class TerminalStartUpOptions
+    public class TerminalStartUpOptions
     {
-        internal string Name { get; }
+        public string Name { get; }
 
-        internal int? InputTimeout { get; }
+        public int? InputTimeout { get; }
 
-        internal TerminalStartUpOptions(string name, int? inputtimeout = null)
+        public TerminalStartUpOptions(string name, int? inputtimeout = null)
         {
             this.Name = name;
             this.InputTimeout = inputtimeout;

@@ -7,7 +7,7 @@ namespace ServerNode.Utility
 {
     internal static class ConsoleHelper
     {
-        internal static async Task<string> InteruptReadForInput(bool redact = false, string redactText = "################ <REDACTED> ################")
+        public static async Task<string> InteruptReadForInput(bool redact = false, string redactText = "################ <REDACTED> ################")
         {
             TaskCompletionSource<string> interuptInput = new TaskCompletionSource<string>();
             Program.InteruptedInput = interuptInput;

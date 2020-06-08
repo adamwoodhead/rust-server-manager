@@ -6,12 +6,12 @@ namespace ServerNode.Logging
 {
     internal class LogItem : IDisposable
     {
-        internal DateTime recordedAt;
-        internal string message;
-        internal LogType type;
-        internal ConsoleColor conColor;
-        internal bool hardLog;
-        internal bool conWrite;
+        public DateTime recordedAt;
+        public string message;
+        public LogType type;
+        public ConsoleColor conColor;
+        public bool hardLog;
+        public bool conWrite;
 
         /// <summary>
         /// Construct a log item

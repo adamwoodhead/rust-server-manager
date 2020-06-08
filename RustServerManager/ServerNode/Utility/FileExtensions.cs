@@ -19,7 +19,7 @@ namespace ServerNode.Utility
         /// <param name="timeoutms"></param>
         /// <exception cref="ArgumentException"/>
         /// <returns></returns>
-        internal static bool DeleteOrTimeout(this FileInfo file, int timeoutms = 5000)
+        public static bool DeleteOrTimeout(this FileInfo file, int timeoutms = 5000)
         {
             if (file.Exists)
             {
@@ -64,7 +64,7 @@ namespace ServerNode.Utility
             }
         }
 
-        internal static bool DeleteOrTimeoutFilteredFilesInDirectory(string directory, params string[] filters)
+        public static bool DeleteOrTimeoutFilteredFilesInDirectory(string directory, params string[] filters)
         {
             DirectoryInfo dir = new DirectoryInfo(directory);
             // get list of files matching filters

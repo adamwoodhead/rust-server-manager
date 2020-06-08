@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Native
 {
-    internal abstract class PerformanceMonitor : IPerformanceMonitor
+    public abstract class PerformanceMonitor : IPerformanceMonitor
     {
         protected CancellationTokenSource TokenSource { get; private set; }
 
@@ -24,12 +24,12 @@ namespace ServerNode.Native
         /// <summary>
         /// Process ID
         /// </summary>
-        internal int ProcessId { get; set; }
+        public int ProcessId { get; set; }
 
         /// <summary>
         /// Process successfully caputured - ready for monitoring
         /// </summary>
-        internal bool IsInitialised { get; private set; } = false;
+        public bool IsInitialised { get; private set; } = false;
 
         /// <summary>
         /// Average CPU usage
@@ -57,7 +57,7 @@ namespace ServerNode.Native
         /// <param name="pid"></param>
         /// <param name="tokenSource"></param>
         /// <param name="tick"></param>
-        internal PerformanceMonitor(int pid, int tick = 5)
+        public PerformanceMonitor(int pid, int tick = 5)
         {
             ProcessId = pid;
             TokenSource = new CancellationTokenSource();

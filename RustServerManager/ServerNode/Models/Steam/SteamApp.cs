@@ -1,4 +1,5 @@
 ﻿using ServerNode.Logging;
+using ServerNode.Models.Servers;
 using ServerNode.Models.Terminal;
 using System;
 using System.Collections.Generic;
@@ -8,17 +9,26 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Models.Steam
 {
-    internal class SteamApp
+    public class SteamApp
     {
         /// <summary>
         /// App Name
         /// </summary>
-        internal string Name { get; }
+        public string Name { get; }
         
         /// <summary>
         /// App Short Name
         /// </summary>
-        internal string ShortName { get; }
+        public string ShortName { get; }
+
+        /// <summary>
+        /// Default port for app
+        /// </summary>
+        public int Port { get; }
+
+        public int DefaultSlots { get; }
+
+        public Variable[] CustomVariables { get; }
 
         /// <summary>
         /// Windows Relative Executable Path
@@ -33,36 +43,39 @@ namespace ServerNode.Models.Steam
         /// <summary>
         /// Native Executable Path
         /// </summary>
-        internal string RelativeExecutablePath { get => Utility.OperatingSystemHelper.IsWindows() ? WindowsRelativeExecutablePath : LinuxRelativeExecutablePath; }
+        public string RelativeExecutablePath { get => Utility.OperatingSystemHelper.IsWindows() ? WindowsRelativeExecutablePath : LinuxRelativeExecutablePath; }
         
         /// <summary>
         /// Apps Steam DB ID
         /// </summary>
-        internal int SteamID { get; }
+        public int SteamID { get; }
 
-        internal bool RequiresPurchase { get; }
+        public bool RequiresPurchase { get; }
 
-        internal string WorkingDirectory { get => Path.Combine(Program.AppsDirectory, ShortName); }
+        public string WorkingDirectory { get => Path.Combine(Program.AppsDirectory, ShortName); }
 
-        internal bool IsInstalled { get => File.Exists(Path.Combine(WorkingDirectory, RelativeExecutablePath)); }
+        public bool IsInstalled { get => File.Exists(Path.Combine(WorkingDirectory, RelativeExecutablePath)); }
 
         /// <summary>
         /// Default Commandline for Server
         /// </summary>
         public string[] DefaultCommandLine { get; }
 
-        internal SteamApp(string name, string shortName, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, bool requirePurchase, string[] defaultCommandLine)
+        public SteamApp(string name, string shortName, int port, int defaultSlots, string relativeWindowsExecutablePath, string relativeLinuxExecutablePath, int steamID, bool requirePurchase, string[] defaultCommandLine, Variable[] customVariables)
         {
             Name = name;
             ShortName = shortName;
+            Port = port;
+            DefaultSlots = defaultSlots;
             WindowsRelativeExecutablePath = relativeWindowsExecutablePath;
             LinuxRelativeExecutablePath = relativeLinuxExecutablePath;
             SteamID = steamID;
             RequiresPurchase = requirePurchase;
             DefaultCommandLine = defaultCommandLine;
+            CustomVariables = customVariables;
         }
 
-        internal async Task<bool> InstallAsync(bool updating = false)
+        public async Task<bool> InstallAsync(bool updating = false)
         {
             Log.Informational($"Pre Installing {Name}");
 

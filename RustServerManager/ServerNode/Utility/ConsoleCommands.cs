@@ -12,7 +12,7 @@ namespace ServerNode.Utility
 {
     internal static class ConsoleCommands
     {
-        internal static void ParseCommand(string command)
+        public static void ParseCommand(string command)
         {
             if (string.IsNullOrEmpty(command))
             {
@@ -303,7 +303,7 @@ namespace ServerNode.Utility
                 switch (action)
                 {
                     case "list":
-                        PreAPIHelper.Servers.ForEach(x => Console.WriteLine($"Server ({x.ID:00}) : {(x.IsRunning ? "ONLINE " : "OFFLINE")} : {x.App.Name}"));
+                        PreAPIHelper.Servers.ForEach(x => Console.WriteLine($"Server ({x.ID:00}) : {(x.IsRunning ? "ONLINE " : "OFFLINE")} : {x.App.Name} : {x.IP} : {x.Port} : {x.Hostname}"));
                         break;
 
                     case "cleanup":
@@ -320,6 +320,32 @@ namespace ServerNode.Utility
                             Console.WriteLine($"Server action <{action}> not recognised");
                         }
                         break;
+                }
+            }
+            else if ((action == "getvar" || action == "setvar") && parseID(targets[0], out int foundid) && findServer(foundid, out Server foundServer))
+            {
+                if (action == "getvar")
+                {
+                    string strvar = targets[1];
+
+                    Console.WriteLine($"Server ({foundServer.ID:00}) : Variable {strvar}={foundServer.Variables.FirstOrDefault(x => x.Name == strvar)?.Value}");
+
+                    return;
+                }
+                else
+                {
+                    string strvar = targets[1];
+                    string strval = targets[2];
+
+                    if (foundServer.Variables.FirstOrDefault(x => x.Name == strvar) != null)
+                    {
+                        foundServer.Variables.FirstOrDefault(x => x.Name == strvar).Value = strval;
+                        Console.WriteLine($"Server ({foundServer.ID:00}) : Setting Variable {strvar}={strval}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Server ({foundServer.ID:00}) : Couldn't Find Variable {strvar}");
+                    }
                 }
             }
             else

@@ -7,7 +7,7 @@ namespace ServerNode
     /// <summary>
     /// States of procedure that a SteamCMD object may reside.
     /// </summary>
-    internal enum SteamCMDState
+    public enum SteamCMDState
     {
         UNDEFINED,
         AWAITING_INPUT,

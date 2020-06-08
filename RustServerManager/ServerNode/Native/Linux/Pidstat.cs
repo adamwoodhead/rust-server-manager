@@ -7,7 +7,7 @@ namespace ServerNode.Native.Linux
 {
     internal static class Pidstat
     {
-        internal static bool IsPidstatAvailable()
+        public static bool IsPidstatAvailable()
         {
             string[] output = SH.Shell(Program.WorkingDirectory, @"-c pidstat", null, null, true);
 

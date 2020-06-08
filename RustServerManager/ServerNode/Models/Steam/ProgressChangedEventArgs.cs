@@ -4,9 +4,9 @@ namespace ServerNode.Models.Steam
 {
     internal class ProgressChangedEventArgs : EventArgs
     {
-        internal double Progress { get; private set; }
+        public double Progress { get; private set; }
 
-        internal ProgressChangedEventArgs(double _progress)
+        public ProgressChangedEventArgs(double _progress)
         {
             Progress = _progress;
         }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ServerNode.Native
 {
-    internal interface IPerformanceMonitor
+    public interface IPerformanceMonitor
     {
         double UsageCPU { get; set; }
 

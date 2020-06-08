@@ -19,7 +19,7 @@ namespace ServerNode.Models.Servers.Extensions
         /// Wipes all the map files in the server identity folder
         /// </summary>
         /// <returns></returns>
-        internal static async Task<bool> WipeMapAsync(Server server)
+        public static async Task<bool> WipeMapAsync(Server server)
         {
             return await Task.Run(() => {
                 return WipeMap(server);
@@ -30,7 +30,7 @@ namespace ServerNode.Models.Servers.Extensions
         /// Wipes all the map files in the server identity folder
         /// </summary>
         /// <returns></returns>
-        internal static bool WipeMap(Server server)
+        public static bool WipeMap(Server server)
         {
             if (DeleteServerIdentityFiles(server, "*.map", "*.sav"))
             {
@@ -49,7 +49,7 @@ namespace ServerNode.Models.Servers.Extensions
         /// </summary>
         /// <param name="server"></param>
         /// <returns></returns>
-        internal static async Task<bool> WipePlayerDataAsync(Server server)
+        public static async Task<bool> WipePlayerDataAsync(Server server)
         {
             return await Task.Run(() => {
                 return WipePlayerData(server);
@@ -60,7 +60,7 @@ namespace ServerNode.Models.Servers.Extensions
         /// Wipes all Player Data in the server identity folder
         /// </summary>
         /// <returns></returns>
-        internal static bool WipePlayerData(Server server)
+        public static bool WipePlayerData(Server server)
         {
             if (DeleteServerIdentityFiles(server, "*.db"))
             {
@@ -79,7 +79,7 @@ namespace ServerNode.Models.Servers.Extensions
         /// </summary>
         /// <param name="server"></param>
         /// <returns></returns>
-        internal static async Task<bool> FullWipeAsync(Server server)
+        public static async Task<bool> FullWipeAsync(Server server)
         {
             return await Task.Run(() => {
                 return FullWipe(server);
@@ -91,7 +91,7 @@ namespace ServerNode.Models.Servers.Extensions
         /// </summary>
         /// <param name="server"></param>
         /// <returns></returns>
-        internal static bool FullWipe(Server server)
+        public static bool FullWipe(Server server)
         {
             if (DeleteServerIdentityFiles(server, "*.map", "*.sav", "*.db"))
             {

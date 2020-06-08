@@ -9,7 +9,7 @@ namespace ServerNode.Native.Linux
 {
     internal static class Screens
     {
-        internal static bool HasScreenAccess()
+        public static bool HasScreenAccess()
         {
             string screenName = "ServerNodeTest_" + Guid.NewGuid().ToString();
             string shellScript = @"-c ""pid=$(screen -S " + screenName + @" -dm sh; screen -ls | awk '/\." + screenName + @"\t/ { print($1) }'); echo $pid;""";
@@ -44,7 +44,7 @@ namespace ServerNode.Native.Linux
             return false;
         }
 
-        internal static void CleanUpScreens()
+        public static void CleanUpScreens()
         {
             SH.Shell(Program.WorkingDirectory, @"-c ""screen -wipe;""");
         }
