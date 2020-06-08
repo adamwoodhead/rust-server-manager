@@ -26,6 +26,25 @@ namespace ServerNode.Native.Windows
 
         }
 
+        private int _processorCoreCount = -1;
+
+        public int ProcessorCoreCount
+        {
+            get
+            {
+                if (_processorCoreCount == -1)
+                {
+                    foreach (var item in new System.Management.ManagementObjectSearcher("Select * from Win32_Processor").Get())
+                    {
+                        _processorCoreCount += int.Parse(item["NumberOfCores"].ToString());
+                    }
+                }
+
+                return _processorCoreCount;
+            }
+        }
+
+
         [DllImport(@"kernel32.dll", SetLastError = true)]
         static extern bool GetProcessIoCounters(IntPtr hProcess, out IO_COUNTERS counters);
 
@@ -67,7 +86,7 @@ namespace ServerNode.Native.Windows
                         // our process can die at any time, so this could fail!
                         try
                         {
-                            UsageCPU = cpuCounter.NextValue();
+                            UsageCPU = cpuCounter.NextValue() / ProcessorCoreCount;
                             UsageMem = ramCounter.NextValue();
 
                             try
