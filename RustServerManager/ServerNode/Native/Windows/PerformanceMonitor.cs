@@ -26,25 +26,6 @@ namespace ServerNode.Native.Windows
 
         }
 
-        private int _processorCoreCount = -1;
-
-        public int ProcessorCoreCount
-        {
-            get
-            {
-                if (_processorCoreCount == -1)
-                {
-                    foreach (var item in new System.Management.ManagementObjectSearcher("Select * from Win32_Processor").Get())
-                    {
-                        _processorCoreCount += int.Parse(item["NumberOfCores"].ToString());
-                    }
-                }
-
-                return _processorCoreCount;
-            }
-        }
-
-
         [DllImport(@"kernel32.dll", SetLastError = true)]
         static extern bool GetProcessIoCounters(IntPtr hProcess, out IO_COUNTERS counters);
 
@@ -86,7 +67,7 @@ namespace ServerNode.Native.Windows
                         // our process can die at any time, so this could fail!
                         try
                         {
-                            UsageCPU = cpuCounter.NextValue() / ProcessorCoreCount;
+                            UsageCPU = cpuCounter.NextValue() / Environment.ProcessorCount;
                             UsageMem = ramCounter.NextValue();
 
                             try
@@ -107,10 +88,10 @@ namespace ServerNode.Native.Windows
 
                                 int padding = PreAPIHelper.Apps.Values.Max(x => x.ShortName.Length);
 
-                                Log.Verbose($"Server {server.ID:00} ({server.App.ShortName.PadLeft(padding)}) Performance - CPU: {UsageCPU:0.00}%, " +
-                                    $"Mem: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageMem):0.00}MB, " +
-                                    $"Disk Write: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskW):0.00}MB/s, " +
-                                    $"Disk Read: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskR):0.00}MB/s");
+                                Log.Verbose($"Server {server.ID:00} ({server.App.ShortName.PadLeft(padding)}) Performance - CPU: {UsageCPU:00.00}%, " +
+                                    $"Mem: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageMem):0000.00}MB, " +
+                                    $"Disk Write: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskW):000.00}MB/s, " +
+                                    $"Disk Read: {ServerNode.Utility.ByteMeasurements.BytesToMB(UsageDiskR):000.00}MB/s");
                             }
                             catch (InvalidOperationException)
                             {
