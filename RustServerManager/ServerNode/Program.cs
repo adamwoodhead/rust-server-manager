@@ -116,9 +116,6 @@ namespace ServerNode
 
             Log.Success("Server Node Booted");
 
-            string script = "echo @'\r\nthis is a test\r\n'@";
-            Native.Native.Shell(WorkingDirectory, script);
-
             Log.Informational("Type 'help' to view available commands.");
 
             while (ShouldRun)
