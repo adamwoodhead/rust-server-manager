@@ -587,10 +587,10 @@ namespace ServerNode.Models.Steam
             if (Utility.OperatingSystemHelper.IsWindows())
             {
                 // create a folder for the application
-                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "SteamCMD")).FullName;
+                string steamCmdFolder = Directory.CreateDirectory(Path.Combine(Program.WorkingDirectory, "steamcmd")).FullName;
                 // executable file for steamcmd
                 string steamCmdExe = Path.Combine(steamCmdFolder, "steamcmd.exe");
-                // TODO Steam CMD Executable Path (Windows)
+
                 return steamCmdExe;
             }
             else if (Utility.OperatingSystemHelper.IsLinux())

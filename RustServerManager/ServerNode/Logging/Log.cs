@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Logging
 {
-    // TODO Add File Logging for each type & mixed
     internal static class Log
     {
         /// <summary>

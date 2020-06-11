@@ -228,7 +228,6 @@ namespace ServerNode.Models.Terminal
             PtyOptions options = new PtyOptions
             {
                 Name = _terminalName,
-                // TODO this should be quite long, and cover anything that Terminal can spit out in a single line + the current directory length
                 Cols = Environment.CurrentDirectory.Length + app.Length + 100,
                 // we want it line by line, no more than that
                 Rows = 1,
