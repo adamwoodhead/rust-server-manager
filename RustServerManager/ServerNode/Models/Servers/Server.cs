@@ -432,8 +432,18 @@ namespace ServerNode.Models.Servers
                 if (Utility.OperatingSystemHelper.IsWindows())
                 {
                     // run the application externally through shell and output the applications process id
-                    wrappedCommandline = string.Join(',', Commandline.BuildCommandline(this).Select(x => $"'{x}'"));
-                    shellScript = @"/c $server" + ID + @" = Start-Process -FilePath '" + ExecutablePath + @"' -ArgumentList " + wrappedCommandline + @" -WindowStyle Minimized -PassThru; echo $server" + ID + @".ID;";
+                    string[] builtArguments = Commandline.BuildCommandline(this);
+                    string psVariableSetters = "";
+
+                    int argNum = 0;
+                    foreach (string arg in builtArguments)
+                    {
+                        psVariableSetters += $"$arg{argNum} = '{arg}'; ";
+                        argNum++;
+                    }
+
+                    wrappedCommandline = string.Join(',', builtArguments.Select(x => $"$arg{Array.IndexOf(builtArguments, x)}"));
+                    shellScript = $"{psVariableSetters}$server{ID} = Start-Process -FilePath '{ExecutablePath}' -ArgumentList {wrappedCommandline} -WindowStyle Minimized -PassThru; echo $server{ID}.ID;";
                 }
                 // if os is linux, we want an sh shell
                 else if (Utility.OperatingSystemHelper.IsLinux())
@@ -452,12 +462,8 @@ namespace ServerNode.Models.Servers
 
                 string[] output = Native.Native.Shell(WorkingDirectory, shellScript);
 
-                //output.ForEach(x => Log.Verbose(x));
-
                 // the id should be the last output reports from the shell
                 string returnedID = output.Last();
-
-                // TODO Start here - CSS server process id is not captured on LINUX
 
                 // if the returned id isn't null, and only contains digits..
                 if (!string.IsNullOrEmpty(returnedID) && returnedID.All(c => c >= '0' && c <= '9'))

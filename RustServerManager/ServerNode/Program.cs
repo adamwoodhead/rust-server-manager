@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Threading;
@@ -114,6 +115,9 @@ namespace ServerNode
             FOR__TESTING__ONLY();
 
             Log.Success("Server Node Booted");
+
+            string script = "echo @'\r\nthis is a test\r\n'@";
+            Native.Native.Shell(WorkingDirectory, script);
 
             Log.Informational("Type 'help' to view available commands.");
 
