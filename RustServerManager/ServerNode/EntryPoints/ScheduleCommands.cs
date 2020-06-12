@@ -8,7 +8,7 @@ namespace ServerNode.EntryPoints
 {
     internal static class ScheduleCommands
     {
-        public static Task Consume(string[] arguments)
+        public static void Consume(string[] arguments)
         {
             string time = "";
             string[] parameters = new string[] { };
@@ -33,7 +33,7 @@ namespace ServerNode.EntryPoints
 
             string fullCommand = string.Join(' ', parameters);
             
-            return Task.Run(async() => {
+            Task.Run(async() => {
                 while (true)
                 {
                     await Task.Delay(1000 * Convert.ToInt32(time));

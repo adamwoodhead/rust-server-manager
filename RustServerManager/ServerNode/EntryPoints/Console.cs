@@ -56,7 +56,7 @@ namespace ServerNode.EntryPoints
                         break;
 
                     case "schedule":
-                        await ScheduleCommands.Consume(arguments);
+                        ScheduleCommands.Consume(arguments);
                         break;
 
                     default:
