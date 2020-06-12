@@ -8,8 +8,10 @@ namespace ServerNode.Native.Linux
 {
     internal static class SH
     {
-        public static string[] Shell(string workingDir, string script, DataReceivedEventHandler dataReceivedEvent = null, DataReceivedEventHandler errorReceivedEvent = null, bool disableDebugLogs = false)
+        public static string[] Shell(string workingDir, string script, DataReceivedEventHandler dataReceivedEvent = null, DataReceivedEventHandler errorReceivedEvent = null)
         {
+            Log.Debug($"Shell Script: {script}");
+
             Process starter = new Process()
             {
                 StartInfo = new ProcessStartInfo()
@@ -39,11 +41,7 @@ namespace ServerNode.Native.Linux
                     if (!string.IsNullOrEmpty(e.Data))
                     {
                         output.Add(e.Data);
-
-                        if (!disableDebugLogs)
-                        {
-                            Log.Debug($"sh Out: \"{e.Data}\"");
-                        }
+                        Log.Debug($"sh Out: \"{e.Data}\"");
                     }
                 };
             }
@@ -59,11 +57,7 @@ namespace ServerNode.Native.Linux
                     if (!string.IsNullOrEmpty(e.Data))
                     {
                         output.Add(e.Data);
-
-                        if (!disableDebugLogs)
-                        {
-                            Log.Debug($"sh Err: \"{e.Data}\"");
-                        }
+                        Log.Debug($"sh Err: \"{e.Data}\"");
                     }
                 };
             }
@@ -74,10 +68,7 @@ namespace ServerNode.Native.Linux
             starter.BeginOutputReadLine();
             starter.BeginErrorReadLine();
 
-            if (!disableDebugLogs)
-            {
-                Log.Verbose($"Waiting for sh responses");
-            }
+            Log.Verbose($"Waiting for sh responses");
 
             starter.WaitForExit();
 
