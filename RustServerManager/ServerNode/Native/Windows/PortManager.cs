@@ -13,14 +13,14 @@ namespace ServerNode.Native.Windows
         {
             string[] output1 = Powershell.Shell(Program.WorkingDirectory, $"/c New-NetFirewallRule -DisplayName \\\"Server {server.ID} TCP\\\" -Direction Inbound -LocalPort {server.Port} -Protocol TCP -Action Allow", true);
 
-            if (output1.FirstOrDefault().Contains("Access is denied."))
+            if (output1.Count() > 0 && output1.FirstOrDefault().Contains("Access is denied."))
             {
                 return false;
             }
 
             string[] output2 = Powershell.Shell(Program.WorkingDirectory, $"/c New-NetFirewallRule -DisplayName \\\"Server {server.ID} UDP\\\" -Direction Inbound -LocalPort {server.Port} -Protocol UDP -Action Allow", true);
 
-            if (output2.FirstOrDefault().Contains("Access is denied."))
+            if (output2.Count() > 0 && output2.FirstOrDefault().Contains("Access is denied."))
             {
                 return false;
             }
