@@ -405,6 +405,32 @@ namespace ServerNode.Models.Servers
         }
 
         /// <summary>
+        /// Create & Add new TCP & UDP Firewall Rules for this server
+        /// </summary>
+        private bool OpenPorts()
+        {
+            // There isn't an efficient method of checking if the firewall rule already
+            // exists without referencing the windows advanced firewall api, or linux eqiuvalent.
+            // It would work, but it's an incredibly slow procedure, it's genuinely quicker to just
+            // remove a rule via shell (regardless of whether it exists or not), and then add
+            // the new firewall rule(s)
+
+            // Clean-up before we add our new rules
+            Native.Native.RemoveFirewallRule(this);
+            // Add the new firewall rule
+            return Native.Native.AddFirewallRule(this);
+        }
+
+        /// <summary>
+        /// Remove TCP & UDP Firewall Rules for this server
+        /// </summary>
+        private void ClosePorts()
+        {
+            // Remove any open firewall rules.
+            Native.Native.RemoveFirewallRule(this);
+        }
+
+        /// <summary>
         /// Starts the server
         /// </summary>
         /// <exception cref="ArgumentException"/>
@@ -432,7 +458,7 @@ namespace ServerNode.Models.Servers
                 if (Utility.OperatingSystemHelper.IsWindows())
                 {
                     // run the application externally through shell and output the applications process id
-                    wrappedCommandline = string.Join(',', Commandline.BuildCommandline(this).Select(x => $"'{x.Replace("\"", "`\"")}'"));
+                    wrappedCommandline = string.Join(',', Commandline.BuildCommandline(this).Select(x => $"'{x.Replace("\"", "\\\"")}'"));
                     shellScript = $"$server{ID} = Start-Process -FilePath '{ExecutablePath}' -ArgumentList {wrappedCommandline} -WindowStyle Minimized -PassThru; echo $server{ID}.ID;";
                 }
                 // if os is linux, we want an sh shell
@@ -446,6 +472,15 @@ namespace ServerNode.Models.Servers
                 else
                 {
                     throw new ApplicationException("Couldn't find suitable shell to start gameserver.");
+                }
+
+                if (OpenPorts())
+                {
+                    Log.Success($"Successfully Opened Ports for Server {ID}");
+                }
+                else
+                {
+                    throw new ApplicationException($"Couldn't open ports for Server {ID}. (typically access denied, try running as admin)");
                 }
 
                 Log.Debug(shellScript);
@@ -572,12 +607,16 @@ namespace ServerNode.Models.Servers
                 if (KillAndWaitForExit())
                 {
                     Log.Success($"Successfully shutdown server {ID:00}");
+
+                    ClosePorts();
                     return true;
                 }
                 // couldn't kill, we shouldn't really ever get here
                 else
                 {
                     Log.Warning($"Could not shutdown server {ID:00}");
+
+                    ClosePorts();
                     return false;
                 }
             }
@@ -585,6 +624,8 @@ namespace ServerNode.Models.Servers
             {
                 // the server is already not running, return true as we have the result we're wanting
                 Log.Warning($"Tried Shutting Down Server {ID:00} - It's not running!");
+
+                ClosePorts();
                 return true;
             }
         }

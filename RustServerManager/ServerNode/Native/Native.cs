@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ServerNode.Logging;
+using ServerNode.Models.Servers;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -22,6 +24,42 @@ namespace ServerNode.Native
             else
             {
                 return Linux.SH.Shell(workingDir, script);
+            }
+        }
+
+        public static bool AddFirewallRule(Server server)
+        {
+            Log.Verbose($"Attempting to add new firewall rule for server {server.ID}");
+
+            if (Utility.OperatingSystemHelper.IsWindows())
+            {
+                return Windows.PortManager.AddFirewallRule(server);
+            }
+            else if (Utility.OperatingSystemHelper.IsLinux())
+            {
+                return Linux.PortManager.AddFirewallRule(server);
+            }
+            else
+            {
+                throw new ApplicationException("Port Manager not valid on operating system.");
+            }
+        }
+
+        public static bool RemoveFirewallRule(Server server)
+        {
+            Log.Verbose($"Attempting to remove firewall rule for server {server.ID}");
+
+            if (Utility.OperatingSystemHelper.IsWindows())
+            {
+                return Windows.PortManager.RemoveFirewallRule(server);
+            }
+            else if (Utility.OperatingSystemHelper.IsLinux())
+            {
+                return Linux.PortManager.RemoveFirewallRule(server);
+            }
+            else
+            {
+                throw new ApplicationException("Port Manager not valid on operating system.");
             }
         }
 
