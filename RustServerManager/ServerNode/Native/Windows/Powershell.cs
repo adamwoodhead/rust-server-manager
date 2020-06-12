@@ -39,7 +39,7 @@ namespace ServerNode.Native.Windows
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
-                    output.Add(e.Data); Log.Verbose($"Powershell Error: \"{e.Data}\"");
+                    output.Add(e.Data); Log.Debug($"Powershell Error: \"{e.Data}\"");
                 }
             };
 

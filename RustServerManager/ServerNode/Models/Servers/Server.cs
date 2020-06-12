@@ -432,7 +432,7 @@ namespace ServerNode.Models.Servers
                 if (Utility.OperatingSystemHelper.IsWindows())
                 {
                     // run the application externally through shell and output the applications process id
-                    wrappedCommandline = string.Join(',', Commandline.BuildCommandline(this).Select(x => $"'{x.Replace("\"", "`\"")}'"));
+                    wrappedCommandline = string.Join(',', Commandline.BuildCommandline(this).Select(x => $"'{x.Replace("\"", "\\\"")}'"));
                     shellScript = $"$server{ID} = Start-Process -FilePath '{ExecutablePath}' -ArgumentList {wrappedCommandline} -WindowStyle Minimized -PassThru; echo $server{ID}.ID;";
                 }
                 // if os is linux, we want an sh shell
