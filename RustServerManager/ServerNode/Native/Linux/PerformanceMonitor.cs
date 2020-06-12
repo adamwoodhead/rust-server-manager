@@ -53,7 +53,7 @@ namespace ServerNode.Native.Linux
                             pids = Pstree.ProcessTree(ProcessId).SkipLast(1);
 
                             // get cpu stats, memory stats & disk stats
-                            string[] pidstat_values = SH.Shell(Program.WorkingDirectory, @"-c ""pidstat -urdh -p " + string.Join(',', pids) + @"""", null, null, true).Skip(1).ToArray();
+                            string[] pidstat_values = SH.Shell(Program.WorkingDirectory, @"-c ""pidstat -urdh -p " + string.Join(',', pids) + @"""", null, null).Skip(1).ToArray();
 
                             if (pidstat_values.Length <= 2)
                             {

@@ -10,10 +10,9 @@ namespace ServerNode.Native.Linux
     {
         public static IEnumerable<int> ProcessTree(int processId)
         {
-            string[] pstree = SH.Shell(Program.WorkingDirectory, @"-c ""pstree " + processId + @" -p""", null, null, true);
+            string[] pstree = SH.Shell(Program.WorkingDirectory, @"-c ""pstree " + processId + @" -p""", null, null);
             string firstLine = pstree.FirstOrDefault();
 
-            List<int> pids = new List<int>();
             string tmpPID = "";
 
             foreach (char ch in firstLine)
