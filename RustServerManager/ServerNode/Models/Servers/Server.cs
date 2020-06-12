@@ -30,7 +30,7 @@ namespace ServerNode.Models.Servers
                 nextPort += 10;
             }
 
-            Variables.Add(new Variable("Hostname", $"My New {app.Name} Server", true));
+            Variables.Add(new Variable("Hostname", $"My New {app.Name} Server | Powered By ServerNode", true));
             Variables.Add(new Variable("IPAddress", "0.0.0.0", true));
             Variables.Add(new Variable("Port", nextPort, true));
             Variables.Add(new Variable("Slots", app.DefaultSlots, true));
@@ -102,26 +102,41 @@ namespace ServerNode.Models.Servers
         /// </summary>
         public Process GameProcess { get; set; }
 
+        /// <summary>
+        /// Server Process Native Performance Monitor
+        /// </summary>
         public IPerformanceMonitor PerformanceMonitor { get; set; }
 
+        /// <summary>
+        /// Hostname Server Variable
+        /// </summary>
         public string Hostname
         {
             get => Variables.FirstOrDefault(x => x.Name == "Hostname").Value;
             set => Variables.FirstOrDefault(x => x.Name == "Hostname").Value = value;
         }
 
+        /// <summary>
+        /// IP Server Variable
+        /// </summary>
         public string IP
         {
             get => Variables.FirstOrDefault(x => x.Name == "IPAddress").Value;
             set => Variables.FirstOrDefault(x => x.Name == "IPAddress").Value = value;
         }
 
+        /// <summary>
+        /// Port Server Variable
+        /// </summary>
         public int Port
         {
             get => Convert.ToInt32(Variables.FirstOrDefault(x => x.Name == "Port").Value);
             set => Variables.FirstOrDefault(x => x.Name == "Port").Value = value.ToString();
         }
 
+        /// <summary>
+        /// Slots Server Variable
+        /// </summary>
         public int Slots
         {
             get => Convert.ToInt32(Variables.FirstOrDefault(x => x.Name == "Slots").Value);
@@ -440,7 +455,7 @@ namespace ServerNode.Models.Servers
             // If the server is already running, we dont want to start it again, but we have the result we want
             if (IsRunning)
             {
-                Log.Warning($"Starting Server {ID:00} Failed - already running, did you mean to restart?");
+                Log.Warning($"Starting Server {ID:00} Failed - already running, did you mean to restart or stop?");
                 return true;
             }
             // if the server is installed
@@ -474,13 +489,20 @@ namespace ServerNode.Models.Servers
                     throw new ApplicationException("Couldn't find suitable shell to start gameserver.");
                 }
 
-                if (OpenPorts())
+                try
                 {
-                    Log.Success($"Successfully Opened Ports for Server {ID}");
+                    if (OpenPorts())
+                    {
+                        Log.Success($"Successfully Opened Ports for Server {ID}");
+                    }
+                    else
+                    {
+                        Log.Error($"Couldn't open ports for Server {ID}. (typically access denied, try running as admin)");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    throw new ApplicationException($"Couldn't open ports for Server {ID}. (typically access denied, try running as admin)");
+                    Log.Error(ex);
                 }
 
                 Log.Debug(shellScript);
