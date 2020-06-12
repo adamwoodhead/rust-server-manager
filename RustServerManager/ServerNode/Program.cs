@@ -303,6 +303,7 @@ namespace ServerNode
                     "-ip !{IPAddress}",
                     "-port !{Port}",
                     "-maxplayers_override !{Slots}",
+                    "+hostname \"!{Hostname}\"",
                     "+map !{Map}",
                 },
                 new Variable[]
