@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ServerNode.EntryPoints
 {
-    class ScheduleCommands
+    internal static class ScheduleCommands
     {
-        internal static void Consume(string[] arguments)
+        public static Task Consume(string[] arguments)
         {
             string time = "";
             string[] parameters = new string[] { };
@@ -32,13 +32,15 @@ namespace ServerNode.EntryPoints
             }
 
             string fullCommand = string.Join(' ', parameters);
-            Task.Run(async() => {
+            
+            return Task.Run(async() => {
                 while (true)
                 {
                     await Task.Delay(1000 * Convert.ToInt32(time));
 
-                    System.Console.WriteLine($"Running Scheduled Command...");
-                    Console.ParseCommand(fullCommand);
+                    System.Console.WriteLine($"Running Scheduled Command(s)...");
+
+                    await Console.ParseCommand(fullCommand);
 
                     if (!loop)
                     {

@@ -13,7 +13,7 @@ namespace ServerNode.EntryPoints
 {
     internal static class ServerCommands
     {
-        public static void Consume(string[] arguments)
+        public static async Task Consume(string[] arguments)
         {
             string command = "";
             string[] parameters = new string[] { };
@@ -49,35 +49,35 @@ namespace ServerNode.EntryPoints
                     switch (command)
                     {
                         case "start":
-                            Task.Run(async () => { await server.StartAsync(); });
+                            await server.StartAsync();
                             break;
 
                         case "stop":
-                            Task.Run(async () => { await server.StopAsync(); });
+                            await server.StopAsync();
                             break;
 
                         case "kill":
-                            Task.Run(async () => { await server.KillAndWaitForExitAsync(); });
+                            await server.KillAndWaitForExitAsync();
                             break;
 
                         case "install":
-                            Task.Run(async () => { await server.InstallAsync(); });
+                            await server.InstallAsync();
                             break;
 
                         case "update":
-                            Task.Run(async () => { await server.UpdateAsync(); });
+                            await server.UpdateAsync();
                             break;
 
                         case "uninstall":
-                            Task.Run(async () => { await server.UninstallAsync(); });
+                            await server.UninstallAsync();
                             break;
 
                         case "reinstall":
-                            Task.Run(async () => { await server.ReinstallAsync(); });
+                            await server.ReinstallAsync();
                             break;
 
                         case "delete":
-                            Task.Run(async () => { await server.DeleteAsync(); });
+                            await server.DeleteAsync();
                             break;
 
                         default:

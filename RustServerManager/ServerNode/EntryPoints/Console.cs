@@ -2,13 +2,27 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ServerNode.EntryPoints
 {
     internal static class Console
     {
-        public static void ParseCommand(string command)
+        public static async Task ParseCommand(string command)
         {
+            string[] commands = command.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            if (commands.Length > 1)
+            {
+                System.Console.WriteLine($"Picked up multiple commands, sequentially parsing.");
+
+                foreach (string com in commands)
+                {
+                    await ParseCommand(com);
+                }
+
+                return;
+            }
+
             string subject = command.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
 
             string[] arguments = command.Split(' ', StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
@@ -30,19 +44,19 @@ namespace ServerNode.EntryPoints
                         break;
 
                     case "server":
-                        ServerCommands.Consume(arguments);
+                        await ServerCommands.Consume(arguments);
                         break;
 
                     case "app":
-                        AppCommands.Consume(arguments);
+                        await AppCommands.Consume(arguments);
                         break;
 
                     case "log":
-                        LogCommands.Consume(arguments);
+                        await LogCommands.Consume(arguments);
                         break;
 
                     case "schedule":
-                        ScheduleCommands.Consume(arguments);
+                        await ScheduleCommands.Consume(arguments);
                         break;
 
                     default:

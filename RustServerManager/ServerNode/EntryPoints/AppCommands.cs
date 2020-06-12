@@ -10,7 +10,7 @@ namespace ServerNode.EntryPoints
 {
     internal class AppCommands
     {
-        public static void Consume(string[] arguments)
+        public static async Task Consume(string[] arguments)
         {
             string command = "";
             string[] parameters = new string[] { };
@@ -40,7 +40,7 @@ namespace ServerNode.EntryPoints
                     {
                         if (FindApp(parameter, out SteamApp steamApp))
                         {
-                            Task.Run(async () => { await steamApp.InstallAsync(); });
+                            await steamApp.InstallAsync();
                         }
                     }
                     break;
