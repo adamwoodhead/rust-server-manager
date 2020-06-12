@@ -74,7 +74,7 @@ namespace ServerNode
             Log.Initialise(
                 new Dictionary<LogType, (bool, bool, ConsoleColor)>() // Visibility Options
                 {
-                    { LogType.VERBOSE, (true, true, ConsoleColor.Gray) },
+                    { LogType.VERBOSE, (true, false, ConsoleColor.Gray) },
                     { LogType.INFORMATIONAL, (true, true, ConsoleColor.White) },
                     { LogType.SUCCESS, (true, true, ConsoleColor.Green) },
                     { LogType.WARNINGS, (true, true, ConsoleColor.DarkYellow) },
@@ -135,7 +135,7 @@ namespace ServerNode
                     continue;
                 }
 
-                ConsoleCommands.ParseCommand(input);
+                EntryPoints.Console.ParseCommand(input);
             }
         }
 

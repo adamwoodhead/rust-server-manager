@@ -144,52 +144,16 @@ namespace ServerNode.Models.Servers.Extensions
         private static string GetIdendityDirectory(Server server)
         {
             // declare identity
-            string identity = "";
+            Variable variable = server.Variables.FirstOrDefault(x => x.Name == "Identity");
 
-            // cycle each commandline parameter
-            foreach (string parameter in server.CommandLine)
+            if (variable != null)
             {
-                // if it contains identity
-                if (parameter.Contains("+server.identity"))
-                {
-                    // then split it up by spaces
-                    string[] twovars = parameter.Split(' ');
+                string identity = variable.Value;
 
-                    // check we only have two strings from our split (+server.identity & the *identity)
-                    if (twovars.Count() == 2)
-                    {
-                        // take the identity part
-                        identity = twovars[1];
-
-                        // if the server identity is empty, it's incorrect
-                        if (string.IsNullOrEmpty(identity))
-                        {
-                            Log.Error("Rust Server parameter for identity is incorrect");
-                            // as the identity is incorrect, we should cancel here
-                            // before we accidentally iterate all identity folders
-                            return null;
-                        }
-
-                        // break out of loop
-                        break;
-                    }
-                    // if we have more than two strings, our identity string is incorrect
-                    else
-                    {
-                        Log.Error("Rust Server parameter for identity is incorrect");
-                        return null;
-                    }
-                }
-            }
-
-            if (!string.IsNullOrEmpty(identity))
-            {
                 return Path.Combine(server.WorkingDirectory, "server", identity);
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
     }
 }
