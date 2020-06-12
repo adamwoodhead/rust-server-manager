@@ -28,6 +28,12 @@ namespace ServerNode.EntryPoints
                 commands = command.Split(";", StringSplitOptions.RemoveEmptyEntries);
             }
 
+            if (arguments[0] == "--help")
+            {
+                RunHelpCommand(subject);
+                return;
+            }
+
             if (commands.Length > 1)
             {
                 Log.Verbose($"Picked up multiple commands, sequentially parsing.");
@@ -53,7 +59,7 @@ namespace ServerNode.EntryPoints
                         break;
 
                     case "help":
-                        RunHelpCommand(arguments);
+                        RunHelpCommand();
                         break;
 
                     case "server":
@@ -83,18 +89,10 @@ namespace ServerNode.EntryPoints
             Program.SafeExit();
         }
 
-        private static void RunHelpCommand(string[] arguments)
+        private static void RunHelpCommand(string command = null)
         {
-            string topic;
-
-            if (arguments.Count() > 0)
-            {
-                topic = arguments[0];
-            }
-            else
-            {
-                topic = "help";
-            }
+            string topic = "help";
+            topic = command ?? topic;
 
             switch (topic)
             {

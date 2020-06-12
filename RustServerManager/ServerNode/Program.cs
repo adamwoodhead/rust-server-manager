@@ -130,7 +130,7 @@ namespace ServerNode
                 // if something is trying to steal input...
                 if (InteruptedInput != null && !InteruptedInput.Task.IsCompleted)
                 {
-                    // pass it along, and continue our loop
+                    // pass it along, and continue iterating our loop exiting at this point
                     InteruptedInput.TrySetResult(input);
                     continue;
                 }
