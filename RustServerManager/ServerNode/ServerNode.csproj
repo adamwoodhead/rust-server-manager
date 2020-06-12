@@ -10,6 +10,7 @@
 	<StartupObject>ServerNode.Program</StartupObject>
 	<ApplicationIcon />
 	<Configurations>Debug;Release;Linux</Configurations>
+	<ApplicationManifest>app.manifest</ApplicationManifest>
 	</PropertyGroup>
 	
 	<ItemGroup>

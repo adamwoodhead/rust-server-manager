@@ -8,7 +8,7 @@ namespace ServerNode.Native.Windows
 {
     internal static class Powershell
     {
-        public static string[] Shell(string workingDir, string script)
+        public static string[] Shell(string workingDir, string script, bool runAsAdmin = false)
         {
             Process starter = new Process()
             {
@@ -21,7 +21,8 @@ namespace ServerNode.Native.Windows
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true
+                    RedirectStandardError = true,
+                    Verb = runAsAdmin ? "runas" : ""
                 },
                 EnableRaisingEvents = true
             };
