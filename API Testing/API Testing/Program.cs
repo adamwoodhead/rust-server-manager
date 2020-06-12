@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Newtonsoft.Json;
@@ -14,7 +15,6 @@ namespace API_Testing
     {
         // Create a global http client we will use to communicate with the API / Node
         private static readonly HttpClient client = new HttpClient();
-
         static ManualResetEvent _quitEvent = new ManualResetEvent(false);
 
         // User/Servers table properties
@@ -35,6 +35,8 @@ namespace API_Testing
 
         static void Main(string[] args)
         {
+            // The base address for the test domain
+            // client.BaseAddress = new Uri("http://rustservermanager.test/");
             string command;
             // Exit the program is the exit key's are pressed.
             Console.CancelKeyPress += (sender, eArgs) =>
@@ -83,27 +85,40 @@ namespace API_Testing
             ConfigurationManager.AppSettings["api_token"] = apiToken;
 
             // Success!
-            Console.WriteLine("\nYour API token has been saved to your client configuration!");
+            Console.WriteLine("Your API token has been saved to your client configuration!");
             ResetPrompt();
+        }
+
+        private static string FormatJson(string json)
+        {
+            dynamic parsedJson = JsonConvert.DeserializeObject(json);
+            return JsonConvert.SerializeObject(parsedJson, Formatting.Indented);
         }
 
         static async void GetAllServers()
         {
             // Send the API request to create a new server
-            string createNewServerUrl = "http://rustservermanager.test/api/servers";
-            HttpResponseMessage response = await client.GetAsync(createNewServerUrl);
+            string getAllServersUrl = "http://rustservermanager.test/api/servers";
+
+            // Clear the headers and set auth token.
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            if (ConfigurationManager.AppSettings["api_token"] != null)
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["api_token"]);
+            }
+            else
+            {
+                Console.WriteLine("You do not have your API token set! Please use 'login' to retrieve it...");
+                ResetPrompt();
+            }
+
+            HttpResponseMessage response = await client.GetAsync(getAllServersUrl);
             response.EnsureSuccessStatusCode();
             string responseBody = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine(responseBody);
-
-            // string formatted = JsonConvert.SerializeObject(responseBody, Formatting.Indented);
-            JObject parsed = JObject.Parse(responseBody);
-
-            foreach (var pair in parsed)
-            {
-                Console.WriteLine("{0}: {1}", pair.Key, pair.Value);
-            }
+            Console.WriteLine(FormatJson(responseBody));
 
             Console.Write("% ");
             Console.ReadLine();
@@ -126,7 +141,6 @@ namespace API_Testing
 
         static void ResetPrompt()
         {
-            Console.WriteLine(Environment.NewLine);
             Console.Write("% ");
             string command = Console.ReadLine();
             ParseCommand(command);
