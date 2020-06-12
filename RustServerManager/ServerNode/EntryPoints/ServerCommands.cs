@@ -25,11 +25,21 @@ namespace ServerNode.EntryPoints
                 parameters = arguments.Skip(1).ToArray();
             }
 
+
+            if (parameters.Length == 0)
+            {
+                if (command == "list")
+                {
+                    PreAPIHelper.Servers.ForEach(x => Log.Informational($"Server ({x.ID:00}) : {(x.IsRunning ? "ONLINE " : "OFFLINE")} : {x.App.Name}"));
+                    return;
+                }
+            }
+
             foreach (string parameter in parameters)
             {
                 if (command == "list")
                 {
-                    PreAPIHelper.Servers.Where(x => x.App.ShortName == parameter).ToList().ForEach(x => System.Console.WriteLine($"Server ({x.ID:00}) : {(x.IsRunning ? "ONLINE " : "OFFLINE")} : {x.App.Name}"));
+                    PreAPIHelper.Servers.Where(x => x.App.ShortName == parameter).ToList().ForEach(x => Log.Informational($"Server ({x.ID:00}) : {(x.IsRunning ? "ONLINE " : "OFFLINE")} : {x.App.Name}"));
                     return;
                 }
                 else if (command == "create")
@@ -50,6 +60,10 @@ namespace ServerNode.EntryPoints
                     {
                         case "start":
                             await server.StartAsync();
+                            break;
+
+                        case "restart":
+                            await server.RestartAsync();
                             break;
 
                         case "stop":
@@ -81,7 +95,7 @@ namespace ServerNode.EntryPoints
                             break;
 
                         default:
-                            System.Console.WriteLine($"Server action <{command}> not recognised");
+                            System.Console.WriteLine($"Server Command <{command}> not recognised");
                             break;
                     }
                 }

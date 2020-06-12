@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ServerNode.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,19 +29,24 @@ namespace ServerNode.EntryPoints
             }
             else
             {
-                System.Console.WriteLine($"schedule command requires time & action input: schedule <second> <command>");
+                Log.Error($"schedule command requires time & action input: schedule <second> <command>");
             }
 
             string fullCommand = string.Join(' ', parameters);
             
             Task.Run(async() => {
+                int laps = 0;
                 while (true)
                 {
                     await Task.Delay(1000 * Convert.ToInt32(time));
 
-                    System.Console.WriteLine($"Running Scheduled Command(s)...");
+                    Log.Informational($"#### Scheduled Commands Executing...");
+                    Log.Verbose($"Executing Scheduled Commands: {fullCommand}");
 
                     await Console.ParseCommand(fullCommand);
+
+                    laps++;
+                    Log.Success($"#### Scheduled Commands Completed #{laps}");
 
                     if (!loop)
                     {
@@ -48,6 +54,8 @@ namespace ServerNode.EntryPoints
                     }
                 }
             });
+
+            Log.Informational($"Command Scheduled for {time} seconds -> {fullCommand}");
         }
     }
 }

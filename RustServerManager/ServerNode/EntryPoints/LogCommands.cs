@@ -39,7 +39,7 @@ namespace ServerNode.EntryPoints
                     break;
 
                 default:
-                    System.Console.WriteLine($"App Command <{command}> not recognised.");
+                    Log.Error($"Log Command <{command}> not recognised.");
                     break;
             }
         }

@@ -1,4 +1,5 @@
-﻿using ServerNode.Models.Steam;
+﻿using ServerNode.Logging;
+using ServerNode.Models.Steam;
 using ServerNode.Utility;
 using System;
 using System.Collections.Generic;
@@ -25,13 +26,13 @@ namespace ServerNode.EntryPoints
             switch (command)
             {
                 case "list":
-                    PreAPIHelper.Apps.Select(x => x.Value).ToList().ForEach(x => System.Console.WriteLine($"App: {x.ShortName} : {x.Name}"));
+                    PreAPIHelper.Apps.Select(x => x.Value).ToList().ForEach(x => Log.Informational($"App: {x.ShortName} : {x.Name}"));
                     break;
 
                 case "view":
                     foreach (string parameter in parameters)
                     {
-                        System.Console.WriteLine("TODO");
+                        Log.Warning("TODO");
                     }
                     break;
 
@@ -46,7 +47,7 @@ namespace ServerNode.EntryPoints
                     break;
 
                 default:
-                    System.Console.WriteLine($"App Command <{command}> not recognised.");
+                    Log.Error($"App Command <{command}> not recognised.");
                     break;
             }
         }
