@@ -51,7 +51,7 @@ namespace ServerNode.EntryPoints
                 {
                     if (logType.ToUpper() == trueType.ToString())
                     {
-                        System.Console.WriteLine($"Enabling Log Type: {trueType}");
+                        Log.Informational($"Enabling Log Type: {trueType}");
                         Log.Options[trueType] = (true, Log.Options[trueType].Item2, Log.Options[trueType].Item3);
                         return;
                     }
@@ -68,7 +68,7 @@ namespace ServerNode.EntryPoints
                 {
                     if (logType.ToUpper() == trueType.ToString())
                     {
-                        System.Console.WriteLine($"Disabling Log Type: {trueType}");
+                        Log.Informational($"Disabling Log Type: {trueType}");
                         Log.Options[trueType] = (false, Log.Options[trueType].Item2, Log.Options[trueType].Item3);
                         return;
                     }

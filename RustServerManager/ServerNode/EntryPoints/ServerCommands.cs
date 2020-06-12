@@ -95,7 +95,7 @@ namespace ServerNode.EntryPoints
                             break;
 
                         default:
-                            System.Console.WriteLine($"Server Command <{command}> not recognised");
+                            Log.Error($"Server Command <{command}> not recognised");
                             break;
                     }
                 }
@@ -112,7 +112,7 @@ namespace ServerNode.EntryPoints
             catch (Exception)
             {
                 id = -1;
-                System.Console.WriteLine($"Failed to convert <{target}> into an number for selecting server by ID.");
+                Log.Error($"Failed to convert <{target}> into an number for selecting server by ID.");
                 return false;
             }
         }
@@ -129,14 +129,14 @@ namespace ServerNode.EntryPoints
                 else
                 {
                     server = null;
-                    System.Console.WriteLine($"Failed to find server with ID <{id}>.");
+                    Log.Error($"Failed to find server with ID <{id}>.");
                     return false;
                 }
             }
             catch (Exception)
             {
                 server = null;
-                System.Console.WriteLine($"Failed to find server with ID <{id}>.");
+                Log.Error($"Failed to find server with ID <{id}>.");
                 return false;
             }
         }
