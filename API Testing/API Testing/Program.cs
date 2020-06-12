@@ -6,6 +6,7 @@ using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Configuration;
+using ServerNode.Models.Servers;
 
 namespace API_Testing
 {
@@ -43,7 +44,7 @@ namespace API_Testing
             };
 
             // Ask the user for the commands to be issued
-            Console.WriteLine("Rust Server Manager CLI | Version: 0.0.1 | Ctrl + C to quit | 'help' to view commands");
+            Console.WriteLine("Rust Server Manager CLI | Version: 0.0.1 | 'quit' to exit | 'help' to view commands");
             Console.Write("% ");
             command = Console.ReadLine();
             ParseCommand(command);
@@ -53,7 +54,7 @@ namespace API_Testing
         }
 
         // Get the API token for the authenticated user
-        static async void GetApiToken()
+        static async void Login()
         {
             // Just for testing purposes
             string loginUrl = "http://rustservermanager.test/api/login";
@@ -83,6 +84,7 @@ namespace API_Testing
 
             // Success!
             Console.WriteLine("\nYour API token has been saved to your client configuration!");
+            ResetPrompt();
         }
 
         static async void GetAllServers()
@@ -122,25 +124,36 @@ namespace API_Testing
             // Send API request to get Server Node information
         }
 
+        static void ResetPrompt()
+        {
+            Console.WriteLine(Environment.NewLine);
+            Console.Write("% ");
+            string command = Console.ReadLine();
+            ParseCommand(command);
+        }
+
         static void ParseCommand(string command)
         {
             // Parse user commands for manipulating API / Node
             switch (command)
             {
-                case "help":
-                    Console.WriteLine("Basic commands are: 'server get', 'server delete', 'server stop', 'server up'");
+                case "quit":
+                    Environment.Exit(0);
                     break;
-                case "server get":
+                case "help":
+                    Console.WriteLine("Basic commands are: 'servers list', 'server get', 'server delete', 'server stop', 'server up'");
+                    break;
+                case "servers list":
                     Console.WriteLine("Getting all servers...");
                     GetAllServers();
                     break;
                 case "login":
                     Console.WriteLine("logging in...");
-                    GetApiToken();
+                    Login();
                     break;
             }
 
-            Console.ReadLine();
+            ResetPrompt();
         }
     }
 }
