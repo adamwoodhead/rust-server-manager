@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ServerNode.EntryPoints
+namespace ServerNode.EntryPoints.Console
 {
     internal static class Console
     {
@@ -28,7 +28,7 @@ namespace ServerNode.EntryPoints
                 commands = command.Split(";", StringSplitOptions.RemoveEmptyEntries);
             }
 
-            if (arguments[0] == "--help")
+            if (arguments.Length > 0 && arguments[0] == "--help")
             {
                 RunHelpCommand(subject);
                 return;
@@ -204,19 +204,23 @@ namespace ServerNode.EntryPoints
             System.Console.WriteLine($"// ".PadRight(98, '-') + " //");
             System.Console.WriteLine($"// {title}".PadRight(98, ' ') + " //");
             System.Console.WriteLine($"// ".PadRight(98, ' ') + " //");
+
             foreach (string line in description.Split("\n"))
             {
                 System.Console.WriteLine($"// {line.Replace("\n", "")}".PadRight(98, ' ') + " //");
             }
+
             System.Console.WriteLine($"// ".PadRight(98, ' ') + " //");
             System.Console.WriteLine($"// Command -> {command}".PadRight(98, ' ') + " //");
             System.Console.WriteLine($"// ".PadRight(98, ' ') + " //");
+
             foreach (var action in actions)
             {
                 System.Console.WriteLine($"// Action -> {action.Key}".PadRight(98, ' ') + " //");
                 System.Console.WriteLine($"//        -> {action.Value}".PadRight(98, ' ') + " //");
                 System.Console.WriteLine($"// ".PadRight(98, ' ') + " //");
             }
+
             System.Console.WriteLine($"// ".PadRight(98, '-') + " //");
         }
     }

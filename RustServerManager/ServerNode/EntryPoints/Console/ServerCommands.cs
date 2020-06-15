@@ -9,7 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ServerNode.EntryPoints
+namespace ServerNode.EntryPoints.Console
 {
     internal static class ServerCommands
     {
@@ -94,6 +94,10 @@ namespace ServerNode.EntryPoints
                             await server.DeleteAsync();
                             break;
 
+                        case "cleanup":
+                            await CleanupServers();
+                            break;
+
                         default:
                             Log.Error($"Server Command <{command}> not recognised");
                             break;
@@ -141,37 +145,39 @@ namespace ServerNode.EntryPoints
             }
         }
 
-        private static void CleanupServers()
+        private static async Task CleanupServers()
         {
-            Log.Informational("Server Clean Up - Initiated...");
+            await Task.Run(() => {
+                Log.Informational("Server Clean Up - Initiated...");
 
-            foreach (string dir in Directory.EnumerateDirectories(Program.GameServersDirectory))
-            {
-                Log.Verbose($"Server Clean Up - Found Directory: {dir}");
-                // get full directory info of target
-                DirectoryInfo directoryInfo = new DirectoryInfo(dir);
-                // if the folder name only contains digits, it matches our norm..
-                if (directoryInfo.Name.IsDigitsOnly())
+                foreach (string dir in Directory.EnumerateDirectories(Program.GameServersDirectory))
                 {
-                    // get integer value of id
-                    int gsID = Convert.ToInt32(directoryInfo.Name);
-                    // do we NOT have a server with this id?
-                    if (!PreAPIHelper.Servers.Exists(x => x.ID == gsID))
+                    Log.Verbose($"Server Clean Up - Found Directory: {dir}");
+                    // get full directory info of target
+                    DirectoryInfo directoryInfo = new DirectoryInfo(dir);
+                    // if the folder name only contains digits, it matches our norm..
+                    if (directoryInfo.Name.IsDigitsOnly())
                     {
-                        // delete the folder, we don't manage this
-                        Log.Informational($"Server Cleanup: Deleting Directory {directoryInfo.FullName}");
-                        DirectoryExtensions.DeleteOrTimeout(directoryInfo.FullName);
+                        // get integer value of id
+                        int gsID = Convert.ToInt32(directoryInfo.Name);
+                        // do we NOT have a server with this id?
+                        if (!PreAPIHelper.Servers.Exists(x => x.ID == gsID))
+                        {
+                            // delete the folder, we don't manage this
+                            Log.Informational($"Server Cleanup: Deleting Directory {directoryInfo.FullName}");
+                            DirectoryExtensions.DeleteOrTimeout(directoryInfo.FullName);
+                        }
+                        else
+                        {
+                            Log.Verbose($"Server Clean Up - This directory is being managed, ignoring.");
+                        }
                     }
                     else
                     {
-                        Log.Verbose($"Server Clean Up - This directory is being managed, ignoring.");
+                        Log.Verbose($"Server Clean Up - Directory doesn't match our system, ignoring.");
                     }
                 }
-                else
-                {
-                    Log.Verbose($"Server Clean Up - Directory doesn't match our system, ignoring.");
-                }
-            }
+            });
         }
     }
 }

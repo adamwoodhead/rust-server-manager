@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ServerNode.EntryPoints
+namespace ServerNode.EntryPoints.Console
 {
     internal class AppCommands
     {
