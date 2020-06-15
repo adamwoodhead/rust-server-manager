@@ -135,7 +135,7 @@ namespace ServerNode
                     continue;
                 }
 
-                EntryPoints.Console.ParseCommand(input).ConfigureAwait(false);
+                EntryPoints.Console.Console.ParseCommand(input).ConfigureAwait(false);
             }
         }
 
