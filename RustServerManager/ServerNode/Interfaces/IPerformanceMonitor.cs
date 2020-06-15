@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ServerNode.Native
+namespace ServerNode.Interfaces
 {
     public interface IPerformanceMonitor
     {
