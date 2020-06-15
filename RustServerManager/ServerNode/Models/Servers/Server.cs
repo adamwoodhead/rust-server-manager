@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace ServerNode.Models.Servers
 {
-    public class Server
+    public partial class Server
     {
         private TaskCompletionSource<object?> keepAliveWaiting;
 
@@ -155,7 +155,8 @@ namespace ServerNode.Models.Servers
         /// <returns></returns>
         public async Task<bool> UpdateAsync()
         {
-            Log.Informational($"Updating Server {ID:00}");
+            OnUpdating();
+
             bool success = false;
 
             try
@@ -167,7 +168,7 @@ namespace ServerNode.Models.Servers
                     steam.Finished += delegate {
                         if (steam.AppInstallationSuccess)
                         {
-                            Log.Success($"Server {ID:00} Update: Finished Successfully");
+                            Log.Verbose($"Server {ID:00} Update: SteamCMD Finished Successfully");
                         }
                         else
                         {
@@ -231,22 +232,13 @@ namespace ServerNode.Models.Servers
                         await steam.Shutdown();
                     }
 
-                    // if we successfully installed the app
-                    if (success = steam.AppInstallationSuccess)
-                    {
-                        // inform the user of success
-                        Log.Success($"Server {ID:00} Successfully Updated");
-                    }
-                    else
-                    {
-                        // inform the user of failure
-                        Log.Warning($"Server {ID:00} Unsuccessfully Updated");
-                    }
+                    success = steam.AppInstallationSuccess;
                 }
 
             }
             catch (Exception ex)
             {
+                OnUpdateFailed();
                 Log.Error(ex);
                 throw new ApplicationException("SteamCMD Failed to instantiate!", ex);
             }
@@ -258,7 +250,16 @@ namespace ServerNode.Models.Servers
                 Directory.Delete(Path.Combine(WorkingDirectory, "steamapps"), true);
             }
 
-            return success;
+            if (success)
+            {
+                OnUpdated();
+                return true;
+            }
+            else
+            {
+                OnUpdateFailed();
+                return false;
+            }
         }
 
         /// <summary>
