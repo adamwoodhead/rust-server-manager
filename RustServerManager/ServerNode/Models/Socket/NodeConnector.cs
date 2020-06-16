@@ -98,6 +98,7 @@ namespace ServerNode.Models.Connection
 
             // Get the socket that handles the client request.  
             Socket listener = (Socket)ar.AsyncState;
+
             Socket handler = listener.EndAccept(ar);
 
             Log.Verbose($"Socket Accepted, Remote Address: {IPAddress.Parse(((IPEndPoint)handler.RemoteEndPoint).Address.ToString())}");
@@ -132,9 +133,30 @@ namespace ServerNode.Models.Connection
                     // more data.  
                     content = state.sb.ToString();
 
-                    SocketPacket packet = Newtonsoft.Json.JsonConvert.DeserializeObject<SocketPacket>(content);
+                    try
+                    {
+                        SocketPacket packet = JsonConvert.DeserializeObject<SocketPacket>(content);
 
-                    EntryPoints.Console.Console.ParseCommand(packet.Content, true).Wait();
+                        if (packet != null)
+                        {
+                            if (packet.PassedValidation)
+                            {
+                                EntryPoints.Console.Console.ParseCommand(packet.Content, true).Wait();
+                            }
+                            else
+                            {
+                                Log.Verbose($"Socket packet failed validation");
+                            }
+                        }
+                    }
+                    catch (JsonReaderException jrex)
+                    {
+                        // if we lost connection with the client
+                        Log.Error($"Socket Packet format incorrect.");
+                        Log.Error(content);
+                        Log.Error(jrex.Message);
+                    }
+
                     // clear string builder
                     state.sb.Clear();
 
@@ -187,15 +209,15 @@ namespace ServerNode.Models.Connection
         }
     }
 
-    [Newtonsoft.Json.JsonObject(Newtonsoft.Json.MemberSerialization.OptIn)]
+    [JsonObject(MemberSerialization.OptIn)]
     internal class SocketPacket
     {
         private bool? passedValidation = null;
 
-        [Newtonsoft.Json.JsonProperty("content")]
+        [JsonProperty("content")]
         public string Content { get; private set; }
 
-        [Newtonsoft.Json.JsonProperty("hash")]
+        [JsonProperty("hash")]
         private string ValidationHash { get; set; }
 
         public bool PassedValidation
@@ -204,7 +226,7 @@ namespace ServerNode.Models.Connection
             {
                 if (passedValidation == null)
                 {
-                    passedValidation = ComputeSha256Hash(Content) == ValidationHash;
+                    passedValidation = !string.IsNullOrEmpty(Content) && ComputeSha256Hash(Content) == ValidationHash;
                 }
 
                 return (bool)passedValidation;
@@ -213,8 +235,8 @@ namespace ServerNode.Models.Connection
 
         public string ToJson() => JsonConvert.SerializeObject(this);
 
-        // used by newtonsoft.json.jsonconvert.deserialize
-        internal SocketPacket() { }
+        [JsonConstructor]
+        public SocketPacket() { }
 
         public SocketPacket(string content)
         {
