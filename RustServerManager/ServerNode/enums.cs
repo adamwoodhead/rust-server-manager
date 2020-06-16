@@ -41,4 +41,11 @@ namespace ServerNode
         APP_INSTALL_ERROR,              // Error! App '232330' state is ***** after update job
         APP_INSTALL_ERROR_NO_DISK       // Error! App '740' state is 0x202 after update job
     }
+
+    public enum ExitType
+    {
+        PROCESS_EXIT,
+        MANUAL,
+        RESTART
+    }
 }

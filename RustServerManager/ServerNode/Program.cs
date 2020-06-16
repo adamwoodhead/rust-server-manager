@@ -1,4 +1,5 @@
-﻿using ServerNode.Logging;
+﻿using ServerNode.EntryPoints.Console;
+using ServerNode.Logging;
 using ServerNode.Models.Servers;
 using ServerNode.Models.Servers.Extensions;
 using ServerNode.Models.Steam;
@@ -19,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace ServerNode
 {
-    class Program
+    internal class Program
     {
         /// <summary>
         /// Working Directory for Server Node
@@ -51,6 +52,8 @@ namespace ServerNode
         /// </summary>
         public static TaskCompletionSource<string> InteruptedInput { get; set; }
 
+        private static string[] LaunchArguments { get; set; }
+
         /// <summary>
         /// Whether the safe exit cleanup procedure has completed
         /// </summary>
@@ -59,9 +62,11 @@ namespace ServerNode
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
         private static void Main(string[] args)
         {
+            LaunchArguments = args;
+
             WorkingDirectory = Directory.GetCurrentDirectory();
 
-            ParseArguments(args);
+            ParseArguments(LaunchArguments);
 
             // only in windows debug mode
             if (Debugger.IsAttached && Utility.OperatingSystemHelper.IsWindows())
@@ -86,9 +91,9 @@ namespace ServerNode
 
             Log.Informational("Server Node Booting Up");
 
-            AppDomain.CurrentDomain.ProcessExit += (s, e) => { SafeExit(true); };
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => { SafeExit(ExitType.PROCESS_EXIT); };
 
-            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+            System.Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
             {
                 if (e.SpecialKey == ConsoleSpecialKey.ControlC)
                 {
@@ -118,29 +123,33 @@ namespace ServerNode
 
             Log.Informational("Type 'help' to view available commands.");
 
-            Models.Connection.AsynchronousSocketListener.BeginListening();
+            EntryPoints.API.AsynchronousSocketListener.BeginListening();
 
             while (ShouldRun)
             {
-                string input = Console.ReadLine()?.Trim() ?? null;
+                string input = System.Console.ReadLine()?.Trim() ?? null;
 
-                if (input != "" && input == null)
+                if (input != null)
                 {
-                    break;
-                }
+                    // if something is trying to steal input...
+                    if (InteruptedInput != null && !InteruptedInput.Task.IsCompleted)
+                    {
+                        // pass it along, and continue iterating our loop exiting at this point
+                        InteruptedInput.TrySetResult(input);
+                        continue;
+                    }
 
-                // if something is trying to steal input...
-                if (InteruptedInput != null && !InteruptedInput.Task.IsCompleted)
-                {
-                    // pass it along, and continue iterating our loop exiting at this point
-                    InteruptedInput.TrySetResult(input);
-                    continue;
+                    EntryPoints.Console.Console.ParseCommand(input).ConfigureAwait(false);
                 }
-
-                EntryPoints.Console.Console.ParseCommand(input).ConfigureAwait(false);
             }
+
+            System.Console.WriteLine();
         }
 
+        /// <summary>
+        /// Parse the launch parameters
+        /// </summary>
+        /// <param name="args"></param>
         private static void ParseArguments(string[] args)
         {
 
@@ -162,53 +171,57 @@ namespace ServerNode
 
                 if (!insideExecutablesFolder)
                 {
-                    static bool? getyn()
-                    {
-                        string responded = Console.ReadLine();
-
-                        switch (responded)
-                        {
-                            case "y":
-                                return true;
-                            case "n":
-                                return false;
-                            default:
-                                return null;
-                        }
-                    }
-
-                    Console.ForegroundColor = ConsoleColor.DarkYellow;
-                    Console.WriteLine($"WARNING: YOU HAVE STARTED SERVERNODE IN ANOTHER DIRECTORY THAN IT'S OWN");
-                    Console.WriteLine($"WARNING: '{WorkingDirectory}' WILL BE THE WORKING DIRECTORY!");
-                    Console.WriteLine($"Do you want to continue?");
-
-                    bool? answer = getyn();
-                    while (answer == null)
-                    {
-                        answer = getyn();
-                    }
-
-                    if (!answer.Value)
-                    {
-                        Console.WriteLine("Please launch in the correct directory.");
-                        return;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Continuing launch in current directory, don't say we didn't warn you!.");
-                    }
+                    System.Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    System.Console.WriteLine($"WARNING: YOU HAVE STARTED SERVERNODE IN ANOTHER DIRECTORY THAN IT'S OWN");
+                    System.Console.WriteLine($"WARNING: '{WorkingDirectory}' WILL BE THE WORKING DIRECTORY!");
                 }
             }
         }
 
         /// <summary>
+        /// Safely shutdown the servernode, and restart
+        /// </summary>
+        public static void SafeRestart()
+        {
+            //if (Debugger.IsAttached)
+            //{
+            //    Console.WriteLine("Restarting is not available whilst the debugger is attached.");
+            //    return;
+            //}
+
+            Process currentProcess = Process.GetCurrentProcess();
+            Process process = new Process()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = currentProcess.StartInfo.FileName,
+                    WorkingDirectory = currentProcess.StartInfo.WorkingDirectory,
+                    Arguments = currentProcess.StartInfo.Arguments,
+                    UserName = currentProcess.StartInfo.UserName,
+                    Password = currentProcess.StartInfo.Password,
+                    Domain = currentProcess.StartInfo.Domain,
+                    WindowStyle = ProcessWindowStyle.Normal
+                }
+            };
+
+            SafeExit(ExitType.RESTART);
+
+            //process.Start();
+
+            //Environment.Exit(0);
+        }
+
+        /// <summary>
         /// Perform clean up tasks
         /// </summary>
-        public static void SafeExit(bool onexit = false)
+        public static void SafeExit(ExitType exitType = ExitType.MANUAL)
         {
+            // No matter what the type, we don't want to run anymore, so lets cancel some loops from continuing..
+            ShouldRun = false;
+
             // the process has exit, we have a *very* limited amount of time before the memory is cleared
             // so we need to be extremely quick in our actions, and use zero tasks (background workers)
-            if (onexit)
+            if (exitType == ExitType.PROCESS_EXIT)
             {
                 // loop servers that have a process id active
                 foreach (Server server in PreAPIHelper.Servers.Where(x => x.PID != null))
@@ -221,15 +234,15 @@ namespace ServerNode
                         Process.GetProcessById(server.PID.Value)?.Kill(); 
                     }
                     catch (Exception)
-                    { }
+                    {
+                        // atleast we tried
+                    }
                 }
             }
             // the kind user typed quit or exit
             // we can now shutdown in a normal manner and inform them of our actions
             else
             {
-                ShouldRun = false;
-
                 // if this hasn't be been ran before 
                 if (!_safeExitComplete)
                 {
@@ -247,11 +260,18 @@ namespace ServerNode
 
                     Log.Informational("Server Node Shutdown Complete");
 
-                    Environment.Exit(0);
+                    if (exitType != ExitType.RESTART)
+                    {
+                        // we'll call this in a moment
+                        Environment.Exit(0);
+                    }
                 }
             }
         }
 
+        /// <summary>
+        /// Perform some checks to ensure smooth operation on Linux Operating Systems
+        /// </summary>
         private static void CheckLinuxRequirements()
         {
             if (Utility.OperatingSystemHelper.IsLinux())

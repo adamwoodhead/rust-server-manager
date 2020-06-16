@@ -6,26 +6,12 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ServerNode.Models.Connection
+namespace ServerNode.EntryPoints.API
 {
-    // State object for reading client data asynchronously  
-    public class StateObject
-    {
-        // Client  socket.  
-        public Socket workSocket = null;
-        // Size of receive buffer.  
-        public const int BufferSize = 4096;
-        // Receive buffer.  
-        public byte[] buffer = new byte[BufferSize];
-        // Received data string.  
-        public StringBuilder sb = new StringBuilder();
-    }
-
     public class AsynchronousSocketListener
     {
         public static bool IsClientConnected { get => Client?.Connected ?? false; }
@@ -194,9 +180,9 @@ namespace ServerNode.Models.Connection
             }
         }
 
-        internal static void Send(string data)
+        internal static void SendCommand(Content content)
         {
-            SocketPacket packet = new SocketPacket(data);
+            SocketPacket packet = new SocketPacket(NamedSocketType.COMMAND, content);
 
             string json = packet.ToJson();
 
@@ -219,61 +205,7 @@ namespace ServerNode.Models.Connection
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
-            }
-        }
-    }
-
-    [JsonObject(MemberSerialization.OptIn)]
-    internal class SocketPacket
-    {
-        private bool? passedValidation = null;
-
-        [JsonProperty("content")]
-        public string Content { get; private set; }
-
-        [JsonProperty("hash")]
-        private string ValidationHash { get; set; }
-
-        public bool PassedValidation
-        {
-            get
-            {
-                if (passedValidation == null)
-                {
-                    passedValidation = !string.IsNullOrEmpty(Content) && ComputeSha256Hash(Content) == ValidationHash;
-                }
-
-                return (bool)passedValidation;
-            }
-        }
-
-        public string ToJson() => JsonConvert.SerializeObject(this);
-
-        [JsonConstructor]
-        public SocketPacket() { }
-
-        public SocketPacket(string content)
-        {
-            Content = content;
-            ValidationHash = ComputeSha256Hash(content);
-        }
-
-        private static string ComputeSha256Hash(string rawData)
-        {
-            // Create a SHA256   
-            using (SHA256 sha256Hash = SHA256.Create())
-            {
-                // ComputeHash - returns byte array  
-                byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawData));
-
-                // Convert byte array to a string   
-                StringBuilder builder = new StringBuilder();
-                for (int i = 0; i < bytes.Length; i++)
-                {
-                    builder.Append(bytes[i].ToString("x2"));
-                }
-                return builder.ToString();
+                Log.Verbose(e.ToString());
             }
         }
     }

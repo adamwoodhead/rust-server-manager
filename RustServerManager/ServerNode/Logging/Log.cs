@@ -132,9 +132,9 @@ namespace ServerNode.Logging
 
                         if (logItem.type != LogType.DEBUGGING && logItem.type != LogType.VERBOSE)
                         {
-                            if (Models.Connection.AsynchronousSocketListener.IsClientConnected)
+                            if (EntryPoints.API.AsynchronousSocketListener.IsClientConnected)
                             {
-                                Models.Connection.AsynchronousSocketListener.Send($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                                EntryPoints.API.AsynchronousSocketListener.Send($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
                             }
                         }
                     }

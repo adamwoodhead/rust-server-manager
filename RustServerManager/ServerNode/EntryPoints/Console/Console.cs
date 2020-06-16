@@ -1,6 +1,7 @@
 ﻿using ServerNode.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -63,6 +64,14 @@ namespace ServerNode.EntryPoints.Console
                         RunQuitCommand();
                         break;
 
+                    case "reboot":
+                        RunRebootCommand();
+                        break;
+
+                    case "restart":
+                        RunRebootCommand();
+                        break;
+
                     case "help":
                         RunHelpCommand();
                         break;
@@ -84,10 +93,15 @@ namespace ServerNode.EntryPoints.Console
                         break;
 
                     default:
-                        Log.Warning($"Command not recognised <{subject}>");
+                        Log.Warning($"Command not recognised <{subject}>, type 'help' for more information.");
                         break;
                 }
             }
+        }
+
+        private static void RunRebootCommand()
+        {
+            Program.SafeRestart();
         }
 
         private static void RunQuitCommand()
@@ -133,6 +147,22 @@ namespace ServerNode.EntryPoints.Console
                         "Quit",
                         "Commands",
                         "The <quit> command will clean up any loose ends before shutting down. (Highly recommended)",
+                        new Dictionary<string, string>());
+                    break;
+
+                case "reboot":
+                    WrapHelpInfo(
+                        "Reboot",
+                        "Commands",
+                        "The <reboot> command will clean up any loose ends before shutting down, and then reboot the server node.",
+                        new Dictionary<string, string>());
+                    break;
+
+                case "restart":
+                    WrapHelpInfo(
+                        "Restart",
+                        "Commands",
+                        "The <restart> command will clean up any loose ends before shutting down, and then reboot the server node.",
                         new Dictionary<string, string>());
                     break;
 
