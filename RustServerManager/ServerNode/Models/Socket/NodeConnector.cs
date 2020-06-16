@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -33,13 +34,17 @@ namespace ServerNode.Models.Connection
 
         private static ManualResetEvent allDone = new ManualResetEvent(false);
 
+        private static IPAddress WhitelistedAddress { get; set; } = null;
+
         public AsynchronousSocketListener()
         {
         }
 
         // Add cancellation token to node connector listen task
-        public static void BeginListening()
+        public static void BeginListening(IPAddress onlyAllowed = null)
         {
+            WhitelistedAddress = onlyAllowed ?? null;
+
             Task.Run(() => {
                 IPAddress ipAddress;
                 IPEndPoint localEndPoint;
@@ -100,6 +105,16 @@ namespace ServerNode.Models.Connection
             Socket listener = (Socket)ar.AsyncState;
 
             Socket handler = listener.EndAccept(ar);
+
+            if (WhitelistedAddress != null && ((IPEndPoint)handler.RemoteEndPoint).Address != WhitelistedAddress)
+            {
+                handler.Send(Encoding.ASCII.GetBytes("Connection Unauthorised\r\n"));
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+
+                allDone.Reset();
+                return;
+            }
 
             Log.Verbose($"Socket Accepted, Remote Address: {IPAddress.Parse(((IPEndPoint)handler.RemoteEndPoint).Address.ToString())}");
 
