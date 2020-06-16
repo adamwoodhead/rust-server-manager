@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Configuration;
 using ServerNode.Models.Servers;
+using System.Text;
 
 namespace API_Testing
 {
@@ -17,26 +18,19 @@ namespace API_Testing
         private static readonly HttpClient client = new HttpClient();
         static ManualResetEvent _quitEvent = new ManualResetEvent(false);
 
-        // User/Servers table properties
+        // Servers table properties
         public class ServerProps
         {
-            public int id { get; set; }
             public string name { get; set; }
-            public string ip_address { get; set; }
             public string description { get; set; }
-            public string status { get; set; }
             public string slots { get; set; }
-            public string type { get; set; }
-            public int user_id { get; set; }
-            public DateTime created_at { get; set; }
-            public DateTime updated_at { get; set; }
         }
 
 
         static void Main(string[] args)
         {
             // The base address for the test domain
-            // client.BaseAddress = new Uri("http://rustservermanager.test/");
+            client.BaseAddress = new Uri("http://rustservermanager.test/");
             string command;
             // Exit the program is the exit key's are pressed.
             Console.CancelKeyPress += (sender, eArgs) =>
@@ -47,9 +41,7 @@ namespace API_Testing
 
             // Ask the user for the commands to be issued
             Console.WriteLine("Rust Server Manager CLI | Version: 0.0.1 | 'quit' to exit | 'help' to view commands");
-            Console.Write("% ");
-            command = Console.ReadLine();
-            ParseCommand(command);
+            ResetPrompt();
 
             _quitEvent.WaitOne();
             Environment.Exit(0);
@@ -59,9 +51,14 @@ namespace API_Testing
         static async void Login()
         {
             // Just for testing purposes
-            string loginUrl = "http://rustservermanager.test/api/login";
-            string email = "johndoe@gmail.com";
-            string password = "password";
+            string loginUrl = "/api/login";
+            string email;
+            string password;
+
+            Console.Write("Email: ");
+            email = Console.ReadLine();
+            Console.Write("Password: ");
+            password = Console.ReadLine();
 
             // Store the creds in a Form encoded array
             var credentials = new FormUrlEncodedContent(new[]
@@ -75,14 +72,13 @@ namespace API_Testing
 
             // Read the response string
             string resultContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine(resultContent);
 
             // Deserialize the JSON array to an object
             var data = (JObject)JsonConvert.DeserializeObject(resultContent);
 
             // Extract the JSON token and store in configuration
-            string apiToken = data["access_token"].Value<string>();
-            ConfigurationManager.AppSettings["api_token"] = apiToken;
+            string accessToken = data["access_token"].Value<string>();
+            ConfigurationManager.AppSettings["access_token"] = accessToken;
 
             // Success!
             Console.WriteLine("Your API token has been saved to your client configuration!");
@@ -95,18 +91,42 @@ namespace API_Testing
             return JsonConvert.SerializeObject(parsedJson, Formatting.Indented);
         }
 
+        private static string MaskPassword()
+        {
+            Console.Write("Please enter your password: ");
+            StringBuilder passwordBuilder = new StringBuilder();
+            bool continueReading = true;
+            char newLineChar = '\r';
+            while (continueReading)
+            {
+                ConsoleKeyInfo consoleKeyInfo = Console.ReadKey(true);
+                char passwordChar = consoleKeyInfo.KeyChar;
+
+                if (passwordChar == newLineChar)
+                {
+                    continueReading = false;
+                }
+                else
+                {
+                    passwordBuilder.Append(passwordChar.ToString());
+                }
+            }
+            Console.Write(Environment.NewLine);
+            return passwordBuilder.ToString();
+        }
+
         static async void GetAllServers()
         {
             // Send the API request to create a new server
-            string getAllServersUrl = "http://rustservermanager.test/api/servers";
+            string getAllServersUrl = "/api/servers";
 
             // Clear the headers and set auth token.
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            if (ConfigurationManager.AppSettings["api_token"] != null)
+            if (ConfigurationManager.AppSettings["access_token"] != null)
             {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["api_token"]);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["access_token"]);
             }
             else
             {
@@ -118,15 +138,58 @@ namespace API_Testing
             response.EnsureSuccessStatusCode();
             string responseBody = await response.Content.ReadAsStringAsync();
 
+            // Format the JSON and print to the console.
             Console.WriteLine(FormatJson(responseBody));
 
-            Console.Write("% ");
-            Console.ReadLine();
+            // Reset the prompt
+            ResetPrompt();
+        }
+
+        private static async void CreateServer()
+        {
+            string createServerUrl = "/api/servers/create";
+            string name, description, slots;
+
+            Console.Write("Please enter the name of your new server: ");
+            name = Console.ReadLine();
+            Console.Write("Please enter a short description: ");
+            description = Console.ReadLine();
+            Console.Write("Please enter the amount of slots the server will have: ");
+            slots = Console.ReadLine();
+
+            // Clear the headers and set auth token.
+            client.DefaultRequestHeaders.Accept.Clear();
+            // client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            if (ConfigurationManager.AppSettings["access_token"] != null)
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ConfigurationManager.AppSettings["access_token"]);
+            }
+            else
+            {
+                Console.WriteLine("You do not have your API token set! Please use 'login' to retrieve it...");
+                ResetPrompt();
+            }
+
+            var serverDetails = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("name", name),
+                new KeyValuePair<string, string>("description", description),
+                new KeyValuePair<string, string>("slots", slots)
+            });
+
+            HttpResponseMessage response = await client.PostAsync(createServerUrl, serverDetails);
+
+            string responseData = await response.Content.ReadAsStringAsync();
+
+            var data = (JObject)JsonConvert.DeserializeObject(responseData);
+            Console.WriteLine(data);
+            ResetPrompt();
         }
 
         static void DeleteServer()
         {
-
+            //
         }
 
         static void GetServerInfo()
@@ -142,8 +205,8 @@ namespace API_Testing
         static void ResetPrompt()
         {
             Console.Write("% ");
-            string command = Console.ReadLine();
-            ParseCommand(command);
+            string _command = Console.ReadLine();
+            ParseCommand(_command);
         }
 
         static void ParseCommand(string command)
@@ -165,8 +228,11 @@ namespace API_Testing
                     Console.WriteLine("logging in...");
                     Login();
                     break;
+                case "server create":
+                    Console.WriteLine("Creating new server...");
+                    CreateServer();
+                    break;
             }
-
             ResetPrompt();
         }
     }
