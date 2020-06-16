@@ -21,9 +21,15 @@ namespace API_Testing
         // Servers table properties
         public class ServerProps
         {
-            public string name { get; set; }
-            public string description { get; set; }
-            public string slots { get; set; }
+            // We can use jsonproperty attributes to state the property name in json, and apply it to a completely different property in our c# object.
+            [JsonProperty("name")]
+            public string Name { get; set; }
+
+            [JsonProperty("description")]
+            public string Description { get; set; }
+
+            [JsonProperty("slots")]
+            public string Slots { get; set; }
         }
 
 

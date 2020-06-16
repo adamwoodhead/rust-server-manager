@@ -118,6 +118,8 @@ namespace ServerNode
 
             Log.Informational("Type 'help' to view available commands.");
 
+            Models.Connection.AsynchronousSocketListener.BeginListening();
+
             while (ShouldRun)
             {
                 string input = Console.ReadLine()?.Trim() ?? null;

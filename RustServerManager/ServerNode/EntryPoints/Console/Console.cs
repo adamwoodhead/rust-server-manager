@@ -9,8 +9,13 @@ namespace ServerNode.EntryPoints.Console
 {
     internal static class Console
     {
-        public static async Task ParseCommand(string command)
+        public static async Task ParseCommand(string command, bool fromSocket = false)
         {
+            if (fromSocket)
+            {
+                Log.Debug($"Socket Data: {command}");
+            }
+
             command = command.TrimEnd(';');
 
             string subject = command.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
@@ -79,6 +84,7 @@ namespace ServerNode.EntryPoints.Console
                         break;
 
                     default:
+                        Log.Warning($"Command not recognised <{subject}>");
                         break;
                 }
             }

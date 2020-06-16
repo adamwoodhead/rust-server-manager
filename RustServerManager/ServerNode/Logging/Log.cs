@@ -129,6 +129,14 @@ namespace ServerNode.Logging
                                 StreamWriters[logItem.type.ToString()].WriteLine($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
                             }
                         }
+
+                        if (logItem.type != LogType.DEBUGGING && logItem.type != LogType.VERBOSE)
+                        {
+                            if (Models.Connection.AsynchronousSocketListener.IsClientConnected)
+                            {
+                                Models.Connection.AsynchronousSocketListener.Send($"{logItem.recordedAt:G}: [{logItem.type.ToString().PadRight(longestTypeLength, '-')}] {logItem.message}");
+                            }
+                        }
                     }
                 })
                 {
