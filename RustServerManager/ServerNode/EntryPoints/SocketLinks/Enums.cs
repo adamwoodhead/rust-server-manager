@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ServerNode.EntryPoints.API
+namespace ServerNode.EntryPoints.SocketLinks
 {
     public enum NamedCommand
     {

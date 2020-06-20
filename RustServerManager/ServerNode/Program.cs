@@ -52,6 +52,8 @@ namespace ServerNode
         /// </summary>
         public static TaskCompletionSource<string> InteruptedInput { get; set; }
 
+        public static string ApiRootURL { get; set; }
+
         private static string[] LaunchArguments { get; set; }
 
         /// <summary>
@@ -66,6 +68,9 @@ namespace ServerNode
 
             WorkingDirectory = Directory.GetCurrentDirectory();
 
+            ApiRootURL = @"https://rustsmapi.adamwoodhead.co.uk/api/";
+
+            // TODO add the api root url into the launch arguments..
             ParseArguments(LaunchArguments);
 
             // only in windows debug mode
@@ -123,7 +128,7 @@ namespace ServerNode
 
             Log.Informational("Type 'help' to view available commands.");
 
-            EntryPoints.API.AsynchronousSocketListener.BeginListening();
+            EntryPoints.SocketLinks.AsynchronousSocketListener.BeginListening();
 
             while (ShouldRun)
             {

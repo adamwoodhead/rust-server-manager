@@ -1,7 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Text;
 
-namespace ServerNode.EntryPoints.API
+namespace ServerNode.EntryPoints.SocketLinks
 {
     // State object for reading client data asynchronously  
     public class StateObject

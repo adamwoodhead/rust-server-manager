@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ServerNode.EntryPoints.API
+namespace ServerNode.EntryPoints.SocketLinks
 {
     public class AsynchronousSocketListener
     {
@@ -142,7 +142,7 @@ namespace ServerNode.EntryPoints.API
                         {
                             if (packet.PassedValidation)
                             {
-                                EntryPoints.Console.Console.ParseCommand(packet.Content, true).Wait();
+                                //EntryPoints.Console.Console.ParseCommand(packet.Content, true).Wait();
                             }
                             else
                             {

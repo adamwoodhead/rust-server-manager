@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace ServerNode.EntryPoints.API
+namespace ServerNode.EntryPoints.SocketLinks
 {
     [JsonObject(MemberSerialization.OptIn)]
     internal class SocketPacket

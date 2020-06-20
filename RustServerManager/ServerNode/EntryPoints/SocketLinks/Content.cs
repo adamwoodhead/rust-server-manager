@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Text;
 
-namespace ServerNode.EntryPoints.API
+namespace ServerNode.EntryPoints.SocketLinks
 {
     [JsonObject(MemberSerialization.OptIn)]
     internal class Content

@@ -21,6 +21,7 @@
 	
 	<ItemGroup>
 	  <ProjectReference Include="..\..\..\vs-pty.net\src\Pty.Net\Pty.Net.csproj" />
+	  <ProjectReference Include="..\ApiConnector\ApiConnector.csproj" />
 	</ItemGroup>
 
 </Project>
