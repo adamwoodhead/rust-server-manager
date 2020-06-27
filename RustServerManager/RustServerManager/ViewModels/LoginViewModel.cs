@@ -72,17 +72,19 @@ namespace RustServerManager.ViewModels
             LoginWindow.Close();
         }
 
+        // We don't need to use SHA256 if sending through HTTPS, as it's already encrypted.
+        // If we really really want to use SHA256, I'll have to figure out how to get the API to consume it.
         private async void TryLogin()
         {
-            APIResponse response = await Utility.API.AuthenticateUserAsync(Username, LoginWindow.PasswordBox.Password.SHA256());
+            APIResponse response = await Utility.API.AuthenticateUserAsync(Username, LoginWindow.PasswordBox.Password);
 
             if (!response.IsError)
             {
                 App.Authentication = new Utility.Authentication()
                 {
                     ID = Convert.ToInt32(response.Message),
-                    Username = Username,
-                    Password = LoginWindow.PasswordBox.Password.SHA256()
+                    Email = Username,
+                    Password = LoginWindow.PasswordBox.Password
                 };
                 LoginWindow.Close();
             }

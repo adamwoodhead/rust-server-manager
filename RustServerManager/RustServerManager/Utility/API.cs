@@ -28,11 +28,20 @@ namespace RustServerManager.Utility
             HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
-        internal static async Task<APIResponse> AuthenticateUserAsync(string username, string password)
+        internal static async Task<APIResponse> AuthenticateUserAsync(string email, string password)
         {
-            APIRequest request = new APIRequest(RequestType.authenticate, username, password);
+            // The API seems to have a serious problem with the content sent using this, not sure why at the moment
+            // APIRequest request = new APIRequest(RequestType.authenticate, email, password);
 
-            HttpResponseMessage response = await HttpClient.PostAsJsonAsync("", request);
+            // This works at the moment
+            var credentials = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("email", email),
+                new KeyValuePair<string, string>("password", password)
+            });
+
+            // Just send as POST async for now, no JSON.
+            HttpResponseMessage response = await HttpClient.PostAsync("api/login", credentials);
 
             string body = await response.Content.ReadAsStringAsync();
 
@@ -83,13 +92,13 @@ namespace RustServerManager.Utility
             Request = requestType.ToString();
         }
 
-        public APIRequest(API.RequestType requestType, string username, string password)
+        public APIRequest(API.RequestType requestType, string email, string password)
         {
             Request = requestType.ToString();
 
             Authentication = new Authentication
             {
-                Username = username,
+                Email = email,
                 Password = password
             };
         }
@@ -101,8 +110,8 @@ namespace RustServerManager.Utility
         [JsonProperty("id")]
         internal int ID { get; set; }
 
-        [JsonProperty("username")]
-        internal string Username { get; set; }
+        [JsonProperty("email")]
+        internal string Email { get; set; }
 
         [JsonProperty("password")]
         internal string Password { get; set; }
